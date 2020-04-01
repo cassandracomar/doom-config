@@ -222,8 +222,8 @@
   (setq eshell-review-quick-commands nil)
   (setq eshell-smart-space-goes-to-end t)
 
-  (add-to-list 'eshell-visual-commands "htop")
-  (add-to-list 'eshell-visual-commands "openfortivpn")
+  ;(add-to-list 'eshell-visual-commands "htop")
+  ;(add-to-list 'eshell-visual-commands "openfortivpn")
   (setq eshell-exit-hook nil)
   (setq eshell-destroy-buffer-when-process-dies t)
   )

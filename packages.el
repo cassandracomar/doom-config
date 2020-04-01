@@ -50,6 +50,11 @@
 ;; our package manager can't deal with; see raxod502/straight.el#279)
 ;(package! builtin-package :recipe (:branch "develop"))
 
+;; version bumps
+(package! amx :pin "e512e74e8368f9b1cf83bee16dd2522f3b1dbeea")
+(package! lsp-mode :pin "9835e93f5526110bdeb164e42d8da16c1e39feb7")
+
+;; new packages
 (package! groovy-mode)
 (package! fish-completion)
 (package! bash-completion)
@@ -58,3 +63,5 @@
 (package! aweshell :recipe (:host github :repo "manateelazycat/aweshell"))
 (package! el-patch)
 (package! eshell-git-prompt)
+(package! eaf :recipe (:host github :repo "manateelazycat/emacs-application-framework"))
+(package! systemd)

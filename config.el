@@ -7,7 +7,7 @@
 ;; Some functionality uses this to identify you, e.g. GPG configuration, email
 ;; clients, file templates and snippets.
 (setq user-full-name "Cassandra Comar"
-			user-mail-address "cass@ndra.io")
+      user-mail-address "cass@ndra.io")
 
 ;; Doom exposes five (optional) variables for controlling fonts in Doom. Here
 ;; are the three important ones:
@@ -56,6 +56,7 @@
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 (setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
 (setq! auth-sources '("~/.authinfo.gpg"))
+(setenv "PAGER" "cat")
 
 ;; KEYBINDINGS
 (map! :leader "SPC" #'execute-extended-command)
@@ -63,44 +64,55 @@
 (map! :leader "DEL" #'projectile-find-file)
 (map! :nv "TAB" #'evil-indent
       :nv [tab] #'evil-indent)
-(map! :leader "SPC g s" #'magit)
+(map! :leader "g s" #'magit)
+(map! :leader "b b" #'switch-to-buffer)
+(map! :leader "o u" #'undo-tree-visualize)
 
 ;; PACKAGE CONFIG
 (after! evil-snipe
-	(setq! evil-snipe-scope 'visible)
-	(setq! evil-snipe-repeat-scope 'whole-visible)
-	(setq! evil-snipe-spillover-scope 'whole-visible))
+  (setq! evil-snipe-scope 'visible)
+  (setq! evil-snipe-repeat-scope 'whole-visible)
+  (setq! evil-snipe-spillover-scope 'whole-visible))
 
 ;; configure evil
 ; make evil-search-word look for symbol rather than word boundaries
 (defalias #'forward-evil-word #'forward-evil-symbol)
 (setq! evil-symbol-word-search t)
+
+; don't substitute globally by default
 (setq! evil-ex-substitute-global nil)
 
 ; set up smartparens
 (after! smartparens
-  (show-parens-global-mode +1))
+ (show-smartparens-global-mode +1))
 
 ;; set up LSP
 (after! lsp
-	(lsp-register-custom-settings
-	 '(("gopls.completeUnimported" t t)
-		 ("yaml.validate" t t)
-		 ("yaml.hover" t t)
-		 ("yaml.completion" t t)
-		 ("yaml.schemaStore.enable" t t)))
+  (lsp-register-custom-settings
+   '(("gopls.completeUnimported" t t)
+     ("yaml.validate" t t)
+     ("yaml.hover" t t)
+     ("yaml.completion" t t)
+     ("yaml.schemaStore.enable" t t)))
   (setq lsp-prefer-capf t)
   (require 'lsp-clients)
-	(lsp-treemacs-sync-mode 1)
-	)
+  (lsp-treemacs-sync-mode 1)
+  (setq lsp-auto-execute-action t)
+  (setq lsp-enable-semantic-highlighting t)
+  (setq lsp-before-save-edits t)
+  (setq lsp-enable-snippet t)
+  )
+; show lsp sideline on hover ... doom docs mark this as noisy so disable if it causes a problem
+(after! lsp-ui
+  (setq lsp-ui-sideline-show-hover t))
 (add-hook! sh-mode #'lsp)
 
 ; rust stuff
 (after! rustic
-	(setq rustic-lsp-server 'rust-analyzer)
-	(setq rustic-format-trigger 'on-save)
-	(setq rust-format-on-save t)
-	 )
+  (setq rustic-lsp-server 'rust-analyzer)
+  (setq rustic-format-trigger 'on-save)
+  (setq rust-format-on-save t)
+   )
 (add-hook! rustic-mode lsp-rust-analyzer-inlay-hints-mode)
 
 ; groovy stuff
@@ -119,4 +131,26 @@
 )
 (add-hook! org-mode visual-line-mode)
 
+; eaf
+(use-package! eaf
+  :defer t)
+
+; systemd
+(use-package! systemd
+  :defer t
+  :init (setq systemd-use-company-p t))
+
 (load! "+eshell")
+
+;; FUNCTIONS
+(defun ex-save-kill-buffer-and-close ()
+  (interactive)
+  (save-buffer)
+  (kill-this-buffer)
+  )
+(evil-ex-define-cmd "q" 'kill-this-buffer)
+(evil-ex-define-cmd "wq" 'ex-save-kill-buffer-and-close )
+(evil-ex-define-cmd "x" 'ex-save-kill-buffer-and-close )
+
+;; ensure aliases get saved
+(advice-remove #'eshell-write-aliases-list #'ignore)
