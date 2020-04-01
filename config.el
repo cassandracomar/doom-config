@@ -55,6 +55,7 @@
 ;; ENVIRONMENT
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 (setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
+(setq! auth-sources '("~/.authinfo.gpg"))
 
 ;; KEYBINDINGS
 (map! :leader "SPC" #'execute-extended-command)
@@ -70,11 +71,15 @@
 	(setq! evil-snipe-repeat-scope 'whole-visible)
 	(setq! evil-snipe-spillover-scope 'whole-visible))
 
-;; make evil-search-word look for symbol rather than word boundaries
+;; configure evil
+; make evil-search-word look for symbol rather than word boundaries
 (defalias #'forward-evil-word #'forward-evil-symbol)
 (setq! evil-symbol-word-search t)
-(setq! auth-sources '("~/.authinfo.gpg"))
 (setq! evil-ex-substitute-global nil)
+
+; set up smartparens
+(after! smartparens
+  (show-parens-global-mode +1))
 
 ;; set up LSP
 (after! lsp
