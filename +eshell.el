@@ -41,7 +41,6 @@
 (add-hook! eshell-pre-command-hook #'eshell-append-history)
 (add-hook! eshell-post-command-hook #'eshell-update-history)
 
-
 (defun pinentry-emacs (desc prompt ok error)
   (let ((str (read-passwd (concat (replace-regexp-in-string "%22" "\"" (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
     str))
@@ -167,7 +166,6 @@
       (set (make-local-variable 'term-term-name) eshell-term-name)
       (make-local-variable 'eshell-parent-buffer)
       (setq eshell-parent-buffer eshell-buf)
-                                    ;(term-exec term-buf program program nil args)
       (apply 'vterm-exec program args)
       (let ((proc (get-buffer-process term-buf)))
         (if (and proc (eq 'run (process-status proc)))
@@ -216,14 +214,22 @@
   (add-to-list 'eshell-modules-list 'eshell-rebind)
   (add-to-list 'eshell-modules-list 'eshell-tramp)
   (setq eshell-cmpl-dir-ignore "\\`\\(CVS\\)/\\'")
-  (setq su-auto-save-mode-lighter nil)
 
+  (require 'em-smart)
   (setq eshell-where-to-jump 'begin)
   (setq eshell-review-quick-commands nil)
   (setq eshell-smart-space-goes-to-end t)
+  (setq eshell-scroll-to-bottom-on-output nil)
+  (setq eshell-error-if-no-glob nil)
+  (add-hook 'eshell-mode-hook #'eshell-smart-initialize)
+  (add-hook 'eshell-pre-command-hook #'eshell-append-history)
+  (add-hook 'eshell-post-command-hook #'eshell-update-history)
+  (remove-hook 'eshell-mode-hook #'hide-mode-line-mode)
+  (setq vterm-kill-buffer-on-exit t)
+  ;; remove confirmation for process buffers
+  (setq kill-buffer-query-functions
+    (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
 
-  ;(add-to-list 'eshell-visual-commands "htop")
-  ;(add-to-list 'eshell-visual-commands "openfortivpn")
   (setq eshell-exit-hook nil)
   (setq eshell-destroy-buffer-when-process-dies t)
   )
@@ -265,130 +271,10 @@
                 (magit-status)
                 (eshell/echo)))
     ("grep" (apply #'algernon/git-grep args))
-    (_ (let ((command (s-join " " (append (list "git" command) args))))
+    (_ (let ((command (s-join " " (append (list "*git" command) args))))
          (message command)
-         (shell-command-to-string command)))))
+         (eshell-command-result command)))))
 
-   ;; =================================
-   ;; automatically request root access
-   ;; =================================
-
-(use-package! su
-  :after eshell
-  :init
-  (eval-when-compile
-    (with-demoted-errors "Load error: %s"
-      (require 'el-patch)))
-
-  (el-patch-feature su)
-
-  (el-patch-defcustom su-auto-make-directory t
-                      "Automatically become other users to create directories"
-                      :type 'boolean
-                      :group 'su)
-
-  (el-patch-defcustom su-auto-write-file t
-                      "Automatically become other users to write files"
-                      :type 'boolean
-                      :group 'su)
-
-  (el-patch-defcustom su-auto-read-file t
-                      "Automatically become other users to read files"
-                      :type 'boolean
-                      :group 'su)
-
-  (el-patch-defcustom su-enable-helm-integration t
-                      "Enable integration with helm"
-                      :type 'boolean
-                      :group 'su)
-
-  (el-patch-defcustom su-enable-semantic-integration t
-                      "Enable integration with semantic"
-                      :type 'boolean
-                      :group 'su)
-
-  (autoload #'su--nadvice-make-directory-auto-root "su")
-  (autoload #'su--nadvice-find-file-noselect "su")
-  (autoload #'su--nadvice-supress-find-file-hook "su")
-  (autoload #'su--nadvice-find-file-noselect-1 "su")
-
-  (el-patch-define-minor-mode su-mode
-                              "Automatically read and write files as users"
-                              :init-value nil
-                              :group 'su
-                              :global t
-                              (if su-mode
-                                  (progn
-                                    (when su-auto-make-directory
-                                      (advice-add 'basic-save-buffer :around
-                                                  #'su--nadvice-make-directory-auto-root)
-
-                                      (when su-enable-helm-integration
-                                        (with-eval-after-load 'helm-files
-                                          (advice-add 'helm-find-file-or-marked :around
-                                                      #'su--nadvice-make-directory-auto-root))))
-
-                                    (when su-auto-write-file
-                                      (add-hook 'find-file-hook #'su--edit-file-as-root-maybe)
-                                      (advice-add 'find-file-noselect :around
-                                                  #'su--nadvice-find-file-noselect)
-
-                                      (when su-enable-semantic-integration
-                                        (with-eval-after-load 'semantic/fw
-                                          (advice-add 'semantic-find-file-noselect :around
-                                                      #'su--nadvice-supress-find-file-hook))))
-
-                                    (when su-auto-read-file
-                                      (advice-add 'find-file-noselect-1 :around
-                                                  #'su--nadvice-find-file-noselect-1)))
-
-                                (remove-hook 'find-file-hook #'su--edit-file-as-root-maybe)
-                                (advice-remove 'basic-save-buffer
-                                               #'su--nadvice-make-directory-auto-root)
-                                (advice-remove 'helm-find-file-or-marked
-                                               #'su--nadvice-make-directory-auto-root)
-                                (advice-remove 'find-file-noselect
-                                               #'su--nadvice-find-file-noselect)
-                                (advice-remove 'semantic-find-file-noselect
-                                               #'su--nadvice-supress-find-file-hook)
-                                (advice-remove 'find-file-noselect-1
-                                               #'su--nadvice-find-file-noselect-1)))
-
-  (su-mode +1)
-
-  :config
-  (eval-when-compile
-    (with-demoted-errors "Load error: %s"
-      (require 'el-patch)))
-
-
-  (defun nadvice/su-disable-maybe-setup (flag)
-    (if (and (not flag) (bound-and-true-p su-auto-save-mode))
-        (su-auto-save-mode -1)))
-
-  (el-patch-feature su)
-  (el-patch-define-minor-mode su-auto-save-mode
-                              "Automatically save buffer as root"
-                              :lighter su-auto-save-mode-lighter
-                              (if su-auto-save-mode
-                                  ;; Ensure that su-auto-save-mode is visible by moving it to the
-                                  ;; beginning of the minor mode list
-                                  (progn
-                                    (el-patch-add
-                                     (advice-add 'set-buffer-modified-p :before
-                                                 #'nadvice/su-disable-maybe-setup))
-                                    (let ((su-auto-save-mode-alist-entry
-                                           (assoc 'su-auto-save-mode minor-mode-alist)))
-                                      (setq minor-mode-alist
-                                            (delete su-auto-save-mode-alist-entry minor-mode-alist))
-                                      (push su-auto-save-mode-alist-entry minor-mode-alist))
-                                    (add-hook 'before-save-hook #'su--before-save-hook nil t))
-
-                                (el-patch-add
-                                 (advice-remove 'set-buffer-modified-p
-                                                #'nadvice/su-disable-maybe-setup))
-                                (remove-hook 'before-save-hook #'su--before-save-hook t)))
-  )
 (use-package! fish-completion
   :after bash-completion
   :config
@@ -407,7 +293,7 @@
   (map! :map eshell-mode-map :i "C-d" #'eshell-send-eof-to-process)
   )
 
-(add-hook! eshell-mode '(su-mode with-editor-export-git-editor with-editor-export-editor global-fish-completion-mode))
+(add-hook! eshell-mode '(with-editor-export-git-editor with-editor-export-editor global-fish-completion-mode solaire-mode))
 
 (defun algernon/git-grep (&rest args)
   (interactive)
@@ -446,3 +332,16 @@
 (defun algernon/git-pr (pr branch)
   (eshell-do-eval
    (eshell-parse-command (format "git fetch origin pull/%s/head:%s" pr branch)) t))
+
+(defun eshell-find-single-file (file-name)
+  (let ((file-writeable? (file-writable-p file-name)))
+    (if file-writeable?
+        (find-file file-name)
+      (doom/sudo-find-file file-name))))
+
+(defun eshell/find-file (&rest args)
+  "Open file even if it is not owned by you via sudo. Only adds sudo if needed."
+  (mapcar (lambda (f) (eshell-find-single-file f)) args))
+
+(defun eshell/vim (&rest args)
+  (eshell/find-file args))
