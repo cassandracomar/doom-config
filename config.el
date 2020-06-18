@@ -205,10 +205,6 @@
     (add-to-list '+org-babel-mode-alist '(es . elasticsearch))
     )
 
-; eaf
-(use-package! eaf
-  :defer t)
-
 ; systemd
 (use-package! systemd
   :defer t

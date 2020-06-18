@@ -63,7 +63,6 @@
 (package! aweshell :recipe (:host github :repo "manateelazycat/aweshell"))
 (package! el-patch)
 (package! eshell-git-prompt)
-(package! eaf :recipe (:host github :repo "manateelazycat/emacs-application-framework"))
 (package! systemd)
 (package! hercules)
 (package! magit-delta :recipe (:host github :repo "dandavison/magit-delta"))
