@@ -52,7 +52,7 @@
 
 ;; version bumps
 (package! amx :pin "e512e74e8368f9b1cf83bee16dd2522f3b1dbeea")
-(package! lsp-mode :pin "9835e93f5526110bdeb164e42d8da16c1e39feb7")
+(package! lsp-mode :recipe (:repo "cassandracomar/lsp-mode") :pin "a748df2b8b63b3d1a3ca8ce99149a6ff966f8083")
 
 ;; new packages
 (package! groovy-mode)
@@ -65,3 +65,7 @@
 (package! eshell-git-prompt)
 (package! eaf :recipe (:host github :repo "manateelazycat/emacs-application-framework"))
 (package! systemd)
+(package! hercules)
+(package! magit-delta :recipe (:host github :repo "dandavison/magit-delta"))
+(package! es-mode)
+(package! xterm-color :pin "d53a39a5af72cd340ebf686e59a37289b4cb6e8c")

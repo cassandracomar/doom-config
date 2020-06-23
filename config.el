@@ -55,10 +55,14 @@
 ;; ENVIRONMENT
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 (setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
-(setq! auth-sources '("~/.authinfo.gpg"))
+(setq! auth-sources '("/home/cassandra/.authinfo.gpg"))
 (setenv "PAGER" "cat")
+(setenv "CLUSTER_STATE_DIR" "/home/cassandra/src/cluster-state")
+(setenv "BAT_PAGER" "cat")
+(setq epa-file-select-keys t)
 
 ;; KEYBINDINGS
+(setq doom-localleader-key ",")
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "p t" #'+treemacs/toggle)
 (map! :leader "DEL" #'projectile-find-file)
@@ -67,6 +71,30 @@
 (map! :leader "g s" #'magit)
 (map! :leader "b b" #'switch-to-buffer)
 (map! :leader "o u" #'undo-tree-visualize)
+(map! :leader
+      "0" #'winum-select-window-0-or-10
+      "1" #'winum-select-window-1
+      "2" #'winum-select-window-2
+      "3" #'winum-select-window-3
+      "4" #'winum-select-window-4
+      "5" #'winum-select-window-5
+      "6" #'winum-select-window-6
+      "7" #'winum-select-window-7
+      "8" #'winum-select-window-8
+      "9" #'winum-select-window-9)
+
+;; TRANSIENT STATES
+(use-package! hercules)
+
+(general-def
+  :prefix-map 'custom-paste-map
+  "C-j" #'evil-paste-pop-next
+  "C-k" #'evil-paste-pop)
+
+(hercules-def
+ :show-funs '(evil-paste-after evil-paste-before)
+ :keymap 'custom-paste-map
+ :transient t)
 
 ;; PACKAGE CONFIG
 (after! evil-snipe
@@ -86,25 +114,52 @@
 (after! smartparens
  (show-smartparens-global-mode +1))
 
+;; magit
+(use-package! magit-delta
+  :after magit
+  :preface
+  ;; (setq
+  ;;   magit-delta-default-dark-theme "OneHalfDark"
+  ;;   magit-delta-default-light-theme "OneHalfLight")
+  :config
+  (magit-delta-mode))
+
+(after! magit
+  (setq with-editor-emacsclient-executable nil))
+
 ;; set up LSP
-(after! lsp
-  (lsp-register-custom-settings
-   '(("gopls.completeUnimported" t t)
-     ("yaml.validate" t t)
-     ("yaml.hover" t t)
-     ("yaml.completion" t t)
-     ("yaml.schemaStore.enable" t t)))
+(use-package! lsp
+  :defer t
+  :init
+  (setq lsp-rust-unstable-features t)
+  (setq lsp-rust-analyzer-server-display-inlay-hints t)
+  (setq lsp-rust-analyzer-display-parameter-hints t)
+  (setq lsp-rust-analyzer-display-chaining-hints t)
   (setq lsp-prefer-capf t)
   (require 'lsp-clients)
-  (lsp-treemacs-sync-mode 1)
+  ;(lsp-treemacs-sync-mode 1)
   (setq lsp-auto-execute-action t)
-  (setq lsp-enable-semantic-highlighting t)
+  (setq lsp-semantic-highlighting :immediate)
   (setq lsp-before-save-edits t)
   (setq lsp-enable-snippet t)
+  (setq rustic-lsp-server 'rust-analyzer)
+  (setq lsp-rust-server 'rust-analyzer)
+  :config
+  (puthash "kubernetes" "*.yaml" lsp-yaml-schemas)
+  (setq company-minimum-prefix-length 1
+        company-idle-delay 0.0)
+  (setq rustic-lsp-server 'rust-analyzer)
+  (setq lsp-rust-server 'rust-analyzer)
   )
+
+(setq lsp-rust-server 'rust-analyzer)
+(setq rustic-lsp-server 'rust-analyzer)
+
 ; show lsp sideline on hover ... doom docs mark this as noisy so disable if it causes a problem
 (after! lsp-ui
   (setq lsp-ui-sideline-show-hover t))
+
+; sh stuff
 (add-hook! sh-mode #'lsp)
 
 ; rust stuff
@@ -112,8 +167,14 @@
   (setq rustic-lsp-server 'rust-analyzer)
   (setq rustic-format-trigger 'on-save)
   (setq rust-format-on-save t)
-   )
-(add-hook! rustic-mode lsp-rust-analyzer-inlay-hints-mode)
+  )
+(add-hook! rustic-mode-hook
+           (setq lsp-rust-server 'rust-analyzer)
+           (setq rustic-lsp-server 'rust-analyzer))
+(add-hook! 'lsp-on-idle-hook #'lsp-rust-analyzer-inlay-hints-change-handler)
+
+; haskell stuff
+(add-hook! haskell-mode lsp)
 
 ; groovy stuff
 (after! groovy-mode
@@ -131,6 +192,22 @@
 )
 (add-hook! org-mode visual-line-mode)
 
+(setq! org-roam-directory "~/todo/")
+(after! org-journal
+  (setq org-journal-date-prefix "+TITLE: ")
+  (setq org-journal-file-format "%Y-%m-%d.org")
+  (setq org-journal-date-format "%A, %d %B %Y"))
+
+
+; elasticsearch
+(use-package! es-mode
+    :after org
+    :mode ("\\.es\\'" . #'es-mode)
+    :config
+    ;(add-to-list 'org-babel-load-languages '(elasticsearch . t))
+    (add-to-list '+org-babel-mode-alist '(es . elasticsearch))
+    )
+
 ; eaf
 (use-package! eaf
   :defer t)
@@ -139,6 +216,8 @@
 (use-package! systemd
   :defer t
   :init (setq systemd-use-company-p t))
+
+; yaml
 
 (load! "+eshell")
 
