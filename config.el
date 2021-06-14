@@ -244,7 +244,9 @@
                                         ; haskell stuff
 (add-hook! haskell-mode lsp)
 (after! lsp-haskell
-  (set-ligatures! 'haskell-mode :lambda "\\" :composition "."))
+  (set-ligatures! 'haskell-mode
+    :lambda "\\"
+    :composition "."))
 
                                         ; groovy stuff
 (after! groovy-mode
@@ -279,21 +281,18 @@
   (setq org-journal-date-format "%A, %d %B %Y"))
 
 
-                                        ; elasticsearch
+; elasticsearch
 (use-package! es-mode
   :after org
   :mode ("\\.es\\'" . #'es-mode)
   :config
-                                        ;(add-to-list 'org-babel-load-languages '(elasticsearch . t))
-  (add-to-list '+org-babel-mode-alist '(es . elasticsearch))
-  )
+  ;; (add-to-list 'org-babel-load-languages '(elasticsearch . t))
+  (add-to-list '+org-babel-mode-alist '(es . elasticsearch)))
 
-                                        ; systemd
+; systemd
 (use-package! systemd
   :defer t
   :init (setq systemd-use-company-p t))
-
-                                        ; yaml
 
 (load! "+eshell")
 
