@@ -40,14 +40,7 @@
 
 (add-hook! eshell-pre-command-hook #'eshell-append-history)
 (add-hook! eshell-post-command-hook #'eshell-update-history)
-
-(defun pinentry-emacs (desc prompt ok error)
-  (let ((str (read-passwd (concat (replace-regexp-in-string "%22" "\"" (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
-    str))
-
-(let ((tty (shell-command-to-string "tty")))
-  (setenv "GPG_TTY" tty)
-  (setenv "SSH_AUTH_SOCK" "/run/user/1000/gnupg/S.gpg-agent.ssh"))
+(add-hook! eshell-post-command-hook #'direnv-update-directory-environment)
 
 (defun tramp-aware-woman (man-page-path)
   (interactive)
@@ -62,56 +55,6 @@
             man-page-path))
        man-page-path))))
 
-(defun pcmpl-git-commands ()
-  "Return the most common git commands by parsing the git output."
-  (with-temp-buffer
-    (call-process-shell-command "git" nil (current-buffer) nil "help" "--all")
-    (goto-char 0)
-    (search-forward "Main Porcelain Commands")
-    (let (commands)
-      (while (re-search-forward
-              "^[[:blank:]]+\\([[:word:]-.]+\\)[[:blank:]]*\\([[:word:]-.]+\\)?"
-              nil t)
-        (push (match-string 1) commands)
-        (when (match-string 2)
-          (push (match-string 2) commands)))
-      (sort commands #'string<))))
-
-(defconst pcmpl-git-commands (pcmpl-git-commands)
-  "List of `git' commands.")
-
-(defvar pcmpl-git-ref-list-cmd "git for-each-ref refs/ --format='%(refname)'"
-  "The `git' command to run to get a list of refs.")
-
-(defun pcmpl-git-get-refs (type)
-  "Return a list of `git' refs filtered by TYPE."
-  (with-temp-buffer
-    (insert (shell-command-to-string pcmpl-git-ref-list-cmd))
-    (goto-char (point-min))
-    (let (refs)
-      (while (re-search-forward (concat "^refs/" type "/\\(.+\\)$") nil t)
-        (push (match-string 1) refs))
-      (nreverse refs))))
-
-(defun pcmpl-git-remotes ()
-  "Return a list of remote repositories."
-  (split-string (shell-command-to-string "git remote")))
-
-(defun pcomplete/git ()
-  "Completion for `git'."
-  ;; Completion for the command argument.
-  (pcomplete-here* pcmpl-git-commands)
-  (cond
-   ((pcomplete-match "help" 1)
-    (pcomplete-here* pcmpl-git-commands))
-   ((pcomplete-match (regexp-opt '("pull" "push")) 1)
-    (pcomplete-here (pcmpl-git-remotes)))
-   ;; provide branch completion for the command `checkout'.
-   ((pcomplete-match "checkout" 1)
-    (pcomplete-here* (append (pcmpl-git-get-refs "heads")
-                             (pcmpl-git-get-refs "tags"))))
-   (t
-    (while (pcomplete-here (pcomplete-entries))))))
 
 (defun vterm-exec (&rest args)
   (interactive)
@@ -232,6 +175,9 @@
 
   (setq eshell-exit-hook nil)
   (setq eshell-destroy-buffer-when-process-dies t)
+
+  (setq company-minimum-prefix-length 0
+        company-idle-delay 0.0)
   )
 
 (after! tramp
@@ -260,7 +206,6 @@
                  (tramp-copy-recursive t)))
   )
 
-; not lazy-loaded on purpose
 (use-package! aweshell)
 
 (defun eshell/git (command &rest args)
@@ -285,15 +230,19 @@
   :after eshell
   :config
   (eshell-git-prompt-use-theme 'powerline))
+(use-package! awscli-capf
+  :after eshell)
 
 (add-hook! eshell-mode
   (setenv "TERM" "xterm-256color")
   (map! :map eshell-mode-map :ni "C-r" #'eshell/ivy-history)
   (map! :map eshell-command-map :ni "C-r" #'eshell/ivy-history)
   (map! :map eshell-mode-map :i "C-d" #'eshell-send-eof-to-process)
+  (map! :map eshell-mode-map :nv
+        "$" #'evil-end-of-line)
   )
 
-(add-hook! eshell-mode '(with-editor-export-git-editor with-editor-export-editor global-fish-completion-mode solaire-mode))
+(add-hook! eshell-mode '(with-editor-export-git-editor with-editor-export-editor global-fish-completion-mode solaire-mode awscli-capf-add))
 
 (defun algernon/git-grep (&rest args)
   (interactive)

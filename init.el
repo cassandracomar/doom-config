@@ -19,7 +19,7 @@
        ;;japanese
 
        :completion
-       company           ; the ultimate code completion backend
+       company             ; the ultimate code completion backend
        ;;helm              ; the *other* search engine for love and life
        ;;ido               ; the other *other* search engine...
        (ivy +prescient +icons)               ; a search engine for love and life
@@ -38,7 +38,7 @@
        ;;neotree           ; a project drawer, like NERDTree for vim
        ophints           ; highlight the region an operation acts on
        (popup +defaults)   ; tame sudden yet inevitable temporary windows
-       (pretty-code +hasklig)       ; ligatures or substitute text with pretty symbols
+       (ligatures +iosevka +extra)         ; ligatures or substitute text with pretty symbols
        ;;tabs              ; an tab bar for Emacs
        treemacs          ; a project drawer, like neotree but cooler
        unicode           ; extended unicode support for various languages
@@ -47,6 +47,8 @@
        (window-select +numbers)     ; visually switch windows
        workspaces        ; tab emulation, persistence & separate workspaces
        ;;zen               ; distraction-free coding or writing
+       (emoji +github +unicode)
+       minimap
 
        :editor
        (evil +everywhere); come to the dark side, we have cookies
@@ -63,14 +65,15 @@
        word-wrap         ; soft wrapping with language-aware indent
 
        :emacs
-       dired             ; making dired pretty [functional]
+       (dired +ranger +icons)             ; making dired pretty [functional]
        electric          ; smarter, keyword-based electric-indent
-       ;ibuffer         ; interactive buffer management
+       (ibuffer +icons)         ; interactive buffer management
        vc                ; version-control and Emacs, sitting in a tree
+       (undo +tree)
 
        :term
        eshell            ; a consistent, cross-platform shell (WIP)
-       ;;shell             ; a terminal REPL for Emacs
+       shell             ; a terminal REPL for Emacs
        term              ; terminals in Emacs
        vterm             ; another terminals in Emacs
 
@@ -81,7 +84,7 @@
 
        :tools
        ansible
-       debugger          ; FIXME stepping through code, to help you add bugs
+       (debugger +lsp)          ; FIXME stepping through code, to help you add bugs
        direnv
        docker
        editorconfig      ; let someone else argue about tabs vs spaces
@@ -89,7 +92,7 @@
        (eval +overlay)     ; run code, run (also, repls)
        gist              ; interacting with github gists
        lookup              ; navigate your code and its documentation
-       lsp
+       (lsp +peek)
        ;;macos             ; MacOS-specific commands
        (magit +forge)    ; a git porcelain for Emacs
        make              ; run make tasks from Emacs
@@ -106,7 +109,7 @@
        ;;assembly          ; assembly for fun or debugging
        ;;cc                ; C/C++/Obj-C madness
        ;;clojure           ; java with a lisp
-       ;;common-lisp       ; if you've seen one lisp, you've seen them all
+       common-lisp       ; if you've seen one lisp, you've seen them all
        ;;coq               ; proofs-as-programs
        ;;crystal           ; ruby at the speed of c
        ;;csharp            ; unity, .NET, and mono shenanigans
@@ -137,7 +140,7 @@
        ;;nim               ; python + lisp at the speed of c
        nix               ; I hereby declare "nix geht mehr!"
        ;;ocaml             ; an objective camel
-       (org +dragndrop +gnuplot +hugo +journal +pandoc +roam)               ; organize your plain life in plain text
+       (org +dragndrop +gnuplot +hugo +journal +pandoc +roam +pretty)               ; organize your plain life in plain text
        ;;perl              ; write code no one else can comprehend
        ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
@@ -157,6 +160,7 @@
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
        ;;web               ; the tubes
+       (yaml +lsp)
 
        :email
        ;;(mu4e +gmail)
