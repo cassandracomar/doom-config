@@ -72,3 +72,6 @@
 (package! awscli-capf)
 (package! lsp-treemacs)
 (package! company-prescient)
+(package! lilypond)
+(package! ob-lilypond :recipe (:host github :repo "mjago/ob-lilypond"))
+(package! jsonnet-mode)

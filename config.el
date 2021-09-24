@@ -64,7 +64,7 @@
   (let ((str (read-passwd (concat (replace-regexp-in-string "%22" "\"" (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
     str))
 (setq auth-sources '("/home/cassandra/.authinfo.gpg"))
-(setq epa-file-encrypt-to '("cass@ndra.io"))
+(setq epa-file-encrypt-to nil)
 (setq epa-file-select-keys t)
 (setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
 (defun hack-pinentry-startup ()
@@ -308,4 +308,8 @@
 
 ;; ensure aliases get saved
 (advice-remove #'eshell-write-aliases-list #'ignore)
+
+(use-package! jsonnet-mode
+  :defer t
+  :mode "(\\.libsonnet|\\.jsonnet")
                                         ;(advice-remove #'eshell/cat #'aweshell-cat-with-syntax-highlight)
