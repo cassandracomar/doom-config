@@ -19,7 +19,7 @@
 ;;
 ;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
 ;; font string. You generally only need these two:
-(setq doom-font (font-spec :family "Iosevka Custom" :size 32))
+(setq doom-font (font-spec :family "Iosevka Custom" :size 16))
 
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
@@ -51,28 +51,32 @@
 ;;
 ;; You can also try 'gd' (or 'C-c g d') to jump to their definition and see how
 ;; they are implemented.
+;; (general-auto-unbind-keys :off)
+;; (remove-hook 'doom-after-init-modules-hook #'general-auto-unbind-keys)
 
 ;; ENVIRONMENT
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 (setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
-(setq! with-editor-emacsclient-executable "/home/cassandra/.nix-profile/bin/emacsclient")
+(setq! with-editor-emacsclient-executable "/etc/profiles/per-user/cassandra/bin/emacsclient")
+;; (setq! forge-database-connector 'sqlite-builtin)
 
 ; set up env vars from encrypted sources
 (defun pinentry-emacs (desc prompt ok error)
   (let ((str (read-passwd (concat (replace-regexp-in-string "%22" "\"" (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
     str))
 (setq auth-sources '("/home/cassandra/.authinfo.gpg"))
-(setq epa-file-encrypt-to nil)
-(setq epa-file-select-keys t)
+(setq epa-file-encrypt-to '("cassandra@ditto.live"))
+(setq epa-file-select-keys nil)
 (setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
 (defun hack-pinentry-startup ()
   (let ((tty (shell-command-to-string "tty")))
                 (setenv "DISPLAY" ":0")
                 (setenv "GPG_TTY" tty)
                 (setenv "SSH_AUTH_SOCK" "/run/user/1000/gnupg/S.gpg-agent.ssh")
-                (load-library "/home/cassandra/.secrets.el.gpg")))
+                (load-library "/home/cassandra/.secrets.el.gpg")
+    ))
 (if (daemonp)
     (add-hook 'after-make-frame-functions
           (lambda (frame)
@@ -165,7 +169,7 @@
 
 ;; magit
 (after! magit
-  (setq with-editor-emacsclient-executable "/home/cassandra/.nix-profile/bin/emacsclient"))
+  (setq with-editor-emacsclient-executable "/etc/profiles/per-user/cassandra/bin/emacsclient"))
 
 (use-package! magit-delta
   :defer
@@ -185,17 +189,24 @@
   (setq lsp-rust-analyzer-server-display-inlay-hints t)
   (setq lsp-rust-analyzer-display-parameter-hints t)
   (setq lsp-rust-analyzer-display-chaining-hints t)
+  (setq lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
+  (setq lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names t)
+  (setq lsp-rust-analyzer-display-closure-return-type-hints t)
+  (setq lsp-rust-analyzer-display-reborrow-hints t)
   (setq lsp-rust-analyzer-proc-macro-enable t)
   (setq lsp-rust-analyzer-cargo-load-out-dirs-from-check t)
   (setq lsp-rust-unstable-features t)
-  (setq lsp-prefer-capf t)
+  ;; (setq lsp-completion-provider :capf)
   (setq lsp-auto-execute-action t)
   (setq lsp-before-save-edits t)
   (setq lsp-enable-snippet t)
   (setq lsp-rust-analyzer-cargo-watch-enable t)
-  (setq lsp-rust-analyzer-cargo-all-targets t)
+  ;; (setq lsp-rust-analyzer-cargo-all-targets t)
   (setq lsp-rust-analyzer-cargo-watch-command "clippy")
-  (setq lsp-rust-analyzer-cargo-watch-args "--tests")
+  (setq lsp-rust-analyzer-cargo-watch-args ["--tests"])
+  ;; (setq lsp-rust-analyzer-cargo-unset-test ["core", "derivative"])
+  (setq lsp-rust-analyzer-experimental-proc-attr-macros t)
+  ;; (setq lsp-rust-analyzer-diagnostics-disabled ["unresolved-proc-macro"])
   ;; (setq lsp-rust-features ["k8s_integration"])
   :config
   (puthash "kubernetes" "*.yaml" lsp-yaml-schemas)
@@ -215,7 +226,27 @@
                                        :cwd nil))
     )
   )
+;; (define-hostmode poly-rust-hostmode
+;;   :mode 'rustic-mode
+;;   :protect-syntax nil
+;;   :protect-font-lock nil)
 
+;; (define-auto-innermode poly-md-innermode
+;;   :mode 'markdown-mode
+;;   :fallback-mode 'host
+;;   :head-mode 'host
+;;   :tail-mode 'host
+;;   :head-matcher "^[ \t]*///.*\n")
+;; (define-auto-innermode poly-md-rust-innermode
+;;   :mode 'rustic-mode
+;;   :fallback-mode 'poly-md-innermode
+;;   :head-mode 'poly-md-innermode
+;;   :tail-mode 'poly-md-innermode
+;;   :head-matcher ".*```rust.*"
+;;   :tail-matcher "```")
+;; (define-polymode poly-rust-mode
+;;   :hostmode 'poly-rust-hostmode
+;;   :innermodes '(poly-md-innermode poly-md-rust-innermode))
 
                                         ; show lsp sideline on hover ... doom docs mark this as noisy so disable if it causes a problem
 (after! lsp-ui
@@ -229,35 +260,37 @@
                     :server-id 'nix))
   )
 (add-hook! nix-mode-hook #'lsp)
+(setq! nix-nixfmt-bin "nixpkgs-fmt")
+(set-formatter! 'nixfmt "nixpkgs-fmt")
 
-(use-package! lsp-treemacs
-  :after lsp)
-(after! lsp-treemacs
-  (lsp-treemacs-sync-mode 1))
+;; (use-package! lsp-treemacs
+;;   :after lsp)
+;; (after! lsp-treemacs
+;;   (lsp-treemacs-sync-mode 1))
 
-                                        ; sh stuff
+                                        ;; sh stuff
 (add-hook! sh-mode #'lsp)
 
-                                        ; rust stuff
+                                        ;; rust stuff
 (add-hook! 'lsp-on-idle-hook #'lsp-rust-analyzer-inlay-hints-change-handler)
 
                                         ; haskell stuff
-(add-hook! haskell-mode lsp)
+(add-hook! haskell-mode #'lsp)
 (after! lsp-haskell
   (set-ligatures! 'haskell-mode
     :lambda "\\"
     :composition "."))
 
-                                        ; groovy stuff
+;;                                         groovy stuff
 (after! groovy-mode
   (add-to-list 'auto-mode-alist '("Jenkinsfile$" . groovy-mode)))
 
-                                        ; yaml-mode
+;;                                         ; yaml-mode
 (after! yaml-mode
   (add-to-list 'auto-mode-alist '("\\.yaml\\.j2\\'" . yaml-mode)))
 
-                                        ; org-mode
-                                        ;(use-package! org-babel :defer false)
+;; projectile
+(add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))
 
 (after! evil-org
   (setq org-want-todo-bindings t)
@@ -265,7 +298,7 @@
   (setq org-todo-keywords '((sequence "TODO(t)" "WORKING(w!)" "BLOCKED(b@/!)" "STALLED(s!)" "|" "DONE(d!)" "DEFERRED(f!)" "CANCELED(c)")))
   (evil-org-set-key-theme '(textobjects insert navigation additional shift todo heading))
   )
-(add-hook! org-mode visual-line-mode)
+;; (add-hook! org-mode visual-line-mode)
 
 (map! :after evil-org
       :map evil-org-mode-map
@@ -294,6 +327,11 @@
   :defer t
   :init (setq systemd-use-company-p t))
 
+; jsonnett
+(use-package! jsonnet-mode
+  :defer t
+  :mode "(\\.libsonnet|\\.jsonnet")
+
 (load! "+eshell")
 
 ;; FUNCTIONS
@@ -307,9 +345,18 @@
 (evil-ex-define-cmd "x" 'ex-save-kill-buffer-and-close )
 
 ;; ensure aliases get saved
-(advice-remove #'eshell-write-aliases-list #'ignore)
+;; (advice-remove #'eshell-write-aliases-list #'ignore)
 
-(use-package! jsonnet-mode
-  :defer t
-  :mode "(\\.libsonnet|\\.jsonnet")
-                                        ;(advice-remove #'eshell/cat #'aweshell-cat-with-syntax-highlight)
+(set-eshell-alias!
+ "s" "eshell/git status"
+ "hydra" "cd ~/src/github.com/getditto/ditto/hydra"
+ "deploy" "~/src/github.com/getditto/ditto/hydra/script/deploy $*"
+ "vdeploy" "~/src/github.com/getditto/ditto/hydra/script/vdeploy $*"
+ "devctl" "kubectl --context cassandracomar@dev.k8s.ditto.live $*"
+ "stgctl" "kubectl --context cassandracomar@stg.k8s.ditto.live $*"
+ "prodctl" "kubectl --context cassandra@prod.k8s.ditto.live $*"
+ "particlestgctl" "kubectl --context cassandracomar@particle-stg.k8s.ditto.live $*"
+ "particleprodctl" "kubectl --context cassandracomar@particle-prod.k8s.ditto.live $*"
+ "update-workspace-cargolock" "for f in { fd -c never Cargo.lock .. } { pushd ${dirname $f}; cargo update -w --offline; popd }"
+ "check-workspace-cargolock" "for f in { fd -c never Cargo.lock .. } { pushd ${dirname $f}; cargo update -w --locked; popd }"
+ )

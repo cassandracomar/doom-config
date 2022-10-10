@@ -152,7 +152,7 @@
   (add-to-list 'eshell-preoutput-filter-functions 'xterm-color-filter)
   (setq eshell-output-filter-functions
         (remove 'eshell-handle-ansi-color eshell-output-filter-functions))
-  (setq with-editor-emacsclient-executable "/usr/bin/emacsclient")
+  ;; (setq with-editor-emacsclient-executable "/usr/bin/emacsclient")
 
   (add-to-list 'eshell-modules-list 'eshell-rebind)
   (add-to-list 'eshell-modules-list 'eshell-tramp)
@@ -242,7 +242,14 @@
         "$" #'evil-end-of-line)
   )
 
-(add-hook! eshell-mode '(with-editor-export-git-editor with-editor-export-editor global-fish-completion-mode solaire-mode awscli-capf-add))
+(add-hook! eshell-mode
+           #'with-editor-export-git-editor
+           #'with-editor-export-editor
+           #'global-fish-completion-mode
+           #'solaire-mode
+           #'awscli-capf-add
+           #'(lambda () (eshell/alias "git"))
+           )
 
 (defun algernon/git-grep (&rest args)
   (interactive)
@@ -290,7 +297,7 @@
 
 (defun eshell/find-file (&rest args)
   "Open file even if it is not owned by you via sudo. Only adds sudo if needed."
-  (mapcar (lambda (f) (eshell-find-single-file f)) args))
+  (mapcar #'eshell-find-single-file args))
 
 (defun eshell/vim (&rest args)
-  (eshell/find-file args))
+  (mapcar #'eshell-find-single-file args))

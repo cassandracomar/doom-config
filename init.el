@@ -14,6 +14,10 @@
 ;;      Alternatively, press 'gd' (or 'C-c g d') on a module to browse its
 ;;      directory (for easy access to its source code).
 
+;; (defadvice! fixed-doom-module-list (fn &rest args)
+;;   :around #'doom-module-list
+;;   (nreverse (apply fn args)))
+
 (doom! :input
        ;;chinese
        ;;japanese
@@ -47,7 +51,7 @@
        (window-select +numbers)     ; visually switch windows
        workspaces        ; tab emulation, persistence & separate workspaces
        ;;zen               ; distraction-free coding or writing
-       (emoji +github +unicode)
+       ;(emoji +github +unicode)
        minimap
 
        :editor
@@ -79,7 +83,7 @@
 
        :checkers
        syntax              ; tasing you for every semicolon you forget
-       spell             ; tasing you for misspelling mispelling
+       ;spell             ; tasing you for misspelling mispelling
        grammar           ; tasing grammar mistake every you make
 
        :tools
@@ -176,3 +180,7 @@
        :config
        ;;literate
        (default +bindings +smartparens))
+
+(setq native-comp-deferred-compilation nil)
+(after! (doom-packages straight)
+  (setq straight--native-comp-available t))

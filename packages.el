@@ -50,9 +50,14 @@
 ;; our package manager can't deal with; see raxod502/straight.el#279)
 ;(package! builtin-package :recipe (:branch "develop"))
 
-;; version bumps
+(package! code-review :disable t)
+(package! docker-tramp :disable t)
+; version bumps
 (unpin! lsp-mode)
+(package! lsp-mode
+  :recipe (:host github :repo "emacs-lsp/lsp-mode") :pin "d230fd1170ead71276bd5b7a2fc5072fea8fc933")
 (package! persp-mode :pin "14325c11f7a347717d7c3780f29b24a38c68fbfc")
+(package! polymode)
 
 ;; new packages
 (package! groovy-mode)
@@ -75,3 +80,4 @@
 (package! lilypond)
 (package! ob-lilypond :recipe (:host github :repo "mjago/ob-lilypond"))
 (package! jsonnet-mode)
+(package! lsp-ivy :pin "9ecf4dd9b1207109802bd1882aa621eb1c385106")
