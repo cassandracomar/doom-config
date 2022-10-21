@@ -65,7 +65,7 @@
 (package! bash-completion)
 (package! quark-emacs-tramp :recipe (:host github :repo "PythonNut/quark-emacs" :branch "master"))
 (package! su :recipe (:host github :repo "PythonNut/su.el"))
-(package! aweshell :recipe (:local-repo "~/src/github.com/manateelazycat/aweshell"))
+(package! aweshell :recipe (:host github :repo "manateelazycat/aweshell"))
 (package! el-patch)
 (package! eshell-git-prompt)
 (package! systemd)

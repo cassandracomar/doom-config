@@ -182,5 +182,6 @@
        (default +bindings +smartparens))
 
 (setq native-comp-deferred-compilation nil)
+(setq inhibit-automatic-native-compilation nil)
 (after! (doom-packages straight)
   (setq straight--native-comp-available t))

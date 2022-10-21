@@ -352,6 +352,7 @@
  "hydra" "cd ~/src/github.com/getditto/ditto/hydra"
  "deploy" "~/src/github.com/getditto/ditto/hydra/script/deploy $*"
  "vdeploy" "~/src/github.com/getditto/ditto/hydra/script/vdeploy $*"
+ "cictl" "kubectl --context cassandracomar@ci.k8s.ditto.live $*"
  "devctl" "kubectl --context cassandracomar@dev.k8s.ditto.live $*"
  "stgctl" "kubectl --context cassandracomar@stg.k8s.ditto.live $*"
  "prodctl" "kubectl --context cassandra@prod.k8s.ditto.live $*"
@@ -360,3 +361,18 @@
  "update-workspace-cargolock" "for f in { fd -c never Cargo.lock .. } { pushd ${dirname $f}; cargo update -w --offline; popd }"
  "check-workspace-cargolock" "for f in { fd -c never Cargo.lock .. } { pushd ${dirname $f}; cargo update -w --locked; popd }"
  )
+
+(defun shell-new ()
+  (interactive)
+
+  (let (
+        (currentbuf (get-buffer-window (current-buffer)))
+        (newbuf     (generate-new-buffer-name "*shell*"))
+        )
+
+    (generate-new-buffer newbuf)
+    (set-window-dedicated-p currentbuf nil)
+    (set-window-buffer currentbuf newbuf)
+    (shell newbuf)
+    )
+  )
