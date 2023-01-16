@@ -56,6 +56,8 @@
 (unpin! lsp-mode)
 (package! lsp-mode
   :recipe (:host github :repo "emacs-lsp/lsp-mode") :pin "d230fd1170ead71276bd5b7a2fc5072fea8fc933")
+(unpin! envrc)
+(package! envrc :recipe (:host github :repo "purcell/envrc"))
 (package! persp-mode :pin "14325c11f7a347717d7c3780f29b24a38c68fbfc")
 (package! polymode)
 

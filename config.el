@@ -90,6 +90,7 @@
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "p t" #'+treemacs/toggle)
 (map! :leader "p x" #'lsp-ui-flycheck-list)
+(map! :leader "o o" #'envrc-reload)
 (map! :leader "DEL" #'projectile-find-file)
 (map! :nv "TAB" #'company-indent-or-complete-common
       :nv [tab] #'company-indent-or-complete-common)
@@ -206,6 +207,7 @@
   (setq lsp-rust-analyzer-cargo-watch-args ["--tests"])
   ;; (setq lsp-rust-analyzer-cargo-unset-test ["core", "derivative"])
   (setq lsp-rust-analyzer-experimental-proc-attr-macros t)
+  (setq lsp-haskell-server-path "haskell-language-server")
   ;; (setq lsp-rust-analyzer-diagnostics-disabled ["unresolved-proc-macro"])
   ;; (setq lsp-rust-features ["k8s_integration"])
   :config
@@ -226,6 +228,7 @@
                                        :cwd nil))
     )
   )
+
 ;; (define-hostmode poly-rust-hostmode
 ;;   :mode 'rustic-mode
 ;;   :protect-syntax nil
@@ -252,14 +255,6 @@
 (after! lsp-ui
   (setq lsp-ui-sideline-show-hover t))
 
-(after! lsp
-  (add-to-list 'lsp-language-id-configuration '(nix-mode . "nix"))
-  (lsp-register-client
-   (make-lsp-client :new-connection (lsp-stdio-connection '("rnix-lsp"))
-                    :major-modes '(nix-mode)
-                    :server-id 'nix))
-  )
-(add-hook! nix-mode-hook #'lsp)
 (setq! nix-nixfmt-bin "nixpkgs-fmt")
 (set-formatter! 'nixfmt "nixpkgs-fmt")
 
