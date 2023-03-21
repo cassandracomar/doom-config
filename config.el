@@ -19,7 +19,7 @@
 ;;
 ;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
 ;; font string. You generally only need these two:
-(setq doom-font (font-spec :family "Iosevka Custom" :size 16))
+(setq doom-font (font-spec :family "Iosevka Custom" :size 28))
 
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
@@ -62,28 +62,32 @@
 (setq! with-editor-emacsclient-executable "/etc/profiles/per-user/cassandra/bin/emacsclient")
 ;; (setq! forge-database-connector 'sqlite-builtin)
 
-; set up env vars from encrypted sources
+                                        ; set up env vars from encrypted sources
 (defun pinentry-emacs (desc prompt ok error)
   (let ((str (read-passwd (concat (replace-regexp-in-string "%22" "\"" (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
     str))
+(require 'epg)
+(use-package! pinentry)
 (setq auth-sources '("/home/cassandra/.authinfo.gpg"))
 (setq epa-file-encrypt-to '("cassandra@ditto.live"))
 (setq epa-file-select-keys nil)
+(setq epg-pinentry-mode 'loopback)
 (setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
 (defun hack-pinentry-startup ()
   (let ((tty (shell-command-to-string "tty")))
-                (setenv "DISPLAY" ":0")
-                (setenv "GPG_TTY" tty)
-                (setenv "SSH_AUTH_SOCK" "/run/user/1000/gnupg/S.gpg-agent.ssh")
-                (load-library "/home/cassandra/.secrets.el.gpg")
+    (setenv "DISPLAY" ":0")
+    (setenv "GPG_TTY" tty)
+    (setenv "SSH_AUTH_SOCK" "/run/user/1000/gnupg/S.gpg-agent.ssh")
+    (load-library "/home/cassandra/.secrets.el.gpg")
     ))
 (if (daemonp)
     (add-hook 'after-make-frame-functions
-          (lambda (frame)
-            (interactive)
-            (with-selected-frame frame
-              (hack-pinentry-startup))))
-    (hack-pinentry-startup))
+              (lambda (frame)
+                (interactive)
+                (with-selected-frame frame
+                  (hack-pinentry-startup))))
+  (hack-pinentry-startup))
+(pinentry-start)
 
 ;; KEYBINDINGS
 (setq doom-localleader-key ",")
@@ -173,7 +177,7 @@
   (setq with-editor-emacsclient-executable "/etc/profiles/per-user/cassandra/bin/emacsclient"))
 
 (use-package! magit-delta
-  :defer
+  :defer t
   :after-call magit-status
   :preface
   ;; (setq
@@ -263,10 +267,10 @@
 ;; (after! lsp-treemacs
 ;;   (lsp-treemacs-sync-mode 1))
 
-                                        ;; sh stuff
+;; sh stuff
 (add-hook! sh-mode #'lsp)
 
-                                        ;; rust stuff
+;; rust stuff
 (add-hook! 'lsp-on-idle-hook #'lsp-rust-analyzer-inlay-hints-change-handler)
 
                                         ; haskell stuff
@@ -309,7 +313,7 @@
   (setq org-journal-date-format "%A, %d %B %Y"))
 
 
-; elasticsearch
+                                        ; elasticsearch
 (use-package! es-mode
   :after org
   :mode ("\\.es\\'" . #'es-mode)
@@ -317,12 +321,12 @@
   ;; (add-to-list 'org-babel-load-languages '(elasticsearch . t))
   (add-to-list '+org-babel-mode-alist '(es . elasticsearch)))
 
-; systemd
+                                        ; systemd
 (use-package! systemd
   :defer t
   :init (setq systemd-use-company-p t))
 
-; jsonnett
+                                        ; jsonnett
 (use-package! jsonnet-mode
   :defer t
   :mode "(\\.libsonnet|\\.jsonnet")
@@ -371,3 +375,30 @@
     (shell newbuf)
     )
   )
+
+(use-package! vterm-capf
+  :defer t
+  :hook (vterm-mode . vterm-capf-mode)
+  :after vterm
+  :init
+  (setq vterm-capf-frontend 'company)
+
+  (setq company-minimum-prefix-length 0
+        company-idle-delay 0.0)
+  ;; (setq company-backends '(company-capf company-shell company-shell-env company-files))
+  (setq vterm-capf-shell-completion-command "get_completions")
+  )
+
+(add-hook! vterm-mode-hook
+           #'with-editor-export-git-editor
+           #'with-editor-export-editor
+           #'awscli-capf-add
+           #'company-mode
+           )
+(setq
+ company-global-modes
+ '(not erc-mode
+   circe-mode
+   message-mode
+   help-mode
+   gud-mode))

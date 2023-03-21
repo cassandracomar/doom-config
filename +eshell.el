@@ -2,26 +2,6 @@
 
 (setq! eshell-history-size 9999999)
 
-(defun eshell/ivy-history ()
-  "Interactive search eshell history."
-  (interactive)
-  (require 'em-hist)
-  (save-excursion
-    (let* ((start-pos (eshell-bol))
-       (end-pos (point-at-eol))
-       (input (buffer-substring-no-properties start-pos end-pos)))
-      (let* ((command (ivy-read "Command: "
-                (delete-dups
-                 (aweshell-parse-shell-history))
-                :preselect input
-                :action #'ivy-completion-in-region-action))
-         (cursor-move (length command)))
-    (kill-region (+ start-pos cursor-move) (+ end-pos cursor-move))
-    )))
-  ;; move cursor to eol
-  (end-of-line)
-  )
-
 (defun eshell-append-history ()
   "Call `eshell-write-history' with the `append' parameter set to `t'."
   (when eshell-history-ring
@@ -40,7 +20,7 @@
 
 (add-hook! eshell-pre-command-hook #'eshell-append-history)
 (add-hook! eshell-post-command-hook #'eshell-update-history)
-(add-hook! eshell-post-command-hook #'direnv-update-directory-environment)
+(add-hook! eshell-post-command-hook #'envrc-reload)
 
 (defun tramp-aware-woman (man-page-path)
   (interactive)
@@ -149,6 +129,9 @@
   ;; project name, which makes tramp oh-so-much-slower.
   (setq projectile-mode-line "Projectile")
   (setq xterm-color-preserve-properties t)
+  (add-hook! 'eshell-before-prompt-hook
+    (lambda ()
+      (setq xterm-color-preserve-properties t)))
   (add-to-list 'eshell-preoutput-filter-functions 'xterm-color-filter)
   (setq eshell-output-filter-functions
         (remove 'eshell-handle-ansi-color eshell-output-filter-functions))
@@ -232,11 +215,15 @@
   (eshell-git-prompt-use-theme 'powerline))
 (use-package! awscli-capf
   :after eshell)
+(use-package! xterm-color
+  :defer t
+  :after eshell
+  )
 
 (add-hook! eshell-mode
   (setenv "TERM" "xterm-256color")
-  (map! :map eshell-mode-map :ni "C-r" #'eshell/ivy-history)
-  (map! :map eshell-command-map :ni "C-r" #'eshell/ivy-history)
+  (map! :map eshell-mode-map :ni "C-r" #'consult-history)
+  (map! :map eshell-command-map :ni "C-r" #'consult-history)
   (map! :map eshell-mode-map :i "C-d" #'eshell-send-eof-to-process)
   (map! :map eshell-mode-map :nv
         "$" #'evil-end-of-line)

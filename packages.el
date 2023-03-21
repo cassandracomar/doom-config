@@ -54,22 +54,23 @@
 (package! docker-tramp :disable t)
 ; version bumps
 (unpin! lsp-mode)
-(package! lsp-mode
-  :recipe (:host github :repo "emacs-lsp/lsp-mode") :pin "d230fd1170ead71276bd5b7a2fc5072fea8fc933")
+;(package! lsp-mode
+;  :recipe (:host github :repo "emacs-lsp/lsp-mode") :pin "d230fd1170ead71276bd5b7a2fc5072fea8fc933")
 (unpin! envrc)
 (package! envrc :recipe (:host github :repo "purcell/envrc"))
 (package! persp-mode :pin "14325c11f7a347717d7c3780f29b24a38c68fbfc")
 (package! polymode)
+(unpin! vterm)
+(unpin! ccls)
 
 ;; new packages
 (package! groovy-mode)
 (package! fish-completion)
 (package! bash-completion)
-(package! quark-emacs-tramp :recipe (:host github :repo "PythonNut/quark-emacs" :branch "master"))
 (package! su :recipe (:host github :repo "PythonNut/su.el"))
 (package! aweshell :recipe (:host github :repo "manateelazycat/aweshell"))
 (package! el-patch)
-(package! eshell-git-prompt)
+(package! eshell-git-prompt :pin "1eb1fd56649f291cac482fbf06dd43ef867873bc")
 (package! systemd)
 (package! hercules)
 (package! magit-delta :recipe (:host github :repo "dandavison/magit-delta"))
@@ -82,4 +83,6 @@
 (package! lilypond)
 (package! ob-lilypond :recipe (:host github :repo "mjago/ob-lilypond"))
 (package! jsonnet-mode)
-(package! lsp-ivy :pin "9ecf4dd9b1207109802bd1882aa621eb1c385106")
+; (package! lsp-ivy :pin "9ecf4dd9b1207109802bd1882aa621eb1c385106")
+(package! vterm-capf :recipe (:host github :repo "twlz0ne/vterm-capf"))
+(package! pinentry)
