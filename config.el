@@ -174,7 +174,9 @@
 
 ;; magit
 (after! magit
-  (setq with-editor-emacsclient-executable "/etc/profiles/per-user/cassandra/bin/emacsclient"))
+  (setq with-editor-emacsclient-executable "/etc/profiles/per-user/cassandra/bin/emacsclient")
+  (remove-hook! 'post-command-hook #'yas--post-command-handler)
+  )
 
 (use-package! magit-delta
   :defer t
@@ -401,4 +403,8 @@
    circe-mode
    message-mode
    help-mode
-   gud-mode))
+   gud-mode
+   text-mode))
+
+(remove-hook! 'post-command-hook #'yas--post-command-handler)
+(yas-global-mode -1)

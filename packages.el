@@ -86,3 +86,5 @@
 ; (package! lsp-ivy :pin "9ecf4dd9b1207109802bd1882aa621eb1c385106")
 (package! vterm-capf :recipe (:host github :repo "twlz0ne/vterm-capf"))
 (package! pinentry)
+(unpin! yasnippet)
+(unpin! company)
