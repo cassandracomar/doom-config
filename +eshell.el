@@ -2,26 +2,6 @@
 
 (setq! eshell-history-size 9999999)
 
-(defun eshell/ivy-history ()
-  "Interactive search eshell history."
-  (interactive)
-  (require 'em-hist)
-  (save-excursion
-    (let* ((start-pos (eshell-bol))
-       (end-pos (point-at-eol))
-       (input (buffer-substring-no-properties start-pos end-pos)))
-      (let* ((command (ivy-read "Command: "
-                (delete-dups
-                 (aweshell-parse-shell-history))
-                :preselect input
-                :action #'ivy-completion-in-region-action))
-         (cursor-move (length command)))
-    (kill-region (+ start-pos cursor-move) (+ end-pos cursor-move))
-    )))
-  ;; move cursor to eol
-  (end-of-line)
-  )
-
 (defun eshell-append-history ()
   "Call `eshell-write-history' with the `append' parameter set to `t'."
   (when eshell-history-ring
@@ -33,106 +13,25 @@
 (defun eshell-update-history ()
   (eshell-read-history eshell-history-file-name)
   (when eshell-history-ring
-    (let ((old-ring (copy-list eshell-history-ring)))
+    (let ((old-ring (ring-copy eshell-history-ring)))
       (setq eshell-history-ring (list (car eshell-history-ring)))
-                                    ; write
+                                        ; write
       (setq eshell-history-ring old-ring))))
+
+;; (map! :leader "RET" #'+eshell/new)
+(defun +eshell/new ()
+  (interactive)
+  (eshell t))
 
 (add-hook! eshell-pre-command-hook #'eshell-append-history)
 (add-hook! eshell-post-command-hook #'eshell-update-history)
-(add-hook! eshell-post-command-hook #'direnv-update-directory-environment)
-
-(defun tramp-aware-woman (man-page-path)
-  (interactive)
-  (let ((dir (eshell/pwd)))
-    (woman-find-file
-     (if (file-remote-p dir)
-         (let ((vec (tramp-dissect-file-name dir)))
-           (tramp-make-tramp-file-name
-            (tramp-file-name-method vec)
-            (tramp-file-name-user vec)
-            (tramp-file-name-host vec)
-            man-page-path))
-       man-page-path))))
-
-
-(defun vterm-exec (&rest args)
-  (interactive)
-  (evil-insert-state nil)
-  (vterm-send-string (string-join args " "))
-  (vterm-send-string "; exit")
-  (vterm-send-return)
-  )
-(defun eshell-exec-visual-named (buf-name &rest args)
-  "Run the specified PROGRAM in a terminal emulation buffer.
-  ARGS are passed to the program.  At the moment, no piping of input is
-  allowed."
-  (let* (eshell-interpreter-alist
-         (original-args args)
-         (interp (eshell-find-interpreter (car args) (cdr args)))
-         (in-ssh-tramp (and (tramp-tramp-file-p default-directory)
-                            (equal (tramp-file-name-method
-                                    (tramp-dissect-file-name default-directory))
-                                   "ssh")))
-         (program (if in-ssh-tramp
-                      "ssh"
-                    (car interp)))
-         (args (if in-ssh-tramp
-                   (let ((dir-name (tramp-dissect-file-name default-directory)))
-                     (eshell-flatten-list
-                      (list
-                       "-t"
-                       (tramp-file-name-host dir-name)
-                       (format
-                        "\"export TERM=xterm-256color; cd %s; exec %s\""
-                        (tramp-file-name-localname dir-name)
-                        (string-join
-                         (append
-                          (list (tramp-file-name-localname (tramp-dissect-file-name (car interp))))
-                          (cdr args))
-                         " ")))))
-                 (eshell-flatten-list
-                  (eshell-stringify-list (append (cdr interp)
-                                                 (cdr args))))))
-         (term-buf
-          (generate-new-buffer
-           (concat "*"
-                   (if in-ssh-tramp
-                       (format "%s %s" default-directory (string-join original-args " "))
-                     (file-name-nondirectory program))
-                   "*")))
-         (eshell-buf (current-buffer)))
-    (save-current-buffer
-      (switch-to-buffer term-buf)
-      (rename-buffer buf-name)
-      (vterm-mode)
-      (set (make-local-variable 'term-term-name) eshell-term-name)
-      (make-local-variable 'eshell-parent-buffer)
-      (setq eshell-parent-buffer eshell-buf)
-      (apply 'vterm-exec program args)
-      (let ((proc (get-buffer-process term-buf)))
-        (if (and proc (eq 'run (process-status proc)))
-            (set-process-sentinel proc 'eshell-term-sentinel)
-          (error "Failed to invoke visual command")))
-      (term-char-mode)
-      (if eshell-escape-control-x
-          (term-set-escape-char ?\C-x))))
-  nil)
-
-(defun eshell/visual (&rest args)
-  "Create a terminal buffer for a single visual command in Eshell."
-  (if (equal "sudo" (car args))
-      (apply 'eshell-exec-visual-named (cadr args) args)
-    (apply 'eshell-exec-visual-named (car args) args))
-  )
-
-(defun eshell-exec-visual (&rest args)
-  (apply 'eshell/visual args))
+(add-hook! eshell-post-command-hook #'envrc--update)
 
 (after! eshell
   (setq su-mode t)
   (setq su-auto-save-mode t)
   (setq eshell-save-history-on-exit nil)
+  (require 'em-glob)
 
   ;; cache file-name forever
   (setq remote-file-name-inhibit-cache nil)
@@ -148,11 +47,7 @@
   ;; projectile has the fun side-effect of wanting to calculate the
   ;; project name, which makes tramp oh-so-much-slower.
   (setq projectile-mode-line "Projectile")
-  (setq xterm-color-preserve-properties t)
-  (add-to-list 'eshell-preoutput-filter-functions 'xterm-color-filter)
-  (setq eshell-output-filter-functions
-        (remove 'eshell-handle-ansi-color eshell-output-filter-functions))
-  ;; (setq with-editor-emacsclient-executable "/usr/bin/emacsclient")
+  (setq with-editor-emacsclient-executable "emacsclient")
 
   (add-to-list 'eshell-modules-list 'eshell-rebind)
   (add-to-list 'eshell-modules-list 'eshell-tramp)
@@ -171,17 +66,89 @@
   (setq vterm-kill-buffer-on-exit t)
   ;; remove confirmation for process buffers
   (setq kill-buffer-query-functions
-    (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+        (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
 
   (setq eshell-exit-hook nil)
   (setq eshell-destroy-buffer-when-process-dies t)
 
+  (setq corfu-auto-prefix 0
+        corfu-auto-delay 0.0
+        corfu-auto t)
   (setq company-minimum-prefix-length 0
         company-idle-delay 0.0)
-  )
+  (setq password-cache t
+        password-cache-expiry 3600)
+  (setenv "KUBECONFIG" (string-join (eshell-extended-glob "/Users/ccomar/.kube/(*.(yaml|config)|config)") ":"))
 
-(after! tramp
-  (eval-when-compile (require 'tramp))
+  (defun +eshell-buffer-contents ()
+    "get the contents of the current buffer, ensuring it's font locked."
+    (if (fboundp 'font-lock-ensure)
+        (font-lock-ensure)
+      (with-no-warnings (font-lock-fontify-buffer)))
+    (let ((contents (buffer-string)))
+      (remove-text-properties 0 (length contents) '(read-only nil) contents)
+      contents))
+
+  (defun eshell-cat-with-syntax-highlight (file-or-buf)
+    "Like cat(1) but with syntax highlighting."
+    (if (bufferp file-or-buf)
+        (eshell-print (with-current-buffer file-or-buf (+eshell-buffer-contents)))
+      (let ((existing-buffer (get-file-buffer file-or-buf))
+            (buffer (find-file-noselect file-or-buf)))
+        (eshell-print (with-current-buffer buffer (+eshell-buffer-contents)))
+        (unless existing-buffer (kill-buffer buffer))
+        nil)))
+  (advice-add 'eshell/cat :override #'eshell-cat-with-syntax-highlight)
+
+  (defun +eshell/here (&optional command)
+    "Open eshell in the current window."
+    (interactive "P")
+    (let ((buf (+eshell--unused-buffer t)))
+      (with-current-buffer (switch-to-buffer buf)
+        (if (eq major-mode 'eshell-mode)
+            (run-hooks 'eshell-mode-hook)
+          (eshell-mode))
+        (when command
+          (+eshell-run-command command buf)))
+      buf))
+
+  (defun +eshell-fish-path (path max-len)
+    "Return a potentially trimmed-down version of the directory PATH, replacing
+     parent directories with their initial characters to try to get the character
+     length of PATH (sans directory slashes) down to MAX-LEN."
+    (let* ((components (split-string (abbreviate-file-name path) "/"))
+           (len (+ (1- (length components))
+                   (cl-reduce '+ components :key 'length)))
+           (str ""))
+      (while (and (> len max-len)
+                  (cdr components))
+        (setq str (concat str
+                          (cond ((= 0 (length (car components))) "/")
+                                ((= 1 (length (car components)))
+                                 (concat (car components) "/"))
+                                (t
+                                 (if (string= "."
+                                              (string (elt (car components) 0)))
+                                     (concat (substring (car components) 0 2)
+                                             "/")
+                                   (string (elt (car components) 0) ?/)))))
+              len (- len (1- (length (car components))))
+              components (cdr components)))
+      (concat str (cl-reduce (lambda (a b) (concat a "/" b)) components))))
+
+  ;; synchronize buffer name on directory change.
+  (defun +eshell-sync-dir-buffer-name ()
+    "Change eshell buffer name by directory change."
+    (when (equal major-mode 'eshell-mode)
+      (rename-buffer (format "eshell: %s" (+eshell-fish-path default-directory 30))
+                     t)))
+
+  (add-hook 'eshell-directory-change-hook #'+eshell-sync-dir-buffer-name)
+  (add-hook 'eshell-mode-hook #'+eshell-sync-dir-buffer-name))
+
+(use-package! tramp
+  :config
+  ;; (eval-when-compile (require 'tramp))
   ;; Define a rsyncx method analogous to scpx
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path)
   (add-to-list 'tramp-methods
@@ -203,10 +170,9 @@
                                   ("ssh" "%c")))
                  (tramp-copy-keep-date t)
                  (tramp-copy-keep-tmpfile t)
-                 (tramp-copy-recursive t)))
-  )
+                 (tramp-copy-recursive t))))
 
-(use-package! aweshell)
+;; (use-package! aweshell)
 
 (defun eshell/git (command &rest args)
   (pcase command
@@ -216,40 +182,96 @@
                 (magit-status)
                 (eshell/echo)))
     ("grep" (apply #'algernon/git-grep args))
-    (_ (let ((command (s-join " " (append (list "*git" command) args))))
-         (message command)
-         (eshell-command-result command)))))
+    (_ (apply #'eshell-external-command command args))))
 
 (use-package! fish-completion
-  :after bash-completion
   :config
-  (setq fish-completion-fallback-on-bash-p t))
-(use-package! bash-completion
-  :after eshell)
+  (setq fish-completion-fallback-on-bash-p nil))
 (use-package! eshell-git-prompt
   :after eshell
   :config
-  (eshell-git-prompt-use-theme 'powerline))
+  (defun eshell-git-prompt-powerline2 ()
+    (let ((segment-separator "\xe0b0")
+          (branch            "\xe0a0")
+          (detached          "\x27a6")
+          (cross             "\x2718")
+          dir git git-face sign)
+      (setq dir
+            (propertize
+             (concat
+              " "
+              (unless (eshell-git-prompt-exit-success-p)
+                (concat cross " "))
+              (eshell-git-prompt-powerline-dir)
+              " ")
+             'face 'eshell-git-prompt-powerline-dir-face))
+      (setq git
+            (when (eshell-git-prompt--git-root-dir)
+              (setq git-face
+                    (if (eshell-git-prompt--collect-status)
+                        'eshell-git-prompt-powerline-not-clean-face
+                      'eshell-git-prompt-powerline-clean-face))
+              (setq eshell-git-prompt-branch-name (eshell-git-prompt--branch-name))
+              (propertize
+               (concat " "
+                       (-if-let (branch-name eshell-git-prompt-branch-name)
+                           (concat branch " " branch-name)
+                         (concat detached " "(eshell-git-prompt--commit-short-sha)))
+                       " ")
+               'face git-face)))
+      (setq sign
+            (concat
+             (with-face "\n└─" 'eshell-git-prompt-multiline2-secondary-face)
+             (if (not (eshell-git-prompt-exit-success-p))
+                 (with-face ">>" 'eshell-git-prompt-multiline2-fail-face)
+               (with-face ">>" 'eshell-git-prompt-multiline2-secondary-face))))
+      (eshell-git-prompt---str-read-only
+       (concat
+        (with-face "┌─" 'eshell-git-prompt-multiline2-secondary-face)
+        (if git
+            (concat dir
+                    (with-face segment-separator
+                      :foreground (face-background 'eshell-git-prompt-powerline-dir-face)
+                      :background (face-background git-face))
+                    git
+                    (with-face segment-separator
+                      :foreground (face-background git-face)))
+          (concat dir
+                  (with-face segment-separator
+                    :foreground (face-background 'eshell-git-prompt-powerline-dir-face))))
+        sign " "))))
+
+  (defconst eshell-git-prompt-powerline2-regexp "^[^$\n]*└─>>  ")
+  (add-to-list 'eshell-git-prompt-themes
+               '(powerline2
+                 eshell-git-prompt-powerline2
+                 eshell-git-prompt-powerline2-regexp))
+  (eshell-git-prompt-use-theme 'powerline2))
+
 (use-package! awscli-capf
   :after eshell)
 
 (add-hook! eshell-mode
   (setenv "TERM" "xterm-256color")
-  (map! :map eshell-mode-map :ni "C-r" #'eshell/ivy-history)
-  (map! :map eshell-command-map :ni "C-r" #'eshell/ivy-history)
+  (map! :map eshell-mode-map :ni "C-r" #'consult-history)
+  (map! :map eshell-command-map :ni "C-r" #'consult-history)
   (map! :map eshell-mode-map :i "C-d" #'eshell-send-eof-to-process)
   (map! :map eshell-mode-map :nv
-        "$" #'evil-end-of-line)
-  )
+        "$" #'evil-end-of-line))
+
+(use-package! multi-run
+  :defer t
+  :after eshell
+  :config
+  (add-hook! eshell #'visual-line-mode))
 
 (add-hook! eshell-mode
            #'with-editor-export-git-editor
            #'with-editor-export-editor
            #'global-fish-completion-mode
            #'solaire-mode
-           #'awscli-capf-add
-           #'(lambda () (eshell/alias "git"))
-           )
+           ;; #'awscli-capf-add
+           #'(lambda () (eshell/alias "git")))
 
 (defun algernon/git-grep (&rest args)
   (interactive)
@@ -301,3 +323,4 @@
 
 (defun eshell/vim (&rest args)
   (mapcar #'eshell-find-single-file args))
+
