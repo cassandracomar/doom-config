@@ -428,7 +428,7 @@
 
   (setq lsp-nix-nixd-formatting-command [ "nix" "fmt" "--" ])
   (setq lsp-nix-nil-server-path nil)
-  (setq lsp-use-plists t)
+  ;; (setq lsp-use-plists t)
   ;; (setq lsp-rust-analyzer-server-command '("emacs-lsp-booster" "rust-analyzer"))
   ;; (setq lsp-rust-analyzer-diagnostics-disabled ["unresolved-proc-macro"])
   ;; (setq lsp-rust-features ["k8s_integration"])
