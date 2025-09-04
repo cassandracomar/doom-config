@@ -345,12 +345,6 @@
   ;; :defer t
   :demand t
   :init
-  (defface lsp-flycheck-info-unnecessary
-    '((t))
-    "Face which apply to side line for symbols not used.
-Possibly erroneously redundant of lsp-flycheck-info-unnecessary-face."
-    :group 'lsp-ui-sideline)
-
   ;; (defun lsp-booster--advice-json-parse (old-fn &rest args)
   ;;   "Try to parse bytecode instead of json."
   ;;   (or
