@@ -54,8 +54,8 @@
 (package! docker-tramp :disable t)
                                         ; version bumps
 ;; (unpin! haskell-mode)
-(package! lsp-mode
-  :recipe (:host github :repo "cassandracomar/lsp-mode" :branch "master") :pin "129f5375f617e99389683acda7095e6c9af82840")
+;; (package! lsp-mode
+;;   :recipe (:host github :repo "cassandracomar/lsp-mode" :branch "master") :pin "129f5375f617e99389683acda7095e6c9af82840")
 ;; (unpin! lsp-haskell)
 ;; (unpin! envrc)
 (package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "548b48717b5b3642bfc2b7b1376f879b1db1dd9f")

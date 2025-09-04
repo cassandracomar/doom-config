@@ -411,9 +411,30 @@
   ;; (setq lsp-rust-analyzer-cargo-unset-test ["core", "derivative"])
   (setq lsp-rust-analyzer-experimental-proc-attr-macros t)
   ;; (setq lsp-nix-nil-formatter ["nixpkgs-fmt"])
-  (setq lsp-nix-nil-flake-auto-archive t)
-  (setq lsp-nix-nil-flake-auto-eval-inputs t)
-  (setq lsp-nix-nil-nixpkgs-input-name "nixpkgs")
+  (lsp-defcustom lsp-nix-nil-flake-auto-archive t
+    "auto archiving behavior for flake inputs that might use network"
+    :type 'boolean
+    :group 'lsp-nix-nil
+    :lsp-path "nil.nix.flake.autoArchive"
+    :package-version '(lsp-mode . "8.0.1"))
+  (lsp-defcustom lsp-nix-nil-flake-auto-eval-inputs t
+    " Whether to auto-eval flake inputs.
+    The evaluation result is used to improve completion, but may cost
+    lots of time and/or memory."
+    :type 'boolean
+    :group 'lsp-nix-nil
+    :lsp-path "nil.nix.flake.autoEvalInputs"
+    :package-version '(lsp-mode . "8.0.1"))
+  (lsp-defcustom  lsp-nix-nil-nixpkgs-input-name "nixpkgs"
+    " The input name of nixpkgs for NixOS options evaluation.
+  The options hierarchy is used to improve completion, but may cost
+  lots of time and/or memory.
+  If this value is `null` or is not found in the workspace flake's
+  inputs, NixOS options are not evaluated."
+    :type 'string
+    :group 'lsp-nix-nil
+    :lsp-path "nil.nix.flake.nixpkgsInputName"
+    :package-version '(lsp-mode . "8.0.1"))
 
   (setq nix-command-path (executable-find "nix"))
 
