@@ -18,11 +18,14 @@
 ;;
 ;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
 ;; font string. You generally only need these two:
-(setq doom-font "Iosevka Nerd Font:size=20:width=extra-expanded")
+(setq doom-font "Iosevka Nerd Font:size=20:weight=light")
+(setq doom-symbol-font "Iosevka Nerd Font")
+(setq nerd-icons-font-family "Iosevka Nerd Font")
 (setq doom-emoji-fallback-font-families
       '("Noto Color Emoji"
         "Apple Color Emoji"
-        "Noto Emoji"))
+        "Noto Emoji"
+        "Symbola"))
 (setq doom-symbol-fallback-font-families
       '("Noto Sans Symbols"
         "Noto Sans Symbols 2"
@@ -94,12 +97,12 @@
 (setq epa-file-encrypt-to '("cass@ndra.io"))
 (setq epa-file-select-keys nil)
 (setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
-(after! grip-mode
-  (let ((credential (auth-source-user-and-password "git.drwholdings.com")))
-    (setq grip-github-api-url "https://git.drwholdings.com/api/v3"
-          grip-github-user (car credential)
-          grip-github-password (cadr credential)
-          grip-update-after-change nil)))
+;; (after! grip-mode
+;;   (let ((credential (auth-source-user-and-password "git.drwholdings.com")))
+;;     (setq grip-github-api-url "https://git.drwholdings.com/api/v3"
+;;           grip-github-user (car credential)
+;;           grip-github-password (cadr credential)
+;;           grip-update-after-change nil)))
 (unless (display-graphic-p)
   (require 'evil-terminal-cursor-changer)
   (setq etcc-term-type-override 'xterm)
@@ -378,6 +381,7 @@
           '(orderless)) ;; Configure orderless
     (setq-local completion-at-point-functions (list (cape-capf-buster #'lsp-completion-at-point))))
 
+  (setq lsp-auto-guess-root t)
   (setq lsp-rust-analyzer-server-format-inlay-hints t)
   (setq lsp-inlay-hint-enable t)
   (setq lsp-rust-analyzer-display-parameter-hints t)
@@ -899,12 +903,12 @@ Possibly erroneously redundant of lsp-flycheck-info-unnecessary-face."
   (setq! envrc-async-processing t)
   (envrc-global-mode))
 
-(use-package! sublimity
-  :config
-  (require 'sublimity-scroll)
-  (setq sublimity-scroll-weight 30
-        sublimity-scroll-drift-length 5)
-  (sublimity-mode))
+;; (use-package! sublimity
+;;   :config
+;;   (require 'sublimity-scroll)
+;;   (setq sublimity-scroll-weight 5
+;;         sublimity-scroll-drift-length 1)
+;;   (sublimity-mode))
 
 (after! eshell
 
@@ -944,10 +948,11 @@ Possibly erroneously redundant of lsp-flycheck-info-unnecessary-face."
     (interactive)
     (eat--1 nil "new" #'pop-to-buffer-same-window))
   (map! :leader "RET" #'+eat/here)
+  (map! :leader "<return>" #'+eat/here)
 
   (setq nu-executable-path (executable-find "nu"))
   (setq eat-enable-directory-tracking t
-        eat-shell (format "%s --config '%s/Library/Application Support/nushell/emacs-config.nu'" nu-executable-path (getenv "HOME"))
+        eat-shell (format "%s --config '%s/.config/nushell/emacs-config.nu'" nu-executable-path (getenv "HOME"))
         eat-enable-mouse t
         eat-enable-auto-line-mode nil
         eat-enable-kill-from-terminal t

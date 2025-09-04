@@ -52,14 +52,15 @@
        (ligatures +iosevka +extra)         ; ligatures or substitute text with pretty symbols
        ;;tabs              ; an tab bar for Emacs
        treemacs          ; a project drawer, like neotree but cooler
-       unicode           ; extended unicode support for various languages
+       ;; unicode           ; extended unicode support for various languages
        (vc-gutter +pretty)         ; vcs diff in the fringe
        vi-tilde-fringe   ; fringe tildes to mark beyond EOB
        (window-select +numbers)     ; visually switch windows
        workspaces        ; tab emulation, persistence & separate workspaces
        ;;zen               ; distraction-free coding or writing
-       (emoji +github +unicode)
+       ;; (emoji +ascii +github +unicode)
        minimap
+       (smooth-scroll)
 
        :editor
        (evil +everywhere); come to the dark side, we have cookies
@@ -152,7 +153,7 @@
        lua               ; one-based indices? one-based indices
        (markdown +grip)    ; writing docs for people to ignore
        ;;nim               ; python + lisp at the speed of c
-       (nix +lsp +tree-sitter)               ; I hereby declare "nix geht mehr!"
+       (nix +lsp)               ; I hereby declare "nix geht mehr!"
        ;;ocaml             ; an objective camel
        ;; (org +dragndrop +gnuplot +hugo +journal +pandoc +pretty)               ; organize your plain life in plain text
        ;;perl              ; write code no one else can comprehend

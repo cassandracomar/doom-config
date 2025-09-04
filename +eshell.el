@@ -18,7 +18,7 @@
                                         ; write
       (setq eshell-history-ring old-ring))))
 
-;; (map! :leader "RET" #'+eshell/new)
+(map! :leader "o E" #'+eshell/new)
 (defun +eshell/new ()
   (interactive)
   (eshell t))
@@ -78,7 +78,7 @@
         company-idle-delay 0.0)
   (setq password-cache t
         password-cache-expiry 3600)
-  (setenv "KUBECONFIG" (string-join (eshell-extended-glob "/Users/ccomar/.kube/(*.(yaml|config)|config)") ":"))
+                                        ; (setenv "KUBECONFIG" (string-join (eshell-extended-glob "/Users/ccomar/.kube/(*.(yaml|config)|config)") ":"))
 
   (defun +eshell-buffer-contents ()
     "get the contents of the current buffer, ensuring it's font locked."

@@ -201,47 +201,47 @@
 ;; ;;     (eglot--semantic-tokens-mode +1)
 ;; ;;     (eglot--semantic-tokens-queue-update)))
 
-;; ;; (defvar +eglot-post-load-hook
-;; ;;   '()
-;; ;;   "hooks to run after the server has finished loading the project.
-;; ;; each hook is run for each project buffer.")
+(defvar +eglot-post-load-hook
+  '()
+  "hooks to run after the server has finished loading the project.
+each hook is run for each project buffer.")
 
-;; ;; ;; (add-hook! +eglot-post-load
-;; ;; ;;            ;; (run-with-idle-timer 1 nil #'eglot-inlay-hints-mode +1)
-;; ;; ;;            (eglot--semantic-tokens-queue-update))
+(add-hook! +eglot-post-load
+  (run-with-idle-timer 1 nil #'eglot-inlay-hints-mode +1)
+  (eglot--semantic-tokens-queue-update))
 
-;; ;; ;; ;; or without doom:
-;; ;; ;; ;;
-;; ;; ;; ;; (add-hook +eglot-post-load-hook
-;; ;; ;; ;;           (lambda ()
-;; ;; ;; ;;             (eglot--semantic-tokens-mode +1)
-;; ;; ;; ;;             (eglot--semantic-tokens-queue-update)))
+;; or without doom:
+;;
+;; (add-hook +eglot-post-load-hook
+;;           (lambda ()
+;;             (eglot--semantic-tokens-mode +1)
+;;             (eglot--semantic-tokens-queue-update)))
 
-;; ;; (cl-defmethod eglot-handle-notification :after
-;; ;;   (server (_method (eql $/progress)) &key _token value)
-;; ;;   "wait for the server to finish loading the project before attempting to
-;; ;; render inlay hints and semantic tokens. because eglot doesn't wait for the
-;; ;; server to finish loading/indexing the project completely before running most of
-;; ;; the available hooks, it gets back an empty set of inlay hints/semantic tokens
-;; ;; initially. these UI elements do update after an edit to the document via
-;; ;; `eglot--document-changed-hook' -- however, this isn't a great substitute for
-;; ;; just refreshing these UI elements after the server has loaded.
+(cl-defmethod eglot-handle-notification :after
+  (server (_method (eql $/progress)) &key _token value)
+  "wait for the server to finish loading the project before attempting to
+render inlay hints and semantic tokens. because eglot doesn't wait for the
+server to finish loading/indexing the project completely before running most of
+the available hooks, it gets back an empty set of inlay hints/semantic tokens
+initially. these UI elements do update after an edit to the document via
+`eglot--document-changed-hook' -- however, this isn't a great substitute for
+just refreshing these UI elements after the server has loaded.
 
-;; ;; configure the refreshes to take place post-load via `+eglot-post-load-hook'"
-;; ;;   ;; if your server provides a specific token for specific kinds of $/progress events,
-;; ;;   ;; you can wrap this in a `(when (equal token "$TOKEN") ...)'
-;; ;;   ;; e.g. rust-analyzer uses "rustAnalyzer/Indexing"
-;; ;;   (cl-flet* ((run-post-load-hooks (buf)
-;; ;;                (eglot--when-buffer-window
-;; ;;                    buf
-;; ;;                  (run-hooks '+eglot-post-load-hook)))
-;; ;;              (refreshf ()
-;; ;;                (let ((buffers (eglot--managed-buffers server)))
-;; ;;                  (dolist (buf buffers)
-;; ;;                    (run-post-load-hooks buf)))))
-;; ;;     (eglot--dbind ((WorkDoneProgress) kind title percentage message) value
-;; ;;       (pcase kind
-;; ;;         ("end" (refreshf))))))
+configure the refreshes to take place post-load via `+eglot-post-load-hook'"
+  ;; if your server provides a specific token for specific kinds of $/progress events,
+  ;; you can wrap this in a `(when (equal token "$TOKEN") ...)'
+  ;; e.g. rust-analyzer uses "rustAnalyzer/Indexing"
+  (cl-flet* ((run-post-load-hooks (buf)
+               (eglot--when-buffer-window
+                buf
+                (run-hooks '+eglot-post-load-hook)))
+             (refreshf ()
+               (let ((buffers (eglot--managed-buffers server)))
+                 (dolist (buf buffers)
+                   (run-post-load-hooks buf)))))
+    (eglot--dbind ((WorkDoneProgress) kind title percentage message) value
+                  (pcase kind
+                    ("end" (refreshf))))))
 
 ;; (map! :leader
 ;;       "c x" #'flymake-show-project-diagnostics
