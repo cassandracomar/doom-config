@@ -598,6 +598,13 @@
             :dot ".")
 (appendq! +ligatures-prog-mode-list '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
+
+(defface lsp-flycheck-info-unnecessary
+  '((t))
+  "Face which apply to side line for symbols not used.
+Possibly erroneously redundant of lsp-flycheck-info-unnecessary-face."
+  :group 'lsp-ui-sideline)
+
 (use-package! lsp-haskell
   :init
   (setq lsp-haskell-session-loading "singleComponent")
@@ -609,11 +616,6 @@
   (setq lsp-haskell-plugin-semantic-tokens-global-on t)
   (setq lsp-haskell-plugin-rename-config-cross-module t)
   (setq lsp-haskell-max-completions 120)
-  (defface lsp-flycheck-info-unnecessary
-    '((t))
-    "Face which apply to side line for symbols not used.
-Possibly erroneously redundant of lsp-flycheck-info-unnecessary-face."
-    :group 'lsp-ui-sideline)
 
   (lsp-defcustom lsp-haskell-plugin-ghcide-type-lenses-local-binding-inlay-hint-on t
     "Enables local binding inlay hints"
