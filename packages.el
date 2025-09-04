@@ -55,7 +55,7 @@
                                         ; version bumps
 ;; (unpin! haskell-mode)
 (package! lsp-mode
-  :recipe (:host github :repo "cassandracomar/lsp-mode" :branch "master") :pin "197a57f827f9dfc412bb3a1b13c502d972262a3e")
+  :recipe (:host github :repo "cassandracomar/lsp-mode" :branch "master") :pin "129f5375f617e99389683acda7095e6c9af82840")
 ;; (unpin! lsp-haskell)
 ;; (unpin! envrc)
 (package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "548b48717b5b3642bfc2b7b1376f879b1db1dd9f")
@@ -76,7 +76,7 @@
 ;; (unpin! corfu)
 
 ;; new packages
-(package! consult-hoogle :recipe (:host codeberg :repo "rahguzar/consult-hoogle" :branch "main") :pin "384959016022d071464dc6e611e4fcded562834e")
+(package! consult-hoogle :recipe (:repo "https://codeberg.org/rahguzar/consult-hoogle" :branch "main") :pin "384959016022d071464dc6e611e4fcded562834e")
 (package! groovy-mode)
 (package! fish-completion)
 (package! bash-completion)
