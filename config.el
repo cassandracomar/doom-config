@@ -345,6 +345,12 @@
   ;; :defer t
   :demand t
   :init
+  (defface lsp-flycheck-info-unnecessary
+    '((t))
+    "Face which apply to side line for symbols not used.
+Possibly erroneously redundant of lsp-flycheck-info-unnecessary-face."
+    :group 'lsp-ui-sideline)
+
   ;; (defun lsp-booster--advice-json-parse (old-fn &rest args)
   ;;   "Try to parse bytecode instead of json."
   ;;   (or
@@ -466,7 +472,7 @@
   (add-hook! 'lsp-before-initialize-hook
     (require 'haskell-font-lock)
     (let ((faces '(("interface" . font-lock-preprocessor-face)
-                   ("enum" . haskell-debug-keybinding-face)
+                   ("enum" . haskell-type-face)
                    ("enumMember" . haskell-definition-face)
                    ("operator" . font-lock-keyword-face)
                    ("macro" . font-lock-preprocessor-face)
@@ -598,12 +604,6 @@
             :dot ".")
 (appendq! +ligatures-prog-mode-list '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
-
-(defface lsp-flycheck-info-unnecessary
-  '((t))
-  "Face which apply to side line for symbols not used.
-Possibly erroneously redundant of lsp-flycheck-info-unnecessary-face."
-  :group 'lsp-ui-sideline)
 
 (use-package! lsp-haskell
   :init
