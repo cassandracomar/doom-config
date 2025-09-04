@@ -18,7 +18,7 @@
 ;;   :around #'doom-module-list
 ;;   (nreverse (apply fn args)))
 
-(setenv "LSP_USE_PLISTS" "true")
+;; (setenv "LSP_USE_PLISTS" "true")
 (setq! package-native-compile t)
 (setq! native-comp-jit-compilation nil)
 ;; (setq-default native-comp-driver-options
