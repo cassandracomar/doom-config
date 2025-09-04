@@ -69,6 +69,9 @@
 ;; (general-auto-unbind-keys :off)
 ;; (remove-hook 'doom-after-init-modules-hook #'general-auto-unbind-keys)
 
+(add-to-list 'trusted-content "~/src/github.com/cassandracomar/doom-config/")
+(setq doom-user-dir "~/src/github.com/cassandracomar/doom-config/")
+
 (add-hook 'emacs-startup-hook
           (lambda ()
             (if (boundp 'after-focus-change-function)
