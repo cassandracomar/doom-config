@@ -65,15 +65,15 @@
 ;; (package! haskell-mode :disable t)
 
 ;; (unpin! evil-terminal-cursor-changer)
-(unpin! nerd-icons-completion)
-(unpin! nerd-icons)
-(unpin! nerd-icons-corfu)
+;; (unpin! nerd-icons-completion)
+;; (unpin! nerd-icons)
+;; (unpin! nerd-icons-corfu)
 ;; (unpin! marginalia)
 ;; (unpin! forge)
 ;; (unpin! magit)
 ;; (unpin! transient)
 ;; (unpin! org)
-(unpin! corfu)
+;; (unpin! corfu)
 
 ;; new packages
 (package! consult-hoogle :recipe (:host codeberg :repo "rahguzar/consult-hoogle" :branch "main") :pin "384959016022d071464dc6e611e4fcded562834e")
