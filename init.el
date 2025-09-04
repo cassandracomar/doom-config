@@ -198,4 +198,4 @@
 ;; (setq inhibit-automatic-native-compilation nil)
 ;; (after! (doom-packages straight)
 ;;   (setq straight--native-comp-available t))
-(setenv "LSP_USE_PLISTS" "true")
+;; (setenv "LSP_USE_PLISTS" "true")
