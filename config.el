@@ -1184,11 +1184,11 @@
 
 (use-package! gptel
   :config
-  (setq gptel-model 'deepseek-r1:latest
+  (setq gptel-model 'deepseek-code:latest
         gptel-backend (gptel-make-ollama "Ollama"
                         :host "localhost:11434"
                         :stream t
-                        :models '(deepseek-r1:latest))))
+                        :models '(deepseek-code:latest))))
 
 (use-package! gptel-autocomplete
   :after gptel
