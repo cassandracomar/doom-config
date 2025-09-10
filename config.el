@@ -1192,7 +1192,7 @@
                                          :models '(deepseek-r1:latest))))
 
 (use-package! gptel-autocomplete
-  :hook 'prog-mode-hook
+  :after gptel
   :bind (("C-RET" . #'gptel-accept-completion)
          ("C-TAB" . #'gptel-complete))
   :config
