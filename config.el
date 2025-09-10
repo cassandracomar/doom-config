@@ -1193,8 +1193,8 @@
 (use-package! gptel-autocomplete
   :after gptel
   :config
-  ;; on idle for 0.5s, run gptel-complete
-  (run-with-idle-timer 1 t (lambda (&rest _) (when (evil-insert-state-p) (gptel-complete))))
+  ;; when changes pause, kick off the autocomplete from gptel
+  (add-hook 'after-change-functions (lambda (&rest _) (when (evil-insert-state-p) (gptel-complete))) nil t)
   (map! :nvi
         "C-<tab>" #'gptel-complete
         "C-<return>" #'gptel-accept-completion))
