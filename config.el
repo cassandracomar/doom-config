@@ -1198,7 +1198,7 @@
   (async-shell-command "sudo systemctl restart ollama")
   :config
   ;; on idle for 0.5s, run gptel-complete
-  (run-with-idle-timer 0.5 t (lambda () (when (evil-insert-state-p) (gptel-complete))))
+  (run-with-idle-timer 1 t (lambda (&rest _) (when (evil-insert-state-p) (gptel-complete))))
   (map! :nvi
         "C-<tab>" #'gptel-complete
         "C-<return>" #'gptel-accept-completion))
