@@ -111,3 +111,5 @@
 (package! nushell-ts-mode :recipe (:host github :repo "herbertjones/nushell-ts-mode") :pin "e07ecc59762fab8d5fa35bc6d3f522f74e580a2f")
 (package! shx :recipe (:source melpa))
 (package! spacious-padding)
+(package! gptel-fn-complete :recipe (:source melpa))
+(package! minuet :recipe (:source melpa))

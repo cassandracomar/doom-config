@@ -86,6 +86,9 @@
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 (setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
 (setenv "TERM" "xterm-256color")
+(setenv "PAGER" "cat")
+(setenv "DOOMPAGER" "cat")
+
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
 (setq enable-local-eval t)
@@ -1178,3 +1181,36 @@
 ;;   :custom
 ;;   (rego-format-at-save nil))
 (setq vundo-glyph-alist vundo-unicode-symbols)
+
+(use-package! gptel
+  :after prog-mode
+  :config
+  (setq gptel-model 'deepseek-v3.1:671b
+        gptel-backend (gptel-make-ollama "Ollama"
+                                         :host "localhost:11434"
+                                         :stream t
+                                         :models '(deepseek-v3.1:671b))))
+
+(use-package! gptel-fn-complete
+  :after gptel
+  :bind
+  (:leader
+   ("c C" . #'gptel-fn-complete)))
+
+(use-package! minuet
+  :after gptel
+  :bind
+  (:leader
+   ("c c" . #'minuet-complete-with-minibuffer)
+   ("c i" . #'minuet-show-suggestion)
+   :map minuet-active-mode-map
+   ("RET" . #'minuet-accept-suggestion)
+   ("<return>" . #'minuet-accept-suggestion)
+   ("<up>" . #'minuet-previous-suggestion)
+   ("<down>" . #'minuet-next-suggestion))
+  :config
+  (setq minuet-provider 'openai-compatible)
+  (plist-put minuet-openai-compatible-options :end-point "http://localhost:11434/v1/chat/completions")
+  (plist-put minuet-openai-compatible-options :model "deepseek-v3.1:671b")
+  (plist-put minuet-openai-compatible-options :api-key "TERM")
+  (plist-put minuet-openai-compatible-options :name "deepseek-v3.1"))
