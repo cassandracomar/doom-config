@@ -1194,15 +1194,13 @@
 (use-package! gptel-fn-complete
   :after gptel
   :bind
-  (:leader
-   ("c C" . #'gptel-fn-complete)))
+  (("SPC c C" . #'gptel-fn-complete)))
 
 (use-package! minuet
   :after gptel
   :bind
-  (:leader
-   ("c c" . #'minuet-complete-with-minibuffer)
-   ("c i" . #'minuet-show-suggestion)
+  (("SPC c c" . #'minuet-complete-with-minibuffer)
+   ("SPC c i" . #'minuet-show-suggestion)
    :map minuet-active-mode-map
    ("RET" . #'minuet-accept-suggestion)
    ("<return>" . #'minuet-accept-suggestion)
