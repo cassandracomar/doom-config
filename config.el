@@ -1183,7 +1183,6 @@
 (setq vundo-glyph-alist vundo-unicode-symbols)
 
 (use-package! gptel
-  :hook 'prog-mode-hook
   :config
   (setq gptel-model 'deepseek-r1:latest
         gptel-backend (gptel-make-ollama "Ollama"
