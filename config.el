@@ -1186,13 +1186,11 @@
   :config
   (setq gptel-model 'deepseek-r1:latest
         gptel-backend (gptel-make-ollama "Ollama"
-                                         :host "localhost:11434"
-                                         :stream t
-                                         :models '(deepseek-r1:latest))))
+                        :host "localhost:11434"
+                        :stream t
+                        :models '(deepseek-r1:latest))))
 
 (use-package! gptel-autocomplete
   :after gptel
   :bind (("C-RET" . #'gptel-accept-completion)
-         ("C-TAB" . #'gptel-complete))
-  :config
-  (add-to-list 'completion-at-point-functions #'gptel-complete))
+         ("C-TAB" . #'gptel-complete)))
