@@ -1183,7 +1183,7 @@
 (setq vundo-glyph-alist vundo-unicode-symbols)
 
 (use-package! gptel
-  :after prog-mode
+  :hook 'prog-mode-hook
   :config
   (setq gptel-model 'deepseek-r1:latest
         gptel-backend (gptel-make-ollama "Ollama"
@@ -1191,24 +1191,9 @@
                                          :stream t
                                          :models '(deepseek-r1:latest))))
 
-(use-package! gptel-fn-complete
-  :after gptel
-  :bind
-  (("SPC c C" . #'gptel-fn-complete)))
-
-(use-package! minuet
-  :after gptel
-  :bind
-  (("SPC c c" . #'minuet-complete-with-minibuffer)
-   ("SPC c i" . #'minuet-show-suggestion)
-   :map minuet-active-mode-map
-   ("RET" . #'minuet-accept-suggestion)
-   ("<return>" . #'minuet-accept-suggestion)
-   ("<up>" . #'minuet-previous-suggestion)
-   ("<down>" . #'minuet-next-suggestion))
+(use-package! gptel-autocomplete
+  :hook 'prog-mode-hook
+  :bind (("C-RET" . #'gptel-accept-completion)
+         ("C-TAB" . #'gptel-complete))
   :config
-  (setq minuet-provider 'openai-compatible)
-  (plist-put minuet-openai-compatible-options :end-point "http://localhost:11434/v1/chat/completions")
-  (plist-put minuet-openai-compatible-options :model "deepseek-r1:latest")
-  (plist-put minuet-openai-compatible-options :api-key "TERM")
-  (plist-put minuet-openai-compatible-options :name "deepseek-r1"))
+  (add-to-list 'completion-at-point-functions #'gptel-complete))
