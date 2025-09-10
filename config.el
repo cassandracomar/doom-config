@@ -1185,11 +1185,11 @@
 (use-package! gptel
   :after prog-mode
   :config
-  (setq gptel-model 'deepseek-v3.1:671b
+  (setq gptel-model 'deepseek-r1:latest
         gptel-backend (gptel-make-ollama "Ollama"
                                          :host "localhost:11434"
                                          :stream t
-                                         :models '(deepseek-v3.1:671b))))
+                                         :models '(deepseek-r1:latest))))
 
 (use-package! gptel-fn-complete
   :after gptel
@@ -1209,6 +1209,6 @@
   :config
   (setq minuet-provider 'openai-compatible)
   (plist-put minuet-openai-compatible-options :end-point "http://localhost:11434/v1/chat/completions")
-  (plist-put minuet-openai-compatible-options :model "deepseek-v3.1:671b")
+  (plist-put minuet-openai-compatible-options :model "deepseek-r1:latest")
   (plist-put minuet-openai-compatible-options :api-key "TERM")
-  (plist-put minuet-openai-compatible-options :name "deepseek-v3.1"))
+  (plist-put minuet-openai-compatible-options :name "deepseek-r1"))
