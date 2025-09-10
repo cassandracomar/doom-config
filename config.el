@@ -1192,6 +1192,7 @@
 
 (use-package! gptel-autocomplete
   :after gptel
-  :bind (("C-RET" . #'gptel-accept-completion)
-         ("C-TAB" . #'gptel-complete)
-         ("C-<tab>" . #'gptel-complete)))
+  :config
+  (map! :nvi
+        "C-<tab>" #'gptel-complete
+        "C-RET" #'gptel-accept-completion))
