@@ -1192,7 +1192,11 @@
 
 (use-package! gptel-autocomplete
   :after gptel
+  :init
+  ;; ollama fails to find the gpu the first time in starts
+  ;; and we also need to clear vram before doing anything new.
+  (async-shell-command "sudo systemctl restart ollama")
   :config
   (map! :nvi
         "C-<tab>" #'gptel-complete
-        "C-RET" #'gptel-accept-completion))
+        "C-<return>" #'gptel-accept-completion))
