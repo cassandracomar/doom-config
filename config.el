@@ -75,7 +75,7 @@
 ;; we're on the igc branch so disable gcmh
 (remove-hook! doom-first-buffer-hook #'gcmh-mode)
 (gcmh-mode -1)
-(run-with-idle-timer 10 t (lambda (&rest _) (igc-collect)))
+(igc-start-idle-timer)
 (add-hook 'emacs-startup-hook
           (lambda ()
             (if (boundp 'after-focus-change-function)
