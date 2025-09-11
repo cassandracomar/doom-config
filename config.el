@@ -1209,4 +1209,4 @@
         "C-<tab>" #'gptel-complete
         "C-<return>" #'gptel-accept-completion))
 
-(gcmh-mode -1)
+(add-hook 'doom-first-buffer-hook (lambda (&rest _) (gcmh-mode -1)))
