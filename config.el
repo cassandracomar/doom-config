@@ -967,11 +967,9 @@
 
 (use-package! eat
   :config
-  ;; TODO: set comint-unquote-function and comint-requote-function to something appropriate for nushell
-  ;; quoted filepaths should use `` instead of "" and paths should not be escaped.
   (defun +eat/here (&optional program)
     (interactive)
-    (eat--1 nil "new" #'pop-to-buffer-same-window))
+    (eat program "new"))
   (map! :leader "RET" #'+eat/here)
   (map! :leader "<return>" #'+eat/here)
 
@@ -1111,8 +1109,7 @@
 
   (defun carapace-nushell-backend (action &optional arg &rest _)
     (let* ((prompt (carapace-nushell--raw-prompt))
-           (completion-prompt (carapace-nushell--raw-prompt (point)))
-           (command (cl-first (split-string prompt))))
+           (completion-prompt (carapace-nushell--raw-prompt (point))))
       (pcase action
         ('prefix (ignore-errors
                    (pcase-let* ((quote-count (s-count-matches "`" completion-prompt))
@@ -1128,7 +1125,7 @@
         ('candidates (when-let* ((candidates (carapace-nushell--completions completion-prompt))
                                  (possible (hash-table-keys candidates))
                                  (unquoted-arg (s-replace-regexp "['\"`]" "" arg))
-                                 (pred (lambda (key cand) (s-contains? unquoted-arg key))))
+                                 (pred (lambda (key _cand) (s-contains? unquoted-arg key))))
                        (seq-filter (lambda (key) (funcall pred key (gethash key candidates))) possible)))
 
         ('annotation (let* ((candidates (carapace-nushell--completions completion-prompt t))
@@ -1160,12 +1157,13 @@
     (lambda (_)
       (eat-line-mode)
       (eat-line-load-input-history-from-file nushell-history-file "bash")
-      (replace-eat-completions)))
+      (replace-eat-completions)
+      (rename-buffer (s-concat "*eat " (pwd) "*"))))
   (add-hook! 'eat-update-hook
     (eat-line-mode)
     (eat-line-load-input-history-from-file nushell-history-file "bash")
-    (replace-eat-completions))
-  )
+    (replace-eat-completions)
+    (rename-buffer (s-concat "*eat " (pwd) "*"))))
 
 (use-package! nushell-mode
   :mode ("\\.nu\\'" . nushell-mode)
