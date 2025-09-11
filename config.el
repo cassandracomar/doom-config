@@ -1184,17 +1184,21 @@
 
 (use-package! gptel
   :config
-  (setq gptel-model 'qwen2.5-code:latest
+  (setq gptel-model 'qwen3-code:latest
         gptel-backend (gptel-make-ollama "Ollama"
                         :host "localhost:11434"
                         :stream t
-                        :models '(qwen2.5-code:latest))))
+                        :models '(qwen3-code:latest))))
 
 (use-package! gptel-autocomplete
   :after gptel
   :config
   ;; on idle, after the buffer contents have changed, run gptel-complete but only when in evil-insert-state
-  (add-hook! prog-mode (add-hook! 'after-change-functions :local (run-with-idle-timer 0.25 nil (lambda (&rest _) (when (evil-insert-state-p) (gptel-complete))))))
+  (add-hook! prog-mode
+    (add-hook! 'after-change-functions
+               :local (run-with-idle-timer 0.25
+                                           nil
+                                           (lambda (&rest _) (when (evil-insert-state-p) (gptel-complete))))))
   (map! :nvi
         "C-<tab>" #'gptel-complete
         "C-<return>" #'gptel-accept-completion))
