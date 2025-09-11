@@ -1157,13 +1157,11 @@
     (lambda (_)
       (eat-line-mode)
       (eat-line-load-input-history-from-file nushell-history-file "bash")
-      (replace-eat-completions)
-      (rename-buffer (s-concat "*eat " (pwd) "*"))))
+      (replace-eat-completions)))
   (add-hook! 'eat-update-hook
     (eat-line-mode)
     (eat-line-load-input-history-from-file nushell-history-file "bash")
-    (replace-eat-completions)
-    (rename-buffer (s-concat "*eat " (pwd) "*"))))
+    (replace-eat-completions)))
 
 (use-package! nushell-mode
   :mode ("\\.nu\\'" . nushell-mode)
