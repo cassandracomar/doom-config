@@ -61,7 +61,7 @@
        ;;zen               ; distraction-free coding or writing
        ;; (emoji +ascii +github +unicode)
        minimap
-       (smooth-scroll +interpolate)
+       smooth-scroll
 
        :editor
        (evil +everywhere); come to the dark side, we have cookies
