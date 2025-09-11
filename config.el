@@ -667,7 +667,7 @@
 (after! yaml-mode
   (add-to-list 'auto-mode-alist '("\\.yaml\\.j2\\'" . yaml-mode))
   (set-company-backend! 'yaml-mode 'company-capf)
-  (set-company-backend! 'yaml-ts-mode 'company-capf)
+  ;; (set-company-backend! 'yaml-ts-mode 'company-capf)
   (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-mode))
   (corfu-mode +1))
 (add-hook! yaml-mode (corfu-mode +1))
@@ -1169,8 +1169,8 @@
   :mode ("\\.nu\\'" . nushell-mode)
   :config
   (add-hook 'nushell-mode-hook #'lsp 'append))
-(use-package! nushell-ts-mode
-  :hook (nushell-mode . nushell-ts-mode))
+;; (use-package! nushell-ts-mode
+;;   :hook (nushell-mode . nushell-ts-mode))
 
 ;; (use-package! rego-mode
 ;;   :defer t

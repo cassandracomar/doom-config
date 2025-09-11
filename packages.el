@@ -108,7 +108,7 @@
 (package! sublimity)
 (package! rego-mode)
 (package! nushell-mode :recipe (:host github :repo "mrkkrp/nushell-mode") :pin "155acf85d0ab26dc86e248452df00f7820e775ed")
-(package! nushell-ts-mode :recipe (:host github :repo "herbertjones/nushell-ts-mode") :pin "e07ecc59762fab8d5fa35bc6d3f522f74e580a2f")
+;; (package! nushell-ts-mode :recipe (:host github :repo "herbertjones/nushell-ts-mode") :pin "e07ecc59762fab8d5fa35bc6d3f522f74e580a2f")
 (package! shx :recipe (:source melpa))
 (package! spacious-padding)
 (package! gptel-autocomplete :recipe (:host github :repo "JDNdeveloper/gptel-autocomplete") :pin "8ace326a6e7b8a3a4df7a6e80272b472e7fbd167")
