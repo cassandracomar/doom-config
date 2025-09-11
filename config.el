@@ -72,16 +72,10 @@
 (add-to-list 'trusted-content "~/src/github.com/cassandracomar/doom-config/")
 (setq doom-user-dir "~/src/github.com/cassandracomar/doom-config/")
 
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (if (boundp 'after-focus-change-function)
-                (add-function :after after-focus-change-function
-                              (lambda ()
-                                (unless (frame-focus-state)
-                                  (garbage-collect-maybe (round (/ 1 gc-cons-percentage))))))
-              (add-hook 'after-focus-change-function
-                        (lambda ()
-                          (garbage-collect-maybe (round (/ 1 gc-cons-percentage))))))))
+;; we're on the igc branch so disable gcmh
+(remove-hook! doom-first-buffer-hook #'gcmh-mode)
+(gcmh-mode -1)
+
 ;; ENVIRONMENT
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 (setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
