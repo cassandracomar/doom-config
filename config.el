@@ -447,6 +447,7 @@
   ;; (setq company-minimum-prefix-length 1
   ;;       company-idle-delay 0.0)
 
+  (add-hook! +lsp-optimization-mode (gcmh-mode -1))
   (lsp-defcustom lsp-nix-nil-flake-auto-archive t
     "auto archiving behavior for flake inputs that might use network"
     :type 'boolean
