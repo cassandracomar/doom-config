@@ -1208,3 +1208,5 @@
   (map! :nvi
         "C-<tab>" #'gptel-complete
         "C-<return>" #'gptel-accept-completion))
+
+(gcmh-mode -1)
