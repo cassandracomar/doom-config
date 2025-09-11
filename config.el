@@ -72,8 +72,6 @@
 (add-to-list 'trusted-content "~/src/github.com/cassandracomar/doom-config/")
 (setq doom-user-dir "~/src/github.com/cassandracomar/doom-config/")
 
-;; we're on the igc branch so disable gcmh
-(remove-hook! doom-first-buffer-hook #'gcmh-mode)
 (igc-start-idle-timer)
 (add-hook 'emacs-startup-hook
           (lambda ()
