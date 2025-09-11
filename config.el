@@ -75,6 +75,17 @@
 ;; we're on the igc branch so disable gcmh
 (remove-hook! doom-first-buffer-hook #'gcmh-mode)
 (gcmh-mode -1)
+(run-with-idle-timer 10 t (lambda (&rest _) (igc-collect)))
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (if (boundp 'after-focus-change-function)
+                (add-function :after after-focus-change-function
+                              (lambda ()
+                                (unless (frame-focus-state)
+                                  (igc-collect))))
+              (add-hook 'after-focus-change-function
+                        (lambda ()
+                          (igc-collect))))))
 
 ;; ENVIRONMENT
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
