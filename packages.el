@@ -52,6 +52,7 @@
 
 (package! code-review :disable t)
 (package! docker-tramp :disable t)
+(package! gcmh :disable t)
                                         ; version bumps
 ;; (unpin! haskell-mode)
 ;; (package! lsp-mode

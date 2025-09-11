@@ -74,7 +74,6 @@
 
 ;; we're on the igc branch so disable gcmh
 (remove-hook! doom-first-buffer-hook #'gcmh-mode)
-(gcmh-mode -1)
 (igc-start-idle-timer)
 (add-hook 'emacs-startup-hook
           (lambda ()
@@ -447,7 +446,6 @@
   ;; (setq company-minimum-prefix-length 1
   ;;       company-idle-delay 0.0)
 
-  (add-hook! +lsp-optimization-mode (gcmh-mode -1))
   (lsp-defcustom lsp-nix-nil-flake-auto-archive t
     "auto archiving behavior for flake inputs that might use network"
     :type 'boolean
@@ -1208,5 +1206,3 @@
   (map! :nvi
         "C-<tab>" #'gptel-complete
         "C-<return>" #'gptel-accept-completion))
-
-(add-hook 'doom-first-buffer-hook (lambda (&rest _) (gcmh-mode -1)))
