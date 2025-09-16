@@ -974,12 +974,12 @@
   :config
   (setq-hook! 'eat-mode-hook consult-preview-key nil)
   (add-hook 'eat-exec-hook
-            (lambda ()
+            (lambda (&rest _)
               (eat-line-mode)
               (eat-line-load-input-history-from-file nushell-history-file "bash")
               (replace-eat-completions)))
   (add-hook 'eat-update-hook
-            (lambda ()
+            (lambda (&rest _)
               (eat-line-mode)
               (eat-line-load-input-history-from-file nushell-history-file "bash")
               (replace-eat-completions)))
