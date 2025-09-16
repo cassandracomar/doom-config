@@ -1127,8 +1127,7 @@
               (eat-line-mode)
               (eat-line-load-input-history-from-file nushell-history-file "bash")
               (replace-eat-completions)))
-  :config
-  (defun +eat/here (&optional program)
+(defun +eat/here (&optional program)
     (interactive)
     (eat program "new"))
   (map! :leader "RET" #'+eat/here)
