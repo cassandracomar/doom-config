@@ -1157,13 +1157,13 @@
   (setq-hook! 'eat-mode-hook consult-preview-key nil)
   (add-hook! 'eat-exec-hook
     (lambda (_)
-      (eat-line-mode)
       (eat-line-load-input-history-from-file nushell-history-file "bash")
-      (replace-eat-completions)))
+      (replace-eat-completions)
+      (eat-line-mode)))
   (add-hook! 'eat-update-hook
-    (eat-line-mode)
     (eat-line-load-input-history-from-file nushell-history-file "bash")
-    (replace-eat-completions)))
+    (replace-eat-completions)
+    (eat-line-mode)))
 
 (use-package! nushell-mode
   :mode ("\\.nu\\'" . nushell-mode)
