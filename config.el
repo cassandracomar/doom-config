@@ -970,7 +970,6 @@
 (use-package! eat
   :demand t
   :config
-  (load! "+eat.el")
   (setq-hook! 'eat-mode-hook consult-preview-key nil)
   (add-hook 'eat-exec-hook
             (lambda (&rest _)
@@ -1010,6 +1009,8 @@
 
   (keymap-set eat-mode-map "<insert-state> <tab>" #'completion-at-point)
   (keymap-set eat-mode-map "<normal-state> <tab>" #'completion-at-point))
+
+(load! "+eat.el")
 
 (defun +eat/nu-open (&rest args)
   (interactive)
