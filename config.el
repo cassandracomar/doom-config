@@ -1155,12 +1155,12 @@
                 (cape-company-to-capf #'carapace-nushell-backend (lambda (&rest _) carapace-nushell--active-completions))))
 
   (setq-hook! 'eat-mode-hook consult-preview-key nil)
-  (add-hook! 'eat-exec-hook
+  (add-hook 'eat-exec-hook
     (lambda (_)
       (eat-line-load-input-history-from-file nushell-history-file "bash")
       (replace-eat-completions)
       (eat-line-mode)))
-  (add-hook! 'eat-update-hook
+  (add-hook 'eat-update-hook
     (eat-line-load-input-history-from-file nushell-history-file "bash")
     (replace-eat-completions)
     (eat-line-mode)))
