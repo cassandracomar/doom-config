@@ -967,8 +967,6 @@
   :after shell
   :hook (shell-mode-hook . shx-mode))
 
-(load! "+eat.el")
-
 (use-package! eat
   :demand t
   :config
@@ -1011,6 +1009,8 @@
 
   (keymap-set eat-mode-map "<insert-state> <tab>" #'completion-at-point)
   (keymap-set eat-mode-map "<normal-state> <tab>" #'completion-at-point))
+
+(load! "+eat.el")
 
 (defun +eat/nu-open (&rest args)
   (interactive)
