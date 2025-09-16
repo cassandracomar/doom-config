@@ -441,6 +441,8 @@
   ;; (setq lsp-rust-analyzer-diagnostics-disabled ["unresolved-proc-macro"])
   ;; (setq lsp-rust-features ["k8s_integration"])
   :config
+  (add-hook! lsp-semantic-tokens-mode
+    (setq-local max-lisp-eval-depth 16000))
   ;; (setq company-minimum-prefix-length 1
   ;;       company-idle-delay 0.0)
 
@@ -1009,7 +1011,8 @@
   (load "s")
   (load "dash")
   (defcustom carapace-nushell-quoted-arg-chars "~/A-Za-z0-9\\+@:_\\.\\$#%,={} -"
-    "regex matching an unquoted argument")
+    "regex matching an unquoted argument"
+    :type string)
   (defcustom carapace-nushell-unquoted-arg-chars "~/A-Za-z0-9\\+@:_\\.\\$#%,={}-"
     "regex matching an unquoted argument")
   (defcustom carapace-nushell-quoted-arg-regex
@@ -1108,8 +1111,7 @@
         (setq-local carapace-nushell--active-completions candidates))))
 
   (defun carapace-nushell-backend (action &optional arg &rest _)
-    (let* ((prompt (carapace-nushell--raw-prompt))
-           (completion-prompt (carapace-nushell--raw-prompt (point))))
+    (let ((completion-prompt (carapace-nushell--raw-prompt (point))))
       (pcase action
         ('prefix (ignore-errors
                    (pcase-let* ((quote-count (s-count-matches "`" completion-prompt))
