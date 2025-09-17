@@ -247,6 +247,6 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
       "c x" #'flymake-show-project-diagnostics
       "p x" #'flymake-show-project-diagnostics)
 
-(remove-hook! '(eglot-managed-mode flymake-mode) #'flymake-popon-mode)
-(add-hook! 'eglot-managed-mode-hook
-  (flymake-popon-mode -1))
+;; (remove-hook! '(eglot-managed-mode flymake-mode) #'flymake-popon-mode)
+;; (add-hook! 'eglot-managed-mode-hook
+;;   (flymake-popon-mode -1))

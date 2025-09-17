@@ -542,9 +542,7 @@
 ;; (use-package! eglot-booster
 ;;   :after eglot
 ;;   :config (eglot-booster-mode))
-
-(after! eglot
-  (load! "+eglot"))
+(load! "+eglot")
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
