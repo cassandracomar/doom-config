@@ -189,7 +189,7 @@
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "S-SPC" #'execute-extended-command-for-buffer)
 (map! :leader "p t" #'+treemacs/toggle)
-(map! :leader "p x" #'lsp-ui-flycheck-list)
+;; (map! :leader "p x" #'eglo)
 (map! :leader "o o" #'envrc-reload)
 (map! :leader "p p" #'consult-projectile-switch-project)
 (map! :leader "p f" #'consult-projectile)
@@ -241,7 +241,7 @@
 (map! :nv "C-J" #'xref-go-back)
 (map! :nv "C-K" #'+lookup/references)
 (map! :nv "H" #'treemacs-select-window)
-(map! :nv "L" #'lsp-ui-imenu)
+;; (map! :nv "L" #'lsp-ui-imenu)
 (map! :nv "g b" #'xref-go-back)
 (map! :nv "g B" #'xref-go-forward)
 (map! :n
@@ -506,15 +506,15 @@
   :init
   (setq terraform-command "tofu"))
 
-(use-package! lsp-ui
-  :config
-  (setq lsp-ui-sideline-enable t)
-  (setq lsp-ui-sideline-show-hover t)
-  (setq lsp-ui-sideline-show-code-actions t))
-(use-package! lsp-yaml
-  ;; :config
-  ;; (puthash "kubernetes" "*.yaml" lsp-yaml-schemas)
-  )
+;; (use-package! lsp-ui
+;;   :config
+;;   (setq lsp-ui-sideline-enable t)
+;;   (setq lsp-ui-sideline-show-hover t)
+;;   (setq lsp-ui-sideline-show-code-actions t))
+;; (use-package! lsp-yaml
+;;   ;; :config
+;;   ;; (puthash "kubernetes" "*.yaml" lsp-yaml-schemas)
+;;   )
 
 ;; (after! lsp-mode
 ;;   ;; https://github.com/emacs-lsp/lsp-mode/issues/3577#issuecomment-1709232622
