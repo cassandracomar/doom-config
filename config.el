@@ -190,7 +190,7 @@
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "S-SPC" #'execute-extended-command-for-buffer)
 (map! :leader "p t" #'+treemacs/toggle)
-;; (map! :leader "p x" #'eglo)
+(map! :leader "p x" (lambda (&rest _) (consult-flymake t)))
 (map! :leader "o o" #'envrc-reload)
 (map! :leader "p p" #'consult-projectile-switch-project)
 (map! :leader "p f" #'consult-projectile)
@@ -243,8 +243,12 @@
 (map! :nv "C-K" #'+lookup/references)
 (map! :nv "H" #'treemacs-select-window)
 ;; (map! :nv "L" #'lsp-ui-imenu)
-(map! :nv "g b" #'xref-go-back)
-(map! :nv "g B" #'xref-go-forward)
+(map! :nv
+      "g b" #'xref-go-back
+      "g B" #'xref-go-forward
+      "g D" #'+lookup/references
+      "g d" #'+lookup/definition
+      "g i" #'+lookup/implementations)
 (map! :n
       "V" #'evil-visual-line)
 (map! :nv "g l" (lambda (l) (apply #'evil-goto-line l)))
@@ -546,8 +550,8 @@
       (when (<= (skip-chars-backward "a-zA-Z0-9'\\-_\\.") 0)
         (cons (point) (+ (point) (skip-chars-forward "a-zA-Z0-9'\\-_\\."))))))
   (advice-add #'nix--prefix-bounds :override #'nix--prefix-bounds-override)
+  (add-to-list 'eglot-server-programs '(nix-mode "nixd" "--semantic-tokens=true"))
   :config
-  (setq company-idle-delay 0.0)
   (add-hook! before-save-hook #'nix-format-before-save)
   (map! :map nix-repl-mode-map
         :nvi
@@ -556,7 +560,6 @@
   (add-to-list 'markdown-code-lang-modes '("nix" . nix-mode))
   :custom
   (nix-nixfmt-bin "nix fmt -- -"))
-(add-hook! nix-mode #'lsp)
 
 (use-package! markdown-mode
   :config
