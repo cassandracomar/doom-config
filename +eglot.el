@@ -6,10 +6,9 @@
 
 ;; uncomment to debug lsp events
 ;; (cl-callf plist-put eglot-events-buffer-config :size 2000000)
-(set-eglot-client! 'nix-mode '("nixd" "--semantic-tokens=true"))
-(set-eglot-client! 'haskell-mode '("haskell-language-server-wrapper" "-d" "lsp"))
-(set-eglot-client! '(terraform-mode :language-id "opentofu") '("tofu-ls" "serve"))
-(set-eglot-client! 'rustic-mode '("rust-analyzer"))
+(set-eglot-client! 'nix-mode "nixd" "--semantic-tokens=true")
+(set-eglot-client! 'haskell-mode "haskell-language-server-wrapper" "-d" "lsp")
+(set-eglot-client! '(terraform-mode :language-id "opentofu") "tofu-ls" "serve")
 (add-hook! terraform-mode
   (setq-local completion-at-point-functions #'eglot-completion-at-point))
 (setq-default
