@@ -244,10 +244,14 @@
 (map! :nv "H" #'treemacs-select-window)
 ;; (map! :nv "L" #'lsp-ui-imenu)
 (map! :nv
-      "g b" #'xref-go-back
-      "g B" #'xref-go-forward
-      "g D" #'+lookup/references
-      "g d" #'+lookup/definition
+      "g b" #'xref-go-back)
+(map! :nv
+      "g B" #'xref-go-forward)
+(map! :nv
+      "g D" #'+lookup/references)
+(map! :nv
+      "g d" #'+lookup/definition)
+(map! :nv
       "g i" #'+lookup/implementations)
 (map! :n
       "V" #'evil-visual-line)
