@@ -161,27 +161,29 @@
            :right-divider-width 5
            :scroll-bar-width 2)))
 
-;; (use-package! eglot
-;;   :config
-;;   (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
-;;   (add-hook! 'eglot-managed-mode-hook
-;;     (add-to-list
-;;      'mode-line-misc-info
-;;      `(eglot--managed-mode
-;;        (" ["
-;;         (:eval
-;;          (cl-loop for e in eglot-mode-line-format
-;;                   for render = (format-mode-line e)
-;;                   unless (eq render "")
-;;                   collect (cons render
-;;                                 (eq e 'eglot-mode-line-menu))
-;;                   into rendered
-;;                   finally
-;;                   (return (cl-loop for (rspec . rest) on rendered
-;;                                    for (r . titlep) = rspec
-;;                                    concat r
-;;                                    when rest concat (if titlep ":" "/")))))
-;;         "] ")))))
+(use-package! eglot
+  :init
+  (load "+eglot")
+  :config
+  (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
+  (add-hook! 'eglot-managed-mode-hook
+    (add-to-list
+     'mode-line-misc-info
+     `(eglot--managed-mode
+       (" ["
+        (:eval
+         (cl-loop for e in eglot-mode-line-format
+                  for render = (format-mode-line e)
+                  unless (eq render "")
+                  collect (cons render
+                                (eq e 'eglot-mode-line-menu))
+                  into rendered
+                  finally
+                  (return (cl-loop for (rspec . rest) on rendered
+                                   for (r . titlep) = rspec
+                                   concat r
+                                   when rest concat (if titlep ":" "/")))))
+        "] ")))))
 
 ;; KEYBINDINGS
 (setq doom-localleader-key ",")
@@ -542,9 +544,6 @@
 ;; (use-package! eglot-booster
 ;;   :after eglot
 ;;   :config (eglot-booster-mode))
-
-(after! eglot
-  (load! "+eglot"))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
