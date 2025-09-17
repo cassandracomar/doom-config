@@ -104,7 +104,7 @@
        (eval +overlay)     ; run code, run (also, repls)
        (lookup +docsets)              ; navigate your code and its documentation
        ;; (lsp +peek)
-       (lsp +peek)
+       (lsp +eglot +booster)
        (magit +forge)    ; a git porcelain for Emacs
        make              ; run make tasks from Emacs
        ;;pass              ; password manager for nerds

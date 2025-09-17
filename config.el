@@ -349,156 +349,156 @@
           forge-github-repository)    ; CLASS
         forge-alist))
 ;; set up LSP
-(use-package! lsp
-  ;; :defer t
-  :demand t
-  :init
-  (defun lsp-booster--advice-json-parse (old-fn &rest args)
-    "Try to parse bytecode instead of json."
-    (or
-     (when (equal (following-char) ?#)
-       (let ((bytecode (read (current-buffer))))
-         (when (byte-code-function-p bytecode)
-           (funcall bytecode))))
-     (apply old-fn args)))
-  (advice-add (if (progn (require 'json)
-                         (fboundp 'json-parse-buffer))
-                  'json-parse-buffer
-                'json-read)
-              :around
-              #'lsp-booster--advice-json-parse)
+;; (use-package! lsp
+;;   ;; :defer t
+;;   :demand t
+;;   :init
+;;   (defun lsp-booster--advice-json-parse (old-fn &rest args)
+;;     "Try to parse bytecode instead of json."
+;;     (or
+;;      (when (equal (following-char) ?#)
+;;        (let ((bytecode (read (current-buffer))))
+;;          (when (byte-code-function-p bytecode)
+;;            (funcall bytecode))))
+;;      (apply old-fn args)))
+;;   (advice-add (if (progn (require 'json)
+;;                          (fboundp 'json-parse-buffer))
+;;                   'json-parse-buffer
+;;                 'json-read)
+;;               :around
+;;               #'lsp-booster--advice-json-parse)
 
-  (defun lsp-booster--advice-final-command (old-fn cmd &optional test?)
-    "Prepend emacs-lsp-booster command to lsp CMD."
-    (let ((orig-result (funcall old-fn cmd test?)))
-      (if (and (not test?)                             ;; for check lsp-server-present?
-               (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
-               lsp-use-plists
-               (not (functionp 'json-rpc-connection))  ;; native json-rpc
-               (executable-find "emacs-lsp-booster"))
-          (progn
-            (when-let ((command-from-exec-path (executable-find (car orig-result))))  ;; resolve command from exec-path (in case not found in $PATH)
-              (setcar orig-result command-from-exec-path))
-            (message "Using emacs-lsp-booster for %s!" orig-result)
-            (cons "emacs-lsp-booster" orig-result))
-        orig-result)))
-  (advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
+;;   (defun lsp-booster--advice-final-command (old-fn cmd &optional test?)
+;;     "Prepend emacs-lsp-booster command to lsp CMD."
+;;     (let ((orig-result (funcall old-fn cmd test?)))
+;;       (if (and (not test?)                             ;; for check lsp-server-present?
+;;                (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
+;;                lsp-use-plists
+;;                (not (functionp 'json-rpc-connection))  ;; native json-rpc
+;;                (executable-find "emacs-lsp-booster"))
+;;           (progn
+;;             (when-let ((command-from-exec-path (executable-find (car orig-result))))  ;; resolve command from exec-path (in case not found in $PATH)
+;;               (setcar orig-result command-from-exec-path))
+;;             (message "Using emacs-lsp-booster for %s!" orig-result)
+;;             (cons "emacs-lsp-booster" orig-result))
+;;         orig-result)))
+;;   (advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
 
-  (defun minad/lsp-mode-setup-completion ()
-    (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
-          '(orderless)) ;; Configure orderless
-    (setq-local completion-at-point-functions (list (cape-capf-buster #'lsp-completion-at-point))))
+;;   (defun minad/lsp-mode-setup-completion ()
+;;     (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
+;;           '(orderless)) ;; Configure orderless
+;;     (setq-local completion-at-point-functions (list (cape-capf-buster #'lsp-completion-at-point))))
 
-  (setq lsp-auto-guess-root t)
-  (setq lsp-rust-analyzer-server-format-inlay-hints t)
-  (setq lsp-inlay-hint-enable t)
-  (setq lsp-rust-analyzer-display-parameter-hints t)
-  (setq lsp-rust-analyzer-display-chaining-hints t)
-  (setq lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
-  (setq lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names t)
-  ;; (setq lsp-rust-analyzer-display-closure-return-type-hints t)
-  (setq lsp-rust-analyzer-display-reborrow-hints "always")
-  (setq lsp-rust-analyzer-binding-mode-hints t)
-  (setq lsp-rust-analyzer-lens-enable t)
-  (setq lsp-rust-analyzer-lens-references-adt-enable t)
-  (setq lsp-rust-analyzer-lens-implementations-enable t)
-  (setq lsp-rust-analyzer-lens-references-trait-enable t)
-  (setq lsp-rust-analyzer-lens-references-method-enable t)
-  (setq lsp-rust-analyzer-lens-references-enum-variant-enable t)
-  (setq lsp-rust-analyzer-proc-macro-enable t)
-  (setq lsp-rust-analyzer-cargo-load-out-dirs-from-check t)
-  (setq lsp-rust-unstable-features t)
-  ;; (setq lsp-completion-provider :capf)
-  (setq lsp-auto-execute-action t)
-  (setq lsp-before-save-edits t)
-  (setq lsp-enable-snippet t)
-  (setq lsp-rust-analyzer-cargo-watch-enable t)
-  ;; (setq lsp-rust-analyzer-cargo-all-targets t)
-  (setq lsp-rust-analyzer-cargo-watch-command "clippy")
-  (setq lsp-rust-analyzer-cargo-watch-args ["--tests"])
-  ;; (setq lsp-rust-analyzer-cargo-unset-test ["core", "derivative"])
-  (setq lsp-rust-analyzer-experimental-proc-attr-macros t)
-  ;; (setq lsp-nix-nil-formatter ["nixpkgs-fmt"])
+;;   (setq lsp-auto-guess-root t)
+;;   (setq lsp-rust-analyzer-server-format-inlay-hints t)
+;;   (setq lsp-inlay-hint-enable t)
+;;   (setq lsp-rust-analyzer-display-parameter-hints t)
+;;   (setq lsp-rust-analyzer-display-chaining-hints t)
+;;   (setq lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
+;;   (setq lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names t)
+;;   ;; (setq lsp-rust-analyzer-display-closure-return-type-hints t)
+;;   (setq lsp-rust-analyzer-display-reborrow-hints "always")
+;;   (setq lsp-rust-analyzer-binding-mode-hints t)
+;;   (setq lsp-rust-analyzer-lens-enable t)
+;;   (setq lsp-rust-analyzer-lens-references-adt-enable t)
+;;   (setq lsp-rust-analyzer-lens-implementations-enable t)
+;;   (setq lsp-rust-analyzer-lens-references-trait-enable t)
+;;   (setq lsp-rust-analyzer-lens-references-method-enable t)
+;;   (setq lsp-rust-analyzer-lens-references-enum-variant-enable t)
+;;   (setq lsp-rust-analyzer-proc-macro-enable t)
+;;   (setq lsp-rust-analyzer-cargo-load-out-dirs-from-check t)
+;;   (setq lsp-rust-unstable-features t)
+;;   ;; (setq lsp-completion-provider :capf)
+;;   (setq lsp-auto-execute-action t)
+;;   (setq lsp-before-save-edits t)
+;;   (setq lsp-enable-snippet t)
+;;   (setq lsp-rust-analyzer-cargo-watch-enable t)
+;;   ;; (setq lsp-rust-analyzer-cargo-all-targets t)
+;;   (setq lsp-rust-analyzer-cargo-watch-command "clippy")
+;;   (setq lsp-rust-analyzer-cargo-watch-args ["--tests"])
+;;   ;; (setq lsp-rust-analyzer-cargo-unset-test ["core", "derivative"])
+;;   (setq lsp-rust-analyzer-experimental-proc-attr-macros t)
+;;   ;; (setq lsp-nix-nil-formatter ["nixpkgs-fmt"])
 
-  (setq nix-command-path (executable-find "nix"))
+;;   (setq nix-command-path (executable-find "nix"))
 
-  (defun pmx--project-flake-path ()
-    (let ((flake-path (expand-file-name "flake.nix" (projectile-project-root))))
-      (setq-local lsp-nix-nixd-nixpkgs-expr
-                  (if (file-exists-p flake-path)
-                      (format "import (builtins.getFlake \"%s\").inputs.nixpkgs { }" (file-name-directory flake-path))
-                    "import <nixpkgs> { }"))
+;;   (defun pmx--project-flake-path ()
+;;     (let ((flake-path (expand-file-name "flake.nix" (projectile-project-root))))
+;;       (setq-local lsp-nix-nixd-nixpkgs-expr
+;;                   (if (file-exists-p flake-path)
+;;                       (format "import (builtins.getFlake \"%s\").inputs.nixpkgs { }" (file-name-directory flake-path))
+;;                     "import <nixpkgs> { }"))
 
-      (setq-local lsp-nix-nixd-server-arguments
-                  `("--log=verbose" "--semantic-tokens=true" "--inlay-hints" ,(format "--nixpkgs-expr=%s" lsp-nix-nixd-nixpkgs-expr)))))
+;;       (setq-local lsp-nix-nixd-server-arguments
+;;                   `("--log=verbose" "--semantic-tokens=true" "--inlay-hints" ,(format "--nixpkgs-expr=%s" lsp-nix-nixd-nixpkgs-expr)))))
 
-  (add-hook! 'nix-mode-hook #'pmx--project-flake-path)
+;;   (add-hook! 'nix-mode-hook #'pmx--project-flake-path)
 
-  (setq lsp-nix-nixd-formatting-command [ "nix" "fmt" "--" ])
-  (setq lsp-nix-nil-server-path nil)
-  ;; (setq lsp-use-plists t)
-  ;; (setq lsp-rust-analyzer-server-command '("emacs-lsp-booster" "rust-analyzer"))
-  ;; (setq lsp-rust-analyzer-diagnostics-disabled ["unresolved-proc-macro"])
-  ;; (setq lsp-rust-features ["k8s_integration"])
-  :config
-  (add-hook! lsp-semantic-tokens-mode
-    (setq-local max-lisp-eval-depth 16000))
-  ;; (setq company-minimum-prefix-length 1
-  ;;       company-idle-delay 0.0)
+;;   (setq lsp-nix-nixd-formatting-command [ "nix" "fmt" "--" ])
+;;   (setq lsp-nix-nil-server-path nil)
+;;   ;; (setq lsp-use-plists t)
+;;   ;; (setq lsp-rust-analyzer-server-command '("emacs-lsp-booster" "rust-analyzer"))
+;;   ;; (setq lsp-rust-analyzer-diagnostics-disabled ["unresolved-proc-macro"])
+;;   ;; (setq lsp-rust-features ["k8s_integration"])
+;;   :config
+;;   (add-hook! lsp-semantic-tokens-mode
+;;     (setq-local max-lisp-eval-depth 16000))
+;;   ;; (setq company-minimum-prefix-length 1
+;;   ;;       company-idle-delay 0.0)
 
-  (lsp-defcustom lsp-nix-nil-flake-auto-archive t
-    "auto archiving behavior for flake inputs that might use network"
-    :type 'boolean
-    :group 'lsp-nix-nil
-    :lsp-path "nil.nix.flake.autoArchive"
-    :package-version '(lsp-mode . "8.0.1"))
-  (lsp-defcustom lsp-nix-nil-flake-auto-eval-inputs t
-    " Whether to auto-eval flake inputs.
-    The evaluation result is used to improve completion, but may cost
-    lots of time and/or memory."
-    :type 'boolean
-    :group 'lsp-nix-nil
-    :lsp-path "nil.nix.flake.autoEvalInputs"
-    :package-version '(lsp-mode . "8.0.1"))
-  (lsp-defcustom  lsp-nix-nil-nixpkgs-input-name "nixpkgs"
-    " The input name of nixpkgs for NixOS options evaluation.
-  The options hierarchy is used to improve completion, but may cost
-  lots of time and/or memory.
-  If this value is `null` or is not found in the workspace flake's
-  inputs, NixOS options are not evaluated."
-    :type 'string
-    :group 'lsp-nix-nil
-    :lsp-path "nil.nix.flake.nixpkgsInputName"
-    :package-version '(lsp-mode . "8.0.1"))
-  (setq lsp-enable-folding t
-        lsp-enable-text-document-color t)
-  (setq lsp-semantic-tokens-enable t)
-  (add-hook! 'lsp-before-initialize-hook
-    (require 'haskell-font-lock)
-    (let ((faces '(("interface" . font-lock-preprocessor-face)
-                   ("enum" . haskell-type-face)
-                   ("enumMember" . haskell-definition-face)
-                   ("operator" . font-lock-keyword-face)
-                   ("macro" . font-lock-preprocessor-face)
-                   ("typeParameter" . font-lock-variable-name-face)
-                   ("property" . haskell-definition-face)
-                   ("modifier" . font-lock-preprocessor-face)
-                   ("decorator" . haskell-pragma-face))))
-      (cl-loop for face in faces do
-               (add-to-list 'lsp-semantic-token-faces face))))
-  (set-lookup-handlers! lsp-mode :documentation #'lsp-ui-doc-toggle)
-  (remove-hook! 'lsp-mode-hook #'lsp-completion-mode)
-  (add-hook! 'lsp-mode-hook  (lsp-semantic-tokens-mode +1))
-  (add-hook! #'lsp-completion-mode #'minad/lsp-mode-setup-completion)
+;;   (lsp-defcustom lsp-nix-nil-flake-auto-archive t
+;;     "auto archiving behavior for flake inputs that might use network"
+;;     :type 'boolean
+;;     :group 'lsp-nix-nil
+;;     :lsp-path "nil.nix.flake.autoArchive"
+;;     :package-version '(lsp-mode . "8.0.1"))
+;;   (lsp-defcustom lsp-nix-nil-flake-auto-eval-inputs t
+;;     " Whether to auto-eval flake inputs.
+;;     The evaluation result is used to improve completion, but may cost
+;;     lots of time and/or memory."
+;;     :type 'boolean
+;;     :group 'lsp-nix-nil
+;;     :lsp-path "nil.nix.flake.autoEvalInputs"
+;;     :package-version '(lsp-mode . "8.0.1"))
+;;   (lsp-defcustom  lsp-nix-nil-nixpkgs-input-name "nixpkgs"
+;;     " The input name of nixpkgs for NixOS options evaluation.
+;;   The options hierarchy is used to improve completion, but may cost
+;;   lots of time and/or memory.
+;;   If this value is `null` or is not found in the workspace flake's
+;;   inputs, NixOS options are not evaluated."
+;;     :type 'string
+;;     :group 'lsp-nix-nil
+;;     :lsp-path "nil.nix.flake.nixpkgsInputName"
+;;     :package-version '(lsp-mode . "8.0.1"))
+;;   (setq lsp-enable-folding t
+;;         lsp-enable-text-document-color t)
+;;   (setq lsp-semantic-tokens-enable t)
+;;   (add-hook! 'lsp-before-initialize-hook
+;;     (require 'haskell-font-lock)
+;;     (let ((faces '(("interface" . font-lock-preprocessor-face)
+;;                    ("enum" . haskell-type-face)
+;;                    ("enumMember" . haskell-definition-face)
+;;                    ("operator" . font-lock-keyword-face)
+;;                    ("macro" . font-lock-preprocessor-face)
+;;                    ("typeParameter" . font-lock-variable-name-face)
+;;                    ("property" . haskell-definition-face)
+;;                    ("modifier" . font-lock-preprocessor-face)
+;;                    ("decorator" . haskell-pragma-face))))
+;;       (cl-loop for face in faces do
+;;                (add-to-list 'lsp-semantic-token-faces face))))
+;;   (set-lookup-handlers! lsp-mode :documentation #'lsp-ui-doc-toggle)
+;;   (remove-hook! 'lsp-mode-hook #'lsp-completion-mode)
+;;   (add-hook! 'lsp-mode-hook  (lsp-semantic-tokens-mode +1))
+;;   (add-hook! #'lsp-completion-mode #'minad/lsp-mode-setup-completion)
 
-  (with-eval-after-load 'terraform-mode
-    (setf (alist-get 'terraform-mode lsp-language-id-configuration) "opentofu")))
+;;   (with-eval-after-load 'terraform-mode
+;;     (setf (alist-get 'terraform-mode lsp-language-id-configuration) "opentofu")))
 
-(load! "+lsp-tofu")
-(require 'lsp-tofu)
-(add-to-list 'lsp-client-packages 'lsp-tofu)
-(delq 'lsp-terraform lsp-client-packages)
-(setf (alist-get 'terraform-mode lsp-language-id-configuration) "opentofu")
+;; (load! "+lsp-tofu")
+;; (require 'lsp-tofu)
+;; (add-to-list 'lsp-client-packages 'lsp-tofu)
+;; (delq 'lsp-terraform lsp-client-packages)
+;; (setf (alist-get 'terraform-mode lsp-language-id-configuration) "opentofu")
 
 (use-package! terraform-mode
   :defer t
@@ -533,24 +533,24 @@
                                        :target nil
                                        :cwd nil))))
 
-(use-package! lsp-nix
-  :after (lsp-mode)
-  :demand t
-  :config
-  (add-hook! #'nix-mode-hook (+format-with-lsp-mode -1)))
+;; (use-package! lsp-nix
+;;   :after (lsp-mode)
+;;   :demand t
+;;   :config
+;;   (add-hook! #'nix-mode-hook (+format-with-lsp-mode -1)))
 
 ;; (use-package! eglot-booster
 ;;   :after eglot
 ;;   :config (eglot-booster-mode))
 
-;; (after! eglot
-;;   (load! "+eglot"))
+(after! eglot
+  (load! "+eglot"))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
-;; (use-package! eglot-semtok
-;;   :config
-;;   (add-hook! 'eglot-connect-hook #'eglot-semtok-on-connected))
+(use-package! eglot-semtok
+  :config
+  (add-hook! 'eglot-connect-hook #'eglot-semtok-on-connected))
 ;; (use-package! eglot-semantic-tokens
 ;;   :after eglot
 ;;   :config
@@ -592,16 +592,16 @@
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 
-(use-package! lsp-treemacs
-  :after lsp)
-(after! lsp-treemacs
-  (lsp-treemacs-sync-mode 1))
+;; (use-package! lsp-treemacs
+;;   :after lsp)
+;; (after! lsp-treemacs
+;;   (lsp-treemacs-sync-mode 1))
 
 ;; sh stuff
-(add-hook! sh-mode #'lsp)
+;; (add-hook! sh-mode #'lsp)
 
                                         ; haskell stuff
-(add-hook! haskell-mode #'lsp)
+;; (add-hook! haskell-mode #'lsp)
 (plist-put! +ligatures-extra-symbols
             :type "⦂"
             :composition "∘"
@@ -609,29 +609,29 @@
 (appendq! +ligatures-prog-mode-list '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
 
-(use-package! lsp-haskell
-  :init
-  (setq lsp-haskell-session-loading "singleComponent")
-  ;; (setq lsp-haskell-server-path "haskell-language-server-wrapper")
-  ;; (setq lsp-haskell-server-wrapper-function (lambda (argv) (append (list "emacs-lsp-booster" "--") argv)))
-  (setq lsp-haskell-formatting-provider "fourmolu")
-  (setq lsp-haskell-plugin-fourmolu-config-external t)
-  (setq lsp-rename-use-prepare nil)
-  (setq lsp-haskell-plugin-semantic-tokens-global-on t)
-  (setq lsp-haskell-plugin-rename-config-cross-module t)
-  (setq lsp-haskell-max-completions 120)
+;; (use-package! lsp-haskell
+;;   :init
+;;   (setq lsp-haskell-session-loading "singleComponent")
+;;   ;; (setq lsp-haskell-server-path "haskell-language-server-wrapper")
+;;   ;; (setq lsp-haskell-server-wrapper-function (lambda (argv) (append (list "emacs-lsp-booster" "--") argv)))
+;;   (setq lsp-haskell-formatting-provider "fourmolu")
+;;   (setq lsp-haskell-plugin-fourmolu-config-external t)
+;;   (setq lsp-rename-use-prepare nil)
+;;   (setq lsp-haskell-plugin-semantic-tokens-global-on t)
+;;   (setq lsp-haskell-plugin-rename-config-cross-module t)
+;;   (setq lsp-haskell-max-completions 120)
 
-  (lsp-defcustom lsp-haskell-plugin-ghcide-type-lenses-local-binding-inlay-hint-on t
-    "Enables local binding inlay hints"
-    :type 'boolean
-    :group 'lsp-haskell-plugins
-    :package-version '(lsp-mode . "9.0.0")
-    :lsp-path "haskell.plugin.ghcide-type-lenses.config.localBindingInlayHintOn")
-  (setq lsp-haskell-plugin-ghcide-type-lenses-local-binding-inlay-hint-on t)
-  (setq lsp-haskell-plugin-ghcide-type-lenses-config-mode "always")
+;;   (lsp-defcustom lsp-haskell-plugin-ghcide-type-lenses-local-binding-inlay-hint-on t
+;;     "Enables local binding inlay hints"
+;;     :type 'boolean
+;;     :group 'lsp-haskell-plugins
+;;     :package-version '(lsp-mode . "9.0.0")
+;;     :lsp-path "haskell.plugin.ghcide-type-lenses.config.localBindingInlayHintOn")
+;;   (setq lsp-haskell-plugin-ghcide-type-lenses-local-binding-inlay-hint-on t)
+;;   (setq lsp-haskell-plugin-ghcide-type-lenses-config-mode "always")
 
-  :config
-  (+format-with-lsp-mode))
+;;   :config
+;;   (+format-with-lsp-mode))
 (setq +ligatures-in-modes t)
 ;; (use-package! haskell-mode
 ;;   :mode ("\\.cabal\\'" . 'haskell-cabal-mode))
@@ -950,18 +950,18 @@
   (advice-add 'esh-help-man-string :override #'+esh-help/async-man-string)
   (advice-add 'eshell/async-command-to-string :around #'envrc-propagate-environment))
 
-;; (use-package! sideline
-;;   :after eglot flymake
-;;   :init
-;;   (setq sideline-force-display-if-exceeds t))
+(use-package! sideline
+  :after eglot flymake
+  :init
+  (setq sideline-force-display-if-exceeds t))
 
-;; (use-package! sideline-flymake
-;;   :after sideline
-;;   :hook (flymake-mode . sideline-mode)
-;;   :init
-;;   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
-;;                                         ; 'line to show errors on the current line
-;;   (appendq! sideline-backends-right '(sideline-flymake)))
+(use-package! sideline-flymake
+  :after sideline
+  :hook (flymake-mode . sideline-mode)
+  :init
+  (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
+                                        ; 'line to show errors on the current line
+  (appendq! sideline-backends-right '(sideline-flymake)))
 
 (use-package! shx
   :after shell

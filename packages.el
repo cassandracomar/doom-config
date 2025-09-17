@@ -111,3 +111,4 @@
 ;; (package! nushell-ts-mode :recipe (:host github :repo "herbertjones/nushell-ts-mode") :pin "e07ecc59762fab8d5fa35bc6d3f522f74e580a2f")
 (package! shx :recipe (:source melpa))
 (package! spacious-padding)
+(package! eglot-semtok :recipe (:source github :repo "estradilua/eglot-semtok") :pin "9f8f452264ca60751f81999b20d8f71c60d76fc5")
