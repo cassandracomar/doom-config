@@ -70,7 +70,7 @@
 ;; (remove-hook 'doom-after-init-modules-hook #'general-auto-unbind-keys)
 
 (add-to-list 'trusted-content "~/src/github.com/cassandracomar/doom-config/")
-(setq doom-user-dir "~/src/github.com/cassandracomar/doom-config/")
+;; (setq doom-user-dir "~/src/github.com/cassandracomar/doom-config/")
 
 ;; (igc-start-idle-timer)
 ;; (add-hook 'emacs-startup-hook
