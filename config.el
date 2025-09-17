@@ -509,7 +509,9 @@
 (use-package! terraform-mode
   :defer t
   :init
-  (setq terraform-command "tofu"))
+  (setq terraform-command "tofu")
+  :config
+  (add-to-list 'eglot-server-programs '((terraform-mode :language-id "opentofu") "tofu-ls" "serve")))
 
 ;; (use-package! lsp-ui
 ;;   :config
@@ -613,8 +615,10 @@
 ;;   :config
 ;;   (+format-with-lsp-mode))
 (setq +ligatures-in-modes t)
-;; (use-package! haskell-mode
-;;   :mode ("\\.cabal\\'" . 'haskell-cabal-mode))
+(use-package! haskell-mode
+  :config
+  (add-hook 'haskell-mode-hook #'lsp!)
+  (add-to-list 'eglot-server-programs '(haskell-mode "haskell-language-server-wrapper" "-d" "lsp")))
 ;; (use-package! haskell-ts-mode
 ;;   :custom
 ;;   (haskell-ts-font-lock-level 4)
