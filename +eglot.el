@@ -9,7 +9,7 @@
 (add-to-list 'eglot-server-programs '(nix-mode eglot-semtok-server "nixd" "--semantic-tokens=true"))
 (add-to-list 'eglot-server-programs '(haskell-mode eglot-semtok-server "haskell-language-server-wrapper" "-d" "lsp"))
 (add-to-list 'eglot-server-programs '((terraform-mode :language-id "opentofu") eglot-semtok-server "tofu-ls" "serve"))
-(add-to-list 'eglot-server-programs '(rustic-mode eglot-semtok-server "rust-analyzer"))
+(add-to-list 'eglot-server-programs '((rustic-mode :language-id "rust") eglot-semtok-server "rust-analyzer"))
 (add-hook! terraform-mode
   (setq-local completion-at-point-functions #'eglot-completion-at-point))
 (setq-default
