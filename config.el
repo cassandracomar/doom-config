@@ -72,17 +72,17 @@
 (add-to-list 'trusted-content "~/src/github.com/cassandracomar/doom-config/")
 (setq doom-user-dir "~/src/github.com/cassandracomar/doom-config/")
 
-(igc-start-idle-timer)
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (if (boundp 'after-focus-change-function)
-                (add-function :after after-focus-change-function
-                              (lambda ()
-                                (unless (frame-focus-state)
-                                  (igc-collect))))
-              (add-hook 'after-focus-change-function
-                        (lambda ()
-                          (igc-collect))))))
+;; (igc-start-idle-timer)
+;; (add-hook 'emacs-startup-hook
+;;           (lambda ()
+;;             (if (boundp 'after-focus-change-function)
+;;                 (add-function :after after-focus-change-function
+;;                               (lambda ()
+;;                                 (unless (frame-focus-state)
+;;                                   (igc-collect))))
+;;               (add-hook 'after-focus-change-function
+;;                         (lambda ()
+;;                           (igc-collect))))))
 
 ;; ENVIRONMENT
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
