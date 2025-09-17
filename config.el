@@ -193,7 +193,6 @@
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "S-SPC" #'execute-extended-command-for-buffer)
 (map! :leader "p t" #'+treemacs/toggle)
-(map! :leader "p x" #'consult-flymake-project)
 (map! :leader "o o" #'envrc-reload)
 (map! :leader "p p" #'consult-projectile-switch-project)
 (map! :leader "p f" #'consult-projectile)
@@ -246,18 +245,12 @@
 (map! :nv "C-K" #'+lookup/references)
 (map! :nv "H" #'treemacs-select-window)
 ;; (map! :nv "L" #'lsp-ui-imenu)
-(map! :nv
-      "g b" #'xref-go-back)
-(map! :nv
-      "g B" #'xref-go-forward)
-(map! :nv
-      "g D" #'+lookup/references)
-(map! :nv
-      "g d" #'+lookup/definition)
-(map! :nv
-      "g i" #'+lookup/implementations)
-(map! :n
-      "V" #'evil-visual-line)
+(map! :nv "g b" #'xref-go-back)
+(map! :nv "g B" #'xref-go-forward)
+(map! :nv "g D" #'+lookup/references)
+(map! :nv "g d" #'+lookup/definition)
+(map! :nv "g i" #'+lookup/implementations)
+(map! :n  "V" #'evil-visual-line)
 (map! :nv "g l" (lambda (l) (apply #'evil-goto-line l)))
 
 ;; TRANSIENT STATES

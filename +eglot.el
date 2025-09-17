@@ -86,15 +86,15 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
   ;; e.g. rust-analyzer uses "rustAnalyzer/Indexing"
   (cl-flet* ((run-post-load-hooks (buf)
                (eglot--when-buffer-window
-                buf
-                (run-hooks '+eglot-post-load-hook)))
+                   buf
+                 (run-hooks '+eglot-post-load-hook)))
              (refreshf ()
                (let ((buffers (eglot--managed-buffers server)))
                  (dolist (buf buffers)
                    (run-post-load-hooks buf)))))
     (eglot--dbind ((WorkDoneProgress) kind _title _percentage _message) value
-                  (pcase kind
-                    ("end" (refreshf))))))
+      (pcase kind
+        ("end" (refreshf))))))
 
 (map! :leader
       "c x" #'flymake-show-project-diagnostics
