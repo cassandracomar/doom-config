@@ -162,9 +162,8 @@
            :scroll-bar-width 2)))
 
 (use-package! eglot
-  :init
-  (load "+eglot")
   :config
+  (load! "+eglot")
   (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
   (add-hook! 'eglot-managed-mode-hook
     (add-to-list
