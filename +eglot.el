@@ -16,7 +16,7 @@
  jsonrpc-default-request-timeout 30
  terraform-format-on-save t
  eglot-confirm-server-initiated-edits nil
- eglot-advertise-cancellation t
+ ;; eglot-advertise-cancellation t
  eglot-workspace-configuration '(:rust-analyzer (:procMacro (:enable t)
                                                  :lens (:references (:adt (:enable t)
                                                                      :enumVariant (:enable t)
