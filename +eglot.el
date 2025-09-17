@@ -12,8 +12,6 @@
  jsonrpc-default-request-timeout 30
  terraform-format-on-save t
  eglot-confirm-server-initiated-edits nil
- eglot-semantic-tokens-use-delta t
- ;; eglot-advertise-cancellation t
  eglot-workspace-configuration '(:rust-analyzer (:procMacro (:enable t)
                                                  :lens (:references (:adt (:enable t)
                                                                      :enumVariant (:enable t)
@@ -54,158 +52,16 @@
                                                              :usePrepare :json-false
                                                              :diff t)))
                                  :yaml-language-server (:yaml (:schemaStore (:enable t)))
-                                 :tofu-ls (:validation (:enableEnhancedValidation t))
-                                 ))
+                                 :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
-
-;; (defmacro idle-timer! (secs repeat &rest forms)
-;;   "run forms when the editor has been idle for `secs' and `repeat'. the number
-;; of repetitions is infinite if `repeat' is `t', 0 if `nil', and `count' if a
-;; number is provided."
-;;   `(run-with-idle-timer ,secs ,repeat (lambda () ,@forms)))
-
-;; (defvar +eglot-idle-timers
-;;   (make-hash-table))
-
-;; (defcustom +eglot-idle-timer-period 5
-;;   "length of the quiet period required to refresh idle timers"
-;;   :type 'number :group 'eglot-local)
-
-;; (defun +eglot--timer-hash-key (&optional buf)
-;;   (if (null buf)
-;;       (buffer-name (current-buffer))
-;;     (if (bufferp buf)
-;;         (buffer-name buf)
-;;       buf)))
-
-;; (defun +eglot--get-buffer-idle-timers (&optional buf)
-;;   (let* ((buffer-key (+eglot--timer-hash-key buf))
-;;          (buffer-timers (gethash buffer-key +eglot-idle-timers)))
-;;     (when (null buffer-timers)
-;;       (setq buffer-timers (make-hash-table)))
-;;     buffer-timers))
-
-;; (defmacro +eglot--with-buffer-idle-timers (server &rest forms)
-;;   `(let* ((buffer-key (+eglot--timer-hash-key))
-;;           (buffer-timers (+eglot--get-buffer-idle-timers))
-;;           (server-timers (gethash ,server buffer-timers)))
-;;      (when (null server-timers)
-;;        (setq server-timers (make-hash-table)))
-;;      ,@forms
-;;      (unless (null server-timers) (puthash server server-timers buffer-timers))
-;;      (puthash buffer-key buffer-timers +eglot-idle-timers)))
-
-
-;; (defmacro plist-get! (plist &rest keys)
-;;   `(cl-reduce (lambda (r a) (plist-get r a)) (list ,@keys) :initial-value ,plist))
-
-;; (defun collect-idle-timers (server)
-;;   (let* ((buffer-timers (+eglot--get-buffer-idle-timers))
-;;          (timers-by-key (gethash server buffer-timers)))
-;;     (hash-table-values timers-by-key)))
-
-;; (defun +eglot--register-idle-timer (server key timer)
-;;   (+eglot--with-buffer-idle-timers
-;;    server
-;;    (let ((curr-timer (gethash key server-timers)))
-;;      (when curr-timer (cancel-timer curr-timer))
-;;      (puthash key timer server-timers))))
-
-;; (defun +eglot--cancel-idle-timer (server key)
-;;   (+eglot--with-buffer-idle-timers
-;;    server
-;;    (let ((curr-timer (gethash key server-timers)))
-;;      (cancel-timer curr-timer)
-;;      (remhash key server-timers))))
-
-;; (defun +eglot--cancel-idle-timers (lsp-server &rest _)
-;;   (let* ((server-info (eglot--server-info lsp-server))
-;;          (server (plist-get server-info :name)))
-;;     (ignore-errors
-;;       (+eglot--with-buffer-idle-timers
-;;        server
-;;        (let ((timers (collect-idle-timers server)))
-;;          (dolist (timer timers)
-;;            (cancel-timer timer))
-;;          (remhash server buffer-timers)
-;;          (setq server-timers nil))) )))
-
-;; (defun +eglot--cancel-all-idle-timers-buffer (&optional buf)
-;;   (let* ((buffer-name (+eglot--timer-hash-key buf))
-;;          (buffer-timers (+eglot--get-buffer-idle-timers buf))
-;;          (servers (hash-table-keys buffer-timers)))
-;;     (dolist (server servers)
-;;       (let* ((server-timers (gethash server buffer-timers))
-;;              (keys (hash-table-keys server-timers)))
-;;         (dolist (key keys)
-;;           (+eglot--cancel-idle-timer server key))))
-;;     (remhash buffer-name +eglot-idle-timers)))
-
-;; (defmacro +eglot--run-with-idle-timer (server key &optional ip &rest forms)
-;;   (let ((idle-period `(or ,ip +eglot-idle-timer-period)))
-;;     `(+eglot--register-idle-timer
-;;       ,server
-;;       ,key
-;;       (idle-timer! ,idle-period t ,@forms))))
-
-;; (defmacro +eglot-run-when-idle (key buf &rest body)
-;;   `(let* ((server (eglot--current-server-or-lose))
-;;           (server-info (eglot--server-info server))
-;;           (server-name (plist-get server-info :name)))
-;;      (+eglot--run-with-idle-timer server-name ,key +eglot-idle-timer-period (with-current-buffer ,buf ,@body))))
-
-
-;; ;; make sure timers get cleaned up with the buffer
-;; (advice-add #'eglot-shutdown :before #'+eglot--cancel-idle-timers)
-;; (add-hook! kill-buffer #'+eglot--cancel-all-idle-timers-buffer)
-
-;; ;; add the timers when eglot is started on a buffer
-;; (add-hook! eglot-managed-mode
-;;   (idle-timer! 1 nil
-;;                (let ((buffers (eglot--managed-buffers (eglot--current-server-or-lose)))
-;;                      (new-buffer?
-;;                       (lambda (b)
-;;                         (not (member (buffer-name b) (hash-table-keys +eglot-idle-timers))))))
-;;                  (dolist (buf (-filter new-buffer? buffers))
-;;                    (eglot--when-buffer-window buf
-;;                      (+eglot-run-when-idle :inlayHints buf (eglot-inlay-hints-mode +1))
-;;                      (+eglot-run-when-idle :semanticTokens buf
-;;                                            (eglot--semantic-tokens-mode +1)
-;;                                            (eglot--semantic-tokens-queue-update)))))))
-
-;; (defun +eglot-semantic-tokens--fontifier (begin end)
-;;   (eglot--semantic-tokens-highlight-range begin end)
-;;   `(jit-lock-bounds ,begin . ,end))
-
-;; (defun +eglot-semantic-tokens--font-lock-init ()
-;;   "Call this from your mode hook to switch semantic token font-lock on."
-;;   (if (ignore-errors (eglot--TextDocumentIdentifier))
-;;       (progn
-;;         (jit-lock-register '+eglot-semantic-tokens--fontifier t)
-;;         (setq-local font-lock-defaults
-;;                     '(nil nil nil nil
-;;                       (font-lock-fontify-region-function
-;;                        . eglot--semantic-tokens-highlight-region)
-;;                       (font-lock-unfontify-region-function
-;;                        . eglot--semantic-tokens-unhighlight-region)
-;;                       (font-lock-fontify-buffer-function
-;;                        . eglot--semantic-tokens-highlight-full/delta))))
-;;     (message "avoiding +eglot-semantic-tokens--font-lock-init for buffer without file")))
-
-;; (add-hook! (haskell-mode rustic-mode nix-mode) #'+eglot-semantic-tokens--font-lock-init)
-;; (add-hook! 'eglot-managed-mode-hook
-;;   (progn
-;;     (eglot--semantic-tokens-mode +1)
-;;     (eglot--semantic-tokens-queue-update)))
 
 (defvar +eglot-post-load-hook
   '()
   "hooks to run after the server has finished loading the project.
 each hook is run for each project buffer.")
 
-;; (add-hook! +eglot-post-load
-;;   (run-with-idle-timer 1 nil #'eglot-inlay-hints-mode +1)
-;;   (eglot--semantic-tokens-queue-update))
+(add-hook! +eglot-post-load
+  (run-with-idle-timer 1 nil #'eglot-inlay-hints-mode +1))
 
 ;; or without doom:
 ;;
@@ -236,7 +92,7 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
                (let ((buffers (eglot--managed-buffers server)))
                  (dolist (buf buffers)
                    (run-post-load-hooks buf)))))
-    (eglot--dbind ((WorkDoneProgress) kind title percentage message) value
+    (eglot--dbind ((WorkDoneProgress) kind _title _percentage _message) value
                   (pcase kind
                     ("end" (refreshf))))))
 

@@ -186,11 +186,14 @@
         "] ")))))
 
 ;; KEYBINDINGS
+(defun consult-flymake-project (&rest _)
+  (interactive)
+  (consult-flymake t))
 (setq doom-localleader-key ",")
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "S-SPC" #'execute-extended-command-for-buffer)
 (map! :leader "p t" #'+treemacs/toggle)
-(map! :leader "p x" (lambda (&rest _) (consult-flymake t)))
+(map! :leader "p x" #'consult-flymake-project)
 (map! :leader "o o" #'envrc-reload)
 (map! :leader "p p" #'consult-projectile-switch-project)
 (map! :leader "p f" #'consult-projectile)
