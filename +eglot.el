@@ -6,16 +6,17 @@
 
 ;; uncomment to debug lsp events
 ;; (cl-callf plist-put eglot-events-buffer-config :size 2000000)
-(add-to-list 'eglot-server-programs '(nix-mode eglot-semtok-server "nixd" "--semantic-tokens=true"))
-(add-to-list 'eglot-server-programs '(haskell-mode eglot-semtok-server "haskell-language-server-wrapper" "-d" "lsp"))
-(add-to-list 'eglot-server-programs '((terraform-mode :language-id "opentofu") eglot-semtok-server "tofu-ls" "serve"))
-(add-to-list 'eglot-server-programs '((rustic-mode :language-id "rust") eglot-semtok-server "rust-analyzer"))
+(set-eglot-client! 'nix-mode '("nixd" "--semantic-tokens=true"))
+(set-eglot-client! 'haskell-mode '("haskell-language-server-wrapper" "-d" "lsp"))
+(set-eglot-client! '(terraform-mode :language-id "opentofu") '("tofu-ls" "serve"))
+(set-eglot-client! 'rustic-mode '("rust-analyzer"))
 (add-hook! terraform-mode
   (setq-local completion-at-point-functions #'eglot-completion-at-point))
 (setq-default
  jsonrpc-default-request-timeout 30
  terraform-format-on-save t
  eglot-confirm-server-initiated-edits nil
+ eglot-semantic-tokens-use-delta t
  ;; eglot-advertise-cancellation t
  eglot-workspace-configuration '(:rust-analyzer (:procMacro (:enable t)
                                                  :lens (:references (:adt (:enable t)
@@ -246,7 +247,3 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
 (map! :leader
       "c x" #'flymake-show-project-diagnostics
       "p x" #'flymake-show-project-diagnostics)
-
-;; (remove-hook! '(eglot-managed-mode flymake-mode) #'flymake-popon-mode)
-;; (add-hook! 'eglot-managed-mode-hook
-;;   (flymake-popon-mode -1))

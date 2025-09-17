@@ -521,8 +521,6 @@
 ;;   (delete 'lsp-terraform lsp-client-packages))
 (use-package! rustic
   :defer t
-  :init
-  (setq rustic-lsp-setup-p nil)
   :config
   (setq rustic-format-on-save t)
   (after! dap-mode
@@ -535,28 +533,8 @@
                                        :target nil
                                        :cwd nil))))
 
-;; (use-package! lsp-nix
-;;   :after (lsp-mode)
-;;   :demand t
-;;   :config
-;;   (add-hook! #'nix-mode-hook (+format-with-lsp-mode -1)))
-
-;; (use-package! eglot-booster
-;;   :after eglot
-;;   :config (eglot-booster-mode))
-
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
-(use-package! eglot-semtok
-  :after eglot)
-;; (use-package! eglot-semantic-tokens
-;;   :after eglot
-;;   :config
-;;   (setq eglot-enable-semantic-tokens t))
-;; (use-package! eldoc-box
-;;   :after eglot
-;;   :config
-;;   (add-hook 'eglot-managed-mode-hook #'eldoc-box-hover-mode 100 t))
 
 (use-package! nix-mode
   :defer t
