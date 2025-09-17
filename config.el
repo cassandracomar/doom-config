@@ -549,8 +549,7 @@
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
 (use-package! eglot-semtok
-  :config
-  (add-hook! 'eglot-connect-hook #'eglot-semtok-on-connected))
+  :after eglot)
 ;; (use-package! eglot-semantic-tokens
 ;;   :after eglot
 ;;   :config
