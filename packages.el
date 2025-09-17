@@ -113,4 +113,4 @@
 (package! spacious-padding)
 (package! sideline)
 (package! sideline-flymake)
-(package! eglot :built-in)
+(package! eglot :built-in t)
