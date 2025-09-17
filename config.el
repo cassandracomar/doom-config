@@ -524,6 +524,7 @@
   :init
   :config
   (setq rustic-format-on-save t)
+  (setq rustic-lsp-setup-p nil)
   (after! dap-mode
     (require 'dap-gdb-lldb)
     (dap-register-debug-template "Rust::GDB Run Configuration"
