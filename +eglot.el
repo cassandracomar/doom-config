@@ -60,8 +60,11 @@
   "hooks to run after the server has finished loading the project.
 each hook is run for each project buffer.")
 
+(defun +eglot-reload-inlay-hints ()
+  (eglot--update-hints (point-min) (point-max)))
+
 (add-hook! +eglot-post-load
-  (run-with-idle-timer 1 nil #'eglot-inlay-hints-mode +1)
+  (run-with-idle-timer 1 nil #'+eglot-reload-inlay-hints)
   (run-with-idle-timer 1 nil #'font-lock-fontify-buffer))
 
 ;; or without doom:
