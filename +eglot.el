@@ -98,5 +98,7 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
         ("end" (refreshf))))))
 
 (map! :leader
-      "c x" #'flymake-show-project-diagnostics
-      "p x" #'flymake-show-project-diagnostics)
+      "c x" #'consult-flymake-project
+      "p x" #'consult-flymake-project)
+(map! :nv
+      "g D" #'+lookup/references)
