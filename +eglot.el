@@ -61,7 +61,8 @@
 each hook is run for each project buffer.")
 
 (add-hook! +eglot-post-load
-  (run-with-idle-timer 1 nil #'eglot-inlay-hints-mode +1))
+  (run-with-idle-timer 1 nil #'eglot-inlay-hints-mode +1)
+  (run-with-idle-timer 1 nil #'font-lock-fontify-buffer))
 
 ;; or without doom:
 ;;
