@@ -38,7 +38,7 @@
                                         :nixpkgs (:expr "import (builtins.getFlake \"github:nixos/nixpkgs\") {}")
                                         :options
                                         (:nixos (:expr "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.yew.options")
-                                         :home-manager (:expr "(builtins.getFlae (builtins.toString ./.)).nixosConfigurations.yew.options.home-manager.users.type.getSubOptions []")))
+                                         :home-manager (:expr "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.yew.options.home-manager.users.type.getSubOptions []")))
                                  :nil (:formatting (:command ["alejandra"])
                                        :nix (:flake (:autoEvalInputs t)))
                                  :haskell (:sessionLoading "multipleComponents"
