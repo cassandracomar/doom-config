@@ -530,15 +530,16 @@
   :defer t
   :config
   (setq rustic-format-on-save t)
-  (after! dap-mode
-    (require 'dap-gdb-lldb)
-    (dap-register-debug-template "Rust::GDB Run Configuration"
-                                 (list :type "gdb"
-                                       :request "launch"
-                                       :name "GDB::Run"
-                                       :gdbpath "rust-gdb"
-                                       :target nil
-                                       :cwd nil))))
+  ;; (after! dap-mode
+  ;;   (require 'dap-gdb-lldb)
+  ;;   (dap-register-debug-template "Rust::GDB Run Configuration"
+  ;;                                (list :type "gdb"
+  ;;                                      :request "launch"
+  ;;                                      :name "GDB::Run"
+  ;;                                      :gdbpath "rust-gdb"
+  ;;                                      :target nil
+  ;;                                      :cwd nil)))
+  )
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
