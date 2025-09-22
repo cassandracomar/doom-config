@@ -1024,6 +1024,3 @@
 ;;   :custom
 ;;   (rego-format-at-save nil))
 (setq vundo-glyph-alist vundo-unicode-symbols)
-(use-package! semel
-  :hook ((emacs-lisp-mode . semel-mode)
-         (emacs-lisp-mode . cursor-sensor-mode)))
