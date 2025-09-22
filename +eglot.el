@@ -35,9 +35,7 @@
                                                               :parameterHints (:enable t)
                                                               :typeHints (:enable t)))
                                  :nixd (:formatting (:command ["alejandra"])
-                                        :nix-central (:expr "import (builtins.getFlake \"/Users/ccomar/src/git.drwholdings.com/up-platform-infrastructure/nix-central\")")
-                                        :nixpkgs (:expr "import (builtins.getFlake \"/Users/ccomar/src/git.drwholdings.com/up-platform-infrastructure/nix-central\").inputs.nixpkgs")
-                                        :options (:nix-central (:expr "import (builtins.getFlake \"/Users/ccomar/src/git.drwholdings.com/up-platform-infrastructure/nix-central\")")))
+                                        :nixpkgs (:expr "github:nixos/nixpkgs"))
                                  :nil (:formatting (:command ["alejandra"])
                                        :nix (:flake (:autoEvalInputs t)))
                                  :haskell (:sessionLoading "multipleComponents"
