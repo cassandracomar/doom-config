@@ -114,4 +114,4 @@
 (package! sideline)
 (package! sideline-flymake)
 (package! eglot :recipe (:host github :repo "cassandracomar/eglot") :pin "b16e1cb02f6c6168b22301beeb84e4c19f508abb")
-;; (package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "4224beb5a44d4a56f5c42263792afea86bf7b716")
+(package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "a077ca4fb54529f4d789aad209b05e424b2bee85")
