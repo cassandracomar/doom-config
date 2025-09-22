@@ -35,7 +35,7 @@
                                                               :parameterHints (:enable t)
                                                               :typeHints (:enable t)))
                                  :nixd (:formatting (:command ["alejandra"])
-                                        :nixpkgs (:expr "builtins.getFlake \"github:nixos/nixpkgs\""))
+                                        :nixpkgs (:expr "import (builtins.getFlake \"github:nixos/nixpkgs\")"))
                                  :nil (:formatting (:command ["alejandra"])
                                        :nix (:flake (:autoEvalInputs t)))
                                  :haskell (:sessionLoading "multipleComponents"
