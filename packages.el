@@ -113,4 +113,4 @@
 (package! spacious-padding)
 (package! sideline)
 (package! sideline-flymake)
-(package! eglot :recipe (:host github :repo "cassandracomar/eglot") :pin "556bac37c982b46527c0f8a35ef2aeaefac68ab5")
+(package! eglot :recipe (:host github :repo "cassandracomar/eglot") :pin "b16e1cb02f6c6168b22301beeb84e4c19f508abb")
