@@ -44,9 +44,9 @@
                                  :haskell (:sessionLoading "multipleComponents"
                                            :formattingProvider "fourmolu"
                                            :plugin (:semanticTokens (:globalOn t)
-                                                    :ghc-ide-type-lenses (:codeLensOn t
-                                                                          :config (:localBindingInlayHintOn t
-                                                                                   :mode "always"))
+                                                    :ghcide-type-lenses (:codeLensOn t
+                                                                         :config (:localBindingInlayHintOn t
+                                                                                  :mode "always"))
                                                     :tactics (:globalOn t)
                                                     :hlint (:globalOn t)
                                                     :rename (:config (:crossModule t)

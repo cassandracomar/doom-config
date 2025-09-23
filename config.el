@@ -608,16 +608,16 @@
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
   (add-to-list 'eglot-server-programs '(haskell-mode "haskell-language-server-wrapper" "-d" "lsp")))
-(use-package! haskell-ts-mode
-  :config
-  (add-hook 'haskell-ts-mode-hook #'lsp!)
-  (add-to-list 'eglot-server-programs '(haskell-ts-mode "haskell-language-server-wrapper" "-d" "lsp"))
-  (setq-local treesit-font-lock-level 3)
-  :custom
-  (haskell-ts-font-lock-level 3)
-  (haskell-ts-ghci "ghci")
-  (haskell-ts-use-indent t))
-(add-hook! haskell-ts-mode 'prettify-symbols-mode)
+;; (use-package! haskell-ts-mode
+;;   :config
+;;   (add-hook 'haskell-ts-mode-hook #'lsp!)
+;;   (add-to-list 'eglot-server-programs '(haskell-ts-mode "haskell-language-server-wrapper" "-d" "lsp"))
+;;   (setq-local treesit-font-lock-level 3)
+;;   :custom
+;;   (haskell-ts-font-lock-level 3)
+;;   (haskell-ts-ghci "ghci")
+;;   (haskell-ts-use-indent t))
+;; (add-hook! haskell-ts-mode 'prettify-symbols-mode)
 
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
