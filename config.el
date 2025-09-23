@@ -785,7 +785,6 @@
   (telephone-line-mode 1))
 ;;
 ;; mu4e settings
-;; (add-load-path! "/opt/homebrew/share/emacs/site-lisp/mu")
 (use-package! mu4e
   :defer t
   :config
@@ -798,6 +797,8 @@
      (mu4e-drafts-folder     . "/Maildir/Drafts")
      (mu4e-trash-folder      . "/Maildir/Trash")
      (mu4e-refile-folder     . "/Maildir/Archive")))
+  (setq mu4e-update-interval 60
+        +mu4e-personal-addresses '("cass@nie.rs"))
   :custom
   (mu4e-mu-binary (executable-find "mu"))
   (mu4e-maildir "~/Maildir")

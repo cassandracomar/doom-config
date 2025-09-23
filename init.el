@@ -180,7 +180,7 @@
 
        :email
        (mu4e +mbsync +org)
-       (notmuch +afew +org)
+       ;; (notmuch +afew +org)
        ;;(wanderlust +gmail)
 
        :app
