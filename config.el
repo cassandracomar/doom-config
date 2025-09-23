@@ -793,10 +793,10 @@
    '((user-full-name . "Cassandra Comar")
      (user-mail-address . "cass@nie.rs")
      (mtpmail-smtp-user . "cass@nie.rs")
-     (mu4e-sent-folder       . "/Maildir/Sent")
-     (mu4e-drafts-folder     . "/Maildir/Drafts")
-     (mu4e-trash-folder      . "/Maildir/Trash")
-     (mu4e-refile-folder     . "/Maildir/Archive")))
+     (mu4e-sent-folder       . "/sent")
+     (mu4e-drafts-folder     . "/drafts")
+     (mu4e-trash-folder      . "/trash")
+     (mu4e-refile-folder     . "/archive")))
   (setq mu4e-update-interval 60
         +mu4e-personal-addresses '("cass@nie.rs"))
   :custom
