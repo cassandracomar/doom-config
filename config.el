@@ -527,17 +527,7 @@
 (use-package! rustic
   :defer t
   :config
-  (setq rustic-format-on-save t)
-  ;; (after! dap-mode
-  ;;   (require 'dap-gdb-lldb)
-  ;;   (dap-register-debug-template "Rust::GDB Run Configuration"
-  ;;                                (list :type "gdb"
-  ;;                                      :request "launch"
-  ;;                                      :name "GDB::Run"
-  ;;                                      :gdbpath "rust-gdb"
-  ;;                                      :target nil
-  ;;                                      :cwd nil)))
-  )
+  (setq rustic-format-on-save t))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
@@ -618,12 +608,15 @@
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
   (add-to-list 'eglot-server-programs '(haskell-mode "haskell-language-server-wrapper" "-d" "lsp")))
-;; (use-package! haskell-ts-mode
-;;   :custom
-;;   (haskell-ts-font-lock-level 4)
-;;   (haskell-ts-ghci "ghci")
-;;   (haskell-ts-use-indent t))
-;; (add-hook! haskell-ts-mode 'prettify-symbols-mode)
+(use-package! haskell-ts-mode
+  :config
+  (add-hook 'haskell-ts-mode-hook #'lsp!)
+  (add-to-list 'eglot-server-programs '(haskell-ts-mode "haskell-language-server-wrapper" "-d" "lsp"))
+  :custom
+  (haskell-ts-font-lock-level 4)
+  (haskell-ts-ghci "ghci")
+  (haskell-ts-use-indent t))
+(add-hook! haskell-ts-mode 'prettify-symbols-mode)
 
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
@@ -666,32 +659,19 @@
   (setq org-want-todo-bindings t)
   (setq org-log-done t)
   (setq org-todo-keywords '((sequence "TODO(t)" "WORKING(w!)" "BLOCKED(b@/!)" "STALLED(s!)" "|" "DONE(d!)" "DEFERRED(f!)" "CANCELED(c)")))
-  (evil-org-set-key-theme '(textobjects insert navigation additional shift todo heading))
-  )
-;; (add-hook! org-mode visual-line-mode)
+  (evil-org-set-key-theme '(textobjects insert navigation additional shift todo heading)))
 
 (map! :after evil-org
       :map evil-org-mode-map
       :nv
       [remap evil-org-org-insert-heading-below] #'+org/insert-item-above
-      [remap evil-org-open-below] #'+org/insert-item-below
-      )
-
-;; (setq! org-roam-directory "~/todo/")
-;; (after! org-journal
-;;   (setq org-journal-date-prefix "+TITLE: ")
-;;   (setq org-journal-file-format "%Y-%m-%d.org")
-;;   (setq org-journal-date-format "%A, %d %B %Y"))
+      [remap evil-org-open-below] #'+org/insert-item-below)
 
 
                                         ; elasticsearch
 (use-package! es-mode
   :after org
-  :mode ("\\.es\\'" . 'es-mode)
-  :config
-  ;; (add-to-list 'org-babel-load-languages '(elasticsearch . t))
-  ;; (add-to-list '+org-babel-mode-alist '(es . elasticsearch))
-  )
+  :mode ("\\.es\\'" . 'es-mode))
 
                                         ; systemd
 (use-package! systemd
@@ -699,12 +679,12 @@
   :init (setq systemd-use-company-p t))
 
                                         ; jsonnett
-;; (use-package! jsonnet-mode
-;;   :defer t
-;;   :mode "(\\.libsonnet|\\.jsonnet)")
-;; (use-package! jsonnet-language-server
-;;   :after jsonnet-mode
-;;   :init (setq lsp-jsonnet-executable "jsonnet-language-server --tanka --lint"))
+(use-package! jsonnet-mode
+  :defer t
+  :mode "(\\.libsonnet|\\.jsonnet)")
+(use-package! jsonnet-language-server
+  :after jsonnet-mode
+  :init (setq lsp-jsonnet-executable "jsonnet-language-server --tanka --lint"))
 (use-package! jq-mode
   :mode "\\.jq$")
 

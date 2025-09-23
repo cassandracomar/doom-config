@@ -123,28 +123,28 @@
        :lang
        ;;agda              ; types of types of types of types...
        ;;assembly          ; assembly for fun or debugging
-       (cc +lsp)                ; C/C++/Obj-C madness
-       (clojure +lsp)           ; java with a lisp
+       (cc +lsp +tree-sitter)                ; C/C++/Obj-C madness
+       (clojure +lsp +tree-sitter)           ; java with a lisp
        common-lisp       ; if you've seen one lisp, you've seen them all
        ;;coq               ; proofs-as-programs
        ;;crystal           ; ruby at the speed of c
        ;;csharp            ; unity, .NET, and mono shenanigans
        data              ; config/data formats
        ;;(dart +flutter)   ; paint ui and not much else
-       (elixir +lsp)            ; erlang done right
+       ;; (elixir +lsp)            ; erlang done right
        ;;elm               ; care for a cup of TEA?
        emacs-lisp        ; drown in parentheses
-       (erlang +lsp)            ; an elegant language for a more civilized age
+       ;; (erlang +lsp)            ; an elegant language for a more civilized age
        ;;ess               ; emacs speaks statistics
        ;;faust             ; dsp, but you get to keep your soul
        ;;fsharp           ; ML stands for Microsoft's Language
        ;;fstar             ; (dependent) types and (monadic) effects and Z3
-       (go +lsp)                ; the hipster dialect
-       (haskell +lsp)  ; a language that's lazier than I am
+       (go +lsp +tree-sitter)                ; the hipster dialect
+       (haskell +lsp +tree-sitter)  ; a language that's lazier than I am
        ;;hy                ; readability of scheme w/ speed of python
        ;;idris             ;
        ;;(java +meghanada) ; the poster child for carpal tunnel syndrome
-       (javascript +lsp)        ; all(hope(abandon(ye(who(enter(here))))))
+       (javascript +lsp +tree-sitter)        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
        (latex +lsp +cdlatex)             ; writing papers in Emacs has never been so fun
@@ -161,12 +161,12 @@
        ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;purescript        ; javascript, but functional
-       (python +lsp +poetry +pyright)            ; beautiful is better than ugly
+       (python +lsp +poetry +pyright +tree-sitter)            ; beautiful is better than ugly
        ;;qt                ; the 'cutest' gui framework ever
        ;;racket            ; a DSL for DSLs
        ;;rest              ; Emacs as a REST client
        ;;rst               ; ReST in peace
-       (ruby +rails +lsp)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
+       (ruby +rails +lsp +tree-sitter)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
        (rust +lsp)              ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
        ;;scala             ; java, but good
        ;;scheme            ; a fully conniving family of lisps
@@ -176,7 +176,7 @@
        ;;swift             ; who asked for emoji variables?
        ;;terra             ; Earth and Moon in alignment for performance.
        ;;web               ; the tubes
-       (yaml +lsp)
+       (yaml +lsp +tree-sitter)
 
        :email
        (mu4e +gmail +org)
