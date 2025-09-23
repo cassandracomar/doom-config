@@ -682,9 +682,9 @@
 (use-package! jsonnet-mode
   :defer t
   :mode "(\\.libsonnet|\\.jsonnet)")
-(use-package! jsonnet-language-server
-  :after jsonnet-mode
-  :init (setq lsp-jsonnet-executable "jsonnet-language-server --tanka --lint"))
+;; (use-package! jsonnet-language-server
+;;   :after jsonnet-mode
+;;   :init (setq lsp-jsonnet-executable "jsonnet-language-server --tanka --lint"))
 (use-package! jq-mode
   :mode "\\.jq$")
 

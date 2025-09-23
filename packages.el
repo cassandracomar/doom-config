@@ -92,7 +92,7 @@
 (package! jsonnet-mode)
 ;; (package! lsp-ivy :pin "9ecf4dd9b1207109802bd1882aa621eb1c385106")
 (package! telephone-line)
-(package! jsonnet-language-server :recipe (:host github :repo "grafana/jsonnet-language-server" :files ("editor/emacs/*.el") :includes jsonnet-mode) :pin "546040b5f00a0cc09888aaa08257d7d3c496d7b3")
+;; (package! jsonnet-language-server :recipe (:host github :repo "grafana/jsonnet-language-server" :files ("editor/emacs/*.el") :includes jsonnet-mode) :pin "546040b5f00a0cc09888aaa08257d7d3c496d7b3")
 (package! protobuf-mode :recipe (:host github :repo "protocolbuffers/protobuf" :files ("editors/protobuf-mode.el")) :pin "50e90bb84add455170e315e9a7f075274b8e0ada")
 (package! multi-run :recipe (:host github :repo "sagarjha/multi-run") :pin "13d4d923535b5e8482b13ff76185203075fb26a3")
 (package! eat :recipe (:repo "https://codeberg.org/akib/emacs-eat.git") :pin "c8d54d649872bfe7b2b9f49ae5c2addbf12d3b99")
