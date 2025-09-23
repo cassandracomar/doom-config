@@ -815,7 +815,11 @@
 ;;         message-kill-buffer-on-exit t))
 
 (use-package! notmuch
-  :config)
+  :config
+  (setq +notmuch-sync-backend 'mbsync-xdg)
+  (set-email-account!
+   "cass@nie.rs"
+   '((user-mail-address . "cass@nie.rs"))))
 
 ;; (use-package! excorporate
 ;;   :custom
