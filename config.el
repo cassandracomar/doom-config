@@ -813,6 +813,7 @@
         message-sendmail-extra-arguments '("--read-envelope-from")
         message-send-mail-function #'message-send-mail-with-sendmail
         message-kill-buffer-on-exit t))
+(use-package! debbugs)
 
 ;; (use-package! excorporate
 ;;   :custom
