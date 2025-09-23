@@ -179,7 +179,7 @@
        (yaml +lsp +tree-sitter)
 
        :email
-       ;; (mu4e +gmail +org)
+       (mu4e +mbsync +org)
        (notmuch +afew +org)
        ;;(wanderlust +gmail)
 
