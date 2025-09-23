@@ -814,17 +814,6 @@
         message-send-mail-function #'message-send-mail-with-sendmail
         message-kill-buffer-on-exit t))
 
-(use-package! notmuch
-  :config
-  (setq +notmuch-sync-backend 'mbsync-xdg)
-  (set-email-account!
-   "cass@nie.rs"
-   '((user-mail-address . "cass@nie.rs"))))
-(use-package! notmuch-notify
-  :hook (notmuch-hello-refresh . notmuch-notify-hello-refresh-status-message)
-  :config
-  (notmuch-notify-set-refresh-timer))
-
 ;; (use-package! excorporate
 ;;   :custom
 ;;   (excorporate-calendar-show-day-function #'exco-calfw-show-day)
