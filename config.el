@@ -49,7 +49,6 @@
 (setq display-line-numbers-type t)
 (menu-bar-mode -1)
 
-
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;
 ;; - `load!' for loading external *.el files relative to this one
@@ -70,7 +69,6 @@
 ;; (remove-hook 'doom-after-init-modules-hook #'general-auto-unbind-keys)
 
 (add-to-list 'trusted-content "~/src/github.com/cassandracomar/doom-config/")
-;; (setq doom-user-dir "~/src/github.com/cassandracomar/doom-config/")
 
 (igc-start-idle-timer)
 (add-hook 'emacs-startup-hook
@@ -1012,8 +1010,8 @@
   :mode ("\\.nu\\'" . nushell-mode)
   :config
   (add-hook 'nushell-mode-hook #'lsp 'append))
-;; (use-package! nushell-ts-mode
-;;   :hook (nushell-mode . nushell-ts-mode))
+(use-package! nushell-ts-mode
+  :hook (nushell-mode . nushell-ts-mode))
 
 ;; (use-package! rego-mode
 ;;   :defer t
@@ -1028,3 +1026,4 @@
   :custom ((semel-add-help-echo . nil))
   :hook ((emacs-lisp-mode . semel-mode)
          (emacs-lisp-mode . cursor-sensor-mode)))
+ä
