@@ -179,8 +179,8 @@
        (yaml +lsp +tree-sitter)
 
        :email
-       (mu4e +gmail +org)
-       ;;notmuch
+       ;; (mu4e +gmail +org)
+       (notmuch +afew +org)
        ;;(wanderlust +gmail)
 
        :app

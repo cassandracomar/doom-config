@@ -785,34 +785,37 @@
   (telephone-line-mode 1))
 ;;
 ;; mu4e settings
-(add-load-path! "/opt/homebrew/share/emacs/site-lisp/mu")
-(use-package! mu4e
-  :defer t
-  :config
-  (set-email-account!
-   "ccomar@drwholdings.com"
-   '((user-mail-address . "ccomar@drwholdings.com")
-     (mtpmail-smtp-user . "us\\ccomar")
-     (mu4e-sent-folder       . "/drwholdings/Sent")
-     (mu4e-drafts-folder     . "/drwholdings/Drafts")
-     (mu4e-trash-folder      . "/drwholdings/Trash")
-     (mu4e-refile-folder     . "/drwholdings/Archive")))
-  :custom
-  (mu4e-mu-binary (executable-find "mu"))
-  (mu4e-maildir "~/.maildir")
-  (mu4e-get-mail-command (concat (executable-find "mbsync") " -a"))
-  (mu4e-update-interval 60)
-  (mu4e-attachment-dir "~/Downloads")
-  (mu4e-change-filenames-when-moving t)
-  (smtpmail-smtp-server "localhost")
-  (smtpmail-smtp-service 1025))
-(after! mu4e
-  (setq sendmail-program (executable-find "msmtp")
-        send-mail-function #'smtpmail-send-it
-        message-sendmail-f-is-evil t
-        message-sendmail-extra-arguments '("--read-envelope-from")
-        message-send-mail-function #'message-send-mail-with-sendmail
-        message-kill-buffer-on-exit t))
+;; (add-load-path! "/opt/homebrew/share/emacs/site-lisp/mu")
+;; (use-package! mu4e
+;;   :defer t
+;;   :config
+;;   (set-email-account!
+;;    "ccomar@drwholdings.com"
+;;    '((user-mail-address . "ccomar@drwholdings.com")
+;;      (mtpmail-smtp-user . "us\\ccomar")
+;;      (mu4e-sent-folder       . "/drwholdings/Sent")
+;;      (mu4e-drafts-folder     . "/drwholdings/Drafts")
+;;      (mu4e-trash-folder      . "/drwholdings/Trash")
+;;      (mu4e-refile-folder     . "/drwholdings/Archive")))
+;;   :custom
+;;   (mu4e-mu-binary (executable-find "mu"))
+;;   (mu4e-maildir "~/.maildir")
+;;   (mu4e-get-mail-command (concat (executable-find "mbsync") " -a"))
+;;   (mu4e-update-interval 60)
+;;   (mu4e-attachment-dir "~/Downloads")
+;;   (mu4e-change-filenames-when-moving t)
+;;   (smtpmail-smtp-server "localhost")
+;;   (smtpmail-smtp-service 1025))
+;; (after! mu4e
+;;   (setq sendmail-program (executable-find "msmtp")
+;;         send-mail-function #'smtpmail-send-it
+;;         message-sendmail-f-is-evil t
+;;         message-sendmail-extra-arguments '("--read-envelope-from")
+;;         message-send-mail-function #'message-send-mail-with-sendmail
+;;         message-kill-buffer-on-exit t))
+
+(use-package! notmuch
+  :config)
 
 ;; (use-package! excorporate
 ;;   :custom
