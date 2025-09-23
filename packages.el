@@ -115,4 +115,4 @@
 (package! sideline-flymake)
 (package! eglot :recipe (:host github :repo "cassandracomar/eglot") :pin "b16e1cb02f6c6168b22301beeb84e4c19f508abb")
 (package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "d41d37c21efe1ba3a906ebca2d5611fcb5e84f5c")
-(package! notmuch-notify)
+(package! notmuch-notify :recipe (:host github :repo "firmart/notmuch-notify") :pin "c10012e38b0093bc3a304b90a30dd09c81b3eb75")
