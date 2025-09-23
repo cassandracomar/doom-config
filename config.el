@@ -820,10 +820,6 @@
   (set-email-account!
    "cass@nie.rs"
    '((user-mail-address . "cass@nie.rs"))))
-(use-package notmuch-notify
-  :hook (notmuch-hello-refresh . notmuch-notify-hello-refresh-status-message)
-  :config
-  (notmuch-notify-set-refresh-timer))
 
 ;; (use-package! excorporate
 ;;   :custom
