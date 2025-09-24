@@ -508,8 +508,7 @@
   :defer t
   :init
   (setq terraform-command "tofu")
-  :config
-  (add-to-list 'eglot-server-programs '((terraform-mode :language-id "opentofu") "tofu-ls" "serve")))
+  )
 
 ;; (use-package! lsp-ui
 ;;   :config
@@ -541,7 +540,6 @@
       (when (<= (skip-chars-backward "a-zA-Z0-9'\\-_\\.") 0)
         (cons (point) (+ (point) (skip-chars-forward "a-zA-Z0-9'\\-_\\."))))))
   (advice-add #'nix--prefix-bounds :override #'nix--prefix-bounds-override)
-  (add-to-list 'eglot-server-programs '(nix-mode "nixd" "--semantic-tokens=true"))
   :config
   (add-hook! before-save-hook #'nix-format-before-save)
   (map! :map nix-repl-mode-map
@@ -605,8 +603,7 @@
 ;;   (+format-with-lsp-mode))
 (use-package! haskell-mode
   :config
-  (add-hook 'haskell-mode-hook #'lsp!)
-  (add-to-list 'eglot-server-programs '(haskell-mode "haskell-language-server-wrapper" "-d" "lsp")))
+  (add-hook 'haskell-mode-hook #'lsp!))
 ;; (use-package! haskell-ts-mode
 ;;   :config
 ;;   (add-hook 'haskell-ts-mode-hook #'lsp!)

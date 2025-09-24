@@ -8,6 +8,10 @@
 ;; (cl-callf plist-put eglot-events-buffer-config :size 2000000)
 (add-hook! terraform-mode
   (setq-local completion-at-point-functions #'eglot-completion-at-point))
+(set-eglot-client! '(terraform-mode :language-id "opentofu") '("tofu-ls" "serve"))
+(set-eglot-client! '(nix-mode nix-ts-mode) '("nixd" "--semantic-tokens=true"))
+(set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp"))
+
 (setq-default
  jsonrpc-default-request-timeout 30
  terraform-format-on-save t
