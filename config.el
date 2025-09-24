@@ -577,8 +577,8 @@
             :type "⦂"
             :composition "∘"
             :dot ".")
-(cl-callf #'append +ligatures-alist '(t . (">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "<*" "<*>" "*>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>")))
-(ligature-set-ligatures 't +ligatures-alist)
+(appendq! +ligatures-prog-mode-list '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
+(ligature-set-ligatures 't +ligatures-prog-mode-list)
 
 ;; (use-package! lsp-haskell
 ;;   :init
