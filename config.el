@@ -96,7 +96,7 @@
 (setq! forge-database-connector 'sqlite-builtin)
 
                                         ; set up env vars from encrypted sources
-(defun pinentry-emacs (desc prompt ok error)
+(defun pinentry-emacs (desc prompt _ok _error)
   (let ((str (read-passwd (concat (replace-regexp-in-string "%22" "\"" (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
     str))
 (setq auth-sources (list (format "%s/.authinfo.gpg" (getenv "HOME"))))
@@ -577,8 +577,8 @@
             :type "⦂"
             :composition "∘"
             :dot ".")
-(appendq! +ligatures-prog-mode-list '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
-(ligature-set-ligatures 't +ligatures-prog-mode-list)
+(cl-callf #'append +ligatures-alist '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
+(ligature-set-ligatures 't +ligatures-alist)
 
 ;; (use-package! lsp-haskell
 ;;   :init
@@ -603,7 +603,6 @@
 
 ;;   :config
 ;;   (+format-with-lsp-mode))
-(setq +ligatures-in-modes t)
 (use-package! haskell-mode
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
@@ -852,7 +851,7 @@
   (read-only-mode -1)
   (ansi-color-apply-on-region (point-min) (point-max))
   (read-only-mode +1))
-(setq magit-process-finish-apply-ansi-colors t)
+(setq magit-process-apply-ansi-colors t)
 (add-hook! magit-post-stage-hook #'colorize-buffer)
 
 
@@ -926,7 +925,7 @@
   :init
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
-  (appendq! sideline-backends-right '(sideline-flymake)))
+  (cl-callf #'append sideline-backends-right '(sideline-flymake)))
 
 (use-package! shx
   :after shell
