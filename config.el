@@ -1006,5 +1006,5 @@
 (setq vundo-glyph-alist vundo-unicode-symbols)
 (use-package! semel
   :custom ((semel-add-help-echo . nil))
-  :hook ((emacs-lisp-mode . semel-mode)
-         (emacs-lisp-mode . cursor-sensor-mode))
+  :init
+  (add-hook! emacs-lisp-mode :append #'semel-mode #'cursor-sensor-mode))
