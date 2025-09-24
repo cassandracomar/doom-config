@@ -577,8 +577,8 @@
             :type "⦂"
             :composition "∘"
             :dot ".")
-(appendq! +ligatures-prog-mode-list '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
-(ligature-set-ligatures 't +ligatures-prog-mode-list)
+(setq +my-ligatures-prog-mode-list '(">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" ".." "..." "<|" "|>" "<>"))
+(ligature-set-ligatures 't +my-ligatures-prog-mode-list)
 
 ;; (use-package! lsp-haskell
 ;;   :init
