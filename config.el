@@ -1008,4 +1008,3 @@
   :custom ((semel-add-help-echo . nil))
   :hook ((emacs-lisp-mode . semel-mode)
          (emacs-lisp-mode . cursor-sensor-mode))
-ä
