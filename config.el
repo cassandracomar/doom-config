@@ -793,8 +793,7 @@
      (mu4e-drafts-folder     . "/cass/drafts")
      (mu4e-trash-folder      . "/cass/trash")
      (mu4e-refile-folder     . "/cass/archive")))
-  (setq mu4e-update-interval 60
-        +mu4e-personal-addresses '("cass@nie.rs"))
+  (setq mu4e-update-interval 60)
   :custom
   (mu4e-mu-binary (executable-find "mu"))
   (mu4e-maildir "~/.local/share/maildir")
