@@ -921,11 +921,11 @@
 
 (use-package! sideline-flymake
   :after sideline
+  :hook ((flymake-mode . sideline-mode))
   :init
-  (add-hook! flymake-mode #'sideline-mode)
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
-  (cl-callf #'append sideline-backends-right '(sideline-flymake)))
+  (setq sideline-backends-right '(sideline-flymake)))
 
 (use-package! shx
   :after shell
