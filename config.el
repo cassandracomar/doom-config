@@ -148,7 +148,7 @@
 
 (use-package! spacious-padding
   :demand t
-  :hook (after-init . spacious-padding-mode)
+  :hook ((after-init . spacious-padding-mode))
   :init
   (setq spacious-padding-widths
         '( :internal-border-width 5
@@ -922,7 +922,7 @@
 
 (use-package! sideline-flymake
   :after sideline
-  :hook (flymake-mode . sideline-mode)
+  :hook ((flymake-mode . sideline-mode))
   :init
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
@@ -930,7 +930,7 @@
 
 (use-package! shx
   :after shell
-  :hook (shell-mode-hook . shx-mode))
+  :hook ((shell-mode-hook . shx-mode)))
 
 (use-package! eat
   :demand t
@@ -989,11 +989,11 @@
 (map! :leader "<return>" #'+eat/here)
 
 (use-package! nushell-mode
-  :mode ("\\.nu\\'" . nushell-mode)
+  :mode (("\\.nu\\'" . nushell-mode))
   :config
   (add-hook 'nushell-mode-hook #'lsp 'append))
 (use-package! nushell-ts-mode
-  :hook (nushell-mode . nushell-ts-mode))
+  :hook ((nushell-mode . nushell-ts-mode)))
 
 ;; (use-package! rego-mode
 ;;   :defer t
@@ -1006,6 +1006,5 @@
 (setq vundo-glyph-alist vundo-unicode-symbols)
 (use-package! semel
   :custom ((semel-add-help-echo . nil))
-  :hook ((emacs-lisp-mode . semel-mode)
-         (emacs-lisp-mode . cursor-sensor-mode)))
+  :hook ((emacs-lisp-mode . (semel-mode cursor-sensor-mode))))
 ä
