@@ -96,11 +96,12 @@
 (package! protobuf-mode :recipe (:host github :repo "protocolbuffers/protobuf" :files ("editors/protobuf-mode.el")) :pin "50e90bb84add455170e315e9a7f075274b8e0ada")
 (package! multi-run :recipe (:host github :repo "sagarjha/multi-run") :pin "13d4d923535b5e8482b13ff76185203075fb26a3")
 (package! eat :recipe (:repo "https://codeberg.org/akib/emacs-eat.git") :pin "c8d54d649872bfe7b2b9f49ae5c2addbf12d3b99")
-(package! lean4-mode :recipe
-  (:host github
-   :repo "leanprover/lean4-mode"
-   :files ("*.el" "data"))
-  :pin "1388f9d1429e38a39ab913c6daae55f6ce799479")
+;; this doesn't work with eglot
+;; (package! lean4-mode :recipe
+;;   (:host github
+;;    :repo "leanprover/lean4-mode"
+;;    :files ("*.el" "data"))
+;;   :pin "1388f9d1429e38a39ab913c6daae55f6ce799479")
 ;; (package! org-fragtog)
 (package! jq-mode :recipe (:host github :repo "ljos/jq-mode") :pin "1f4bf0955fc9f7f03d8b26dc1acf6b68067a57cc")
 (package! ligature :pin "6ac1634612dbd42f7eb81ecaf022bd239aabb954")

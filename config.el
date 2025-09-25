@@ -876,11 +876,11 @@
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
 ;; (add-hook! 'org-mode-hook '(org-fragtog-mode))
-(add-hook! 'lean4-mode-hook
-  (set-input-method "Lean")
-  (toggle-input-method))
-(use-package! lean4-mode
-  :mode "\\.lean\\'")
+;; (add-hook! 'lean4-mode-hook
+;;   (set-input-method "Lean")
+;;   (toggle-input-method))
+;; (use-package! lean4-mode
+;;   :mode "\\.lean\\'")
 
 (use-package! protobuf-mode
   :mode "\\.proto\\'")
