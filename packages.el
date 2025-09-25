@@ -58,7 +58,7 @@
 ;;   :recipe (:host github :repo "cassandracomar/lsp-mode" :branch "master") :pin "129f5375f617e99389683acda7095e6c9af82840")
 ;; (unpin! lsp-haskell)
 ;; (unpin! envrc)
-(package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "548b48717b5b3642bfc2b7b1376f879b1db1dd9f")
+(package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "8e3f9ed7003acb91d6deaae94fc2065baf0d97a5")
 (package! persp-mode :pin "14325c11f7a347717d7c3780f29b24a38c68fbfc")
 (package! polymode)
 ;; (package! haskell-ts-mode :recipe (:host codeberg :repo "pranshu/haskell-ts-mode" :branch "main"))
