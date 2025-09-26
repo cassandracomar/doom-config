@@ -998,7 +998,7 @@
 ;;   (add-hook! 'rego-mode #'eglot #'+format-with-lsp-mode)
 ;;   :custom
 ;;   (rego-format-at-save nil))
-(setq vundo-glyph-alist vundo-unicode-symbols)
+;; (setq vundo-glyph-alist vundo-unicode-symbols)
 (use-package! semel
   :custom ((semel-add-help-echo . nil))
   :init
