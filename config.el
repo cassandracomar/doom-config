@@ -288,11 +288,11 @@
 ;;   :hook (global-corfu-mode . corfu-pixel-perfect-mode)
 ;;   :custom
 ;;   (corfu-pixel-perfect-ignore-annotation-modes '(haskell-mode)))
-(use-package! consult-hoogle
-  :ensure haskell-mode
-  :after haskell-mode
-  :config
-  (map! "C-S-K" #'consult-hoogle-project))
+;; (use-package! consult-hoogle
+;;   :ensure haskell-mode
+;;   :after haskell-mode
+;;   :config
+;;   (map! "C-S-K" #'consult-hoogle-project))
 
 (use-package! orderless
   :config

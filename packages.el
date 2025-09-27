@@ -76,7 +76,7 @@
 ;; (unpin! corfu)
 
 ;; new packages
-(package! consult-hoogle :recipe (:repo "https://codeberg.org/rahguzar/consult-hoogle" :branch "main") :pin "384959016022d071464dc6e611e4fcded562834e")
+;; (package! consult-hoogle :recipe (:repo "https://codeberg.org/rahguzar/consult-hoogle" :branch "main") :pin "384959016022d071464dc6e611e4fcded562834e")
 (package! groovy-mode)
 (package! fish-completion)
 (package! bash-completion)
