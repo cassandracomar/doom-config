@@ -92,6 +92,7 @@
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
 (setq enable-local-eval t)
+(setq with-editor-emacsclient-executable (executable-find "emacsclient"))
 ;; (setq! with-editor-emacsclient-executable "/opt/homebrew/bin/emacsclient")
 (setq! forge-database-connector 'sqlite-builtin)
 

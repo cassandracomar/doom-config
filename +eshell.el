@@ -47,7 +47,6 @@
   ;; projectile has the fun side-effect of wanting to calculate the
   ;; project name, which makes tramp oh-so-much-slower.
   (setq projectile-mode-line "Projectile")
-  (setq with-editor-emacsclient-executable "emacsclient")
 
   (add-to-list 'eshell-modules-list 'eshell-rebind)
   (add-to-list 'eshell-modules-list 'eshell-tramp)
