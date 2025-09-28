@@ -97,9 +97,6 @@
 (setq! forge-database-connector 'sqlite-builtin)
 
                                         ; set up env vars from encrypted sources
-(defun pinentry-emacs (desc prompt _ok _error)
-  (let ((str (read-passwd (concat (replace-regexp-in-string "%22" "\"" (replace-regexp-in-string "%0A" "\n" desc)) prompt ": "))))
-    str))
 (setq auth-sources (list (format "%s/.authinfo.gpg" (getenv "HOME"))))
 (setq epa-file-encrypt-to '("cass@ndra.io"))
 (setq epa-file-select-keys nil)
