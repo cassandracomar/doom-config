@@ -975,7 +975,7 @@
 
 (defun +eat/nu-open (&rest args)
   (interactive)
-  (cl-callf find-file (car args) (cdr args)))
+  (apply #'eshell/find-file args))
 
 (defun +eat/here (&optional program)
   (interactive)
