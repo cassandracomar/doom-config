@@ -601,7 +601,9 @@
 ;;   (+format-with-lsp-mode))
 (use-package! haskell-mode
   :config
-  (add-hook 'haskell-mode-hook #'lsp!))
+  (add-hook 'haskell-mode-hook #'lsp!)
+  :custom-face
+  (haskell-operator-face ((t (:inherit haskell-keyword-face)))))
 ;; (use-package! haskell-ts-mode
 ;;   :config
 ;;   (add-hook 'haskell-ts-mode-hook #'lsp!)
