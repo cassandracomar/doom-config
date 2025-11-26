@@ -59,7 +59,7 @@
                                  :yaml-language-server (:yaml (:schemaStore (:enable t)))
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
-(setq eglot-semantic-tokens-faces
+(setq eglot-semantic-token-types
       '(("namespace" . font-lock-keyword-face)
         ("type" . font-lock-type-face)
         ("class" . font-lock-type-face)
@@ -84,7 +84,7 @@
         ("regexp" . font-lock-preprocessor-face)
         ("operator" . font-lock-keyword-face)
         ("decorator" . font-lock-type-face)))
-(setq eglot-semantic-tokens-modifier-faces
+(setq eglot-semantic-token-modifiers
       '(("declaration" . font-lock-function-name-face)
         ("definition" . font-lock-function-name-face)
         ("readonly" . font-lock-constant-face)
