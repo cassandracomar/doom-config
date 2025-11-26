@@ -114,6 +114,6 @@
 (package! spacious-padding)
 (package! sideline)
 (package! sideline-flymake)
-(package! eglot :disable t) ;; use the builtin package
+(package! eglot :recipe (:host github :repo "cassandracomar/eglot") :pin "bb0faeda7679a3941766e28ebb7774d7d3e65ad0")
 (package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "d41d37c21efe1ba3a906ebca2d5611fcb5e84f5c")
 (package! debbugs)
