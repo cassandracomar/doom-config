@@ -61,6 +61,7 @@
 (package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "17d536ab79aa4e69e3402aad148ee458381630f1")
 (package! persp-mode :pin "14325c11f7a347717d7c3780f29b24a38c68fbfc")
 (package! polymode)
+(package! corfu :pin "144959455bf4e6f6479502659e7d0b540dfa1a82")
 ;; (package! haskell-ts-mode :recipe (:host codeberg :repo "pranshu/haskell-ts-mode" :branch "main"))
 ;; (package! haskell-mode :disable t)
 
