@@ -845,9 +845,9 @@ and set them for all frames (including the defaults for new frames)."
 ;; mu4e settings
 (use-package! mu4e
   :defer t
-  :init
-  (disinherit-face 'gnus-group-news-low)
-  (disinherit-face 'gnus-group-news-low-empty)
+  ;; :init
+  ;; (disinherit-face 'gnus-group-news-low)
+  ;; (disinherit-face 'gnus-group-news-low-empty)
   :config
   (set-email-account!
    "cass@nie.rs"
