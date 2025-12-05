@@ -239,13 +239,13 @@
 (map! :nv "J" #'+lookup/definition)
 (map! :nv "C-J" #'xref-go-back)
 (map! :nv "C-K" #'+lookup/references)
-(map! :nv "H" #'treemacs-select-window)
-;; (map! :nv "L" #'lsp-ui-imenu)
 (map! :nv "g b" #'xref-go-back)
 (map! :nv "g B" #'xref-go-forward)
 (map! :nv "g D" #'+lookup/references)
 (map! :nv "g d" #'+lookup/definition)
 (map! :nv "g i" #'+lookup/implementations)
+(map! :nv "H" #'treemacs-select-window)
+;; (map! :nv "L" #'lsp-ui-imenu)
 (map! :n  "V" #'evil-visual-line)
 (map! :nv "g l" (lambda (l) (apply #'evil-goto-line l)))
 
@@ -1003,3 +1003,24 @@
   :custom ((semel-add-help-echo . nil))
   :init
   (add-hook! emacs-lisp-mode :append #'semel-mode #'cursor-sensor-mode))
+
+(defun disinherit-face (face &optional frame)
+  "Make FACE non-inherited on FRAME without changing its appearance.
+
+Sets each of the face's unspecified attributes to the the
+corresponding value from the face specified in its `:inherit'
+attribute, and sets its `:inherit' attribute to nil.
+
+If FRAME is provided, read and set FACE's attributes for that frame.
+If FRAME is t, read and set the defaults for face FACE for new frames.
+If FRAME is nil, read attributes from the selected frame
+and set them for all frames (including the defaults for new frames)."
+  (let ((face-attrs (delq :inherit
+                          (mapcar 'car face-attribute-name-alist)))
+        (args '(:inherit nil)))
+    (dolist (attr face-attrs args)
+      (push (face-attribute face attr frame t) args)
+      (push attr args))
+    (apply 'set-face-attribute face frame args)))
+(disinherit-face 'gnus-group-news-low)
+(disinherit-face 'gnus-group-news-low-empty)
