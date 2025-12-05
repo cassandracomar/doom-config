@@ -206,7 +206,7 @@
   (eglot-semantic-operator-face ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-decorator-face ((t (:inherit font-lock-type-face))))
   ;; (eglot-semantic-declaration-face ((t (:inherit font-lock-function-name-face))))
-  ;; (eglot-semantic-definition-face ((t (:inherit font-lock-function-name-face))))
+  (eglot-semantic-definition-face ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-readonly-face ((t (:inherit font-lock-constant-face))))
   ;; (eglot-semantic-static-face ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-deprecated-face ((t (:inherit eglot-diagnostic-tag-deprecated-face))))
