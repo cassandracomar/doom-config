@@ -863,8 +863,6 @@ and set them for all frames (including the defaults for new frames)."
 (setq confirm-kill-emacs nil)
 
 (use-package! telephone-line
-  :init
-  (setq 'gnus-group-news-low)
   :config
   (telephone-line-mode 1))
 ;;
