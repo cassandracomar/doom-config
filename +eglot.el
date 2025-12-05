@@ -143,9 +143,8 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
 (map! :leader
       "c x" #'consult-flymake-project
       "p x" #'consult-flymake-project)
-(map! :nv
-      "g b" #'xref-go-back
-      "g B" #'xref-go-forward
-      "g D" #'xref-find-references
-      "g d" #'xref-find-definitions
-      "g i" #'eglot-find-implementation)
+(map! :nv "g b" #'xref-go-back)
+(map! :nv "g B" #'xref-go-forward)
+(map! :nv "g D" #'xref-find-references)
+(map! :nv "g d" #'xref-find-definitions)
+(map! :nv "g i" #'eglot-find-implementation)
