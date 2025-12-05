@@ -237,6 +237,8 @@
   ;; (eglot-semantic-documentation-face ((t (:inherit font-lock-doc-face))))
   (eglot-semantic-defaultLibrary-face ((t (:inherit font-lock-preprocessor-face))))))
 
+;; just force a rebuild
+
 ;; KEYBINDINGS
 (defun consult-flymake-project (&rest _)
   (interactive)
