@@ -156,8 +156,7 @@ and set them for all frames (including the defaults for new frames)."
       (push (face-attribute face attr frame t) args)
       (push attr args))
     (apply 'set-face-attribute face frame args)))
-(disinherit-face 'gnus-group-news-low)
-(disinherit-face 'gnus-group-news-low-empty)
+
 
 ;; UI
 (use-package! doom-modeline
@@ -846,6 +845,9 @@ and set them for all frames (including the defaults for new frames)."
 ;; mu4e settings
 (use-package! mu4e
   :defer t
+  :init
+  (disinherit-face 'gnus-group-news-low)
+  (disinherit-face 'gnus-group-news-low-empty)
   :config
   (set-email-account!
    "cass@nie.rs"
