@@ -560,7 +560,9 @@
 (use-package! rustic
   :defer t
   :config
-  (setq rustic-format-on-save t))
+  (setq rustic-format-on-save t)
+  :custom-face
+  (rust-ampersand-face ((t (:inherit font-lock-keyword-face)))))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
