@@ -179,6 +179,7 @@
            :scroll-bar-width 2)))
 
 (use-package! eglot
+  :defer nil
   :init
   (load! "+eglot")
   :config
