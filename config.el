@@ -235,8 +235,7 @@ and set them for all frames (including the defaults for new frames)."
   ;; (eglot-semantic-async-face ((t (:inherit font-lock-preprocessor-face))))
   ;; (eglot-semantic-modification-face ((t (:inherit font-lock-function-name-face))))
   ;; (eglot-semantic-documentation-face ((t (:inherit font-lock-doc-face))))
-  ;; (eglot-semantic-defaultLibrary-face ((t (:inherit font-lock-builtin-face)))))
-  )
+  (eglot-semantic-defaultLibrary-face ((t (:inherit font-lock-preprocessor-face))))))
 
 ;; KEYBINDINGS
 (defun consult-flymake-project (&rest _)
@@ -583,7 +582,8 @@ and set them for all frames (including the defaults for new frames)."
   :config
   (setq rustic-format-on-save t)
   :custom-face
-  (rust-ampersand-face ((t (:inherit font-lock-keyword-face)))))
+  (rust-ampersand-face ((t (:inherit font-lock-keyword-face))))
+  (rust-builtin-formatting-macro ((t (:inherit font-lock-preprocessor-face)))))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
