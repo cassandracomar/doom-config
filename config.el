@@ -800,7 +800,8 @@
   (mu4e-get-mail-command (concat (executable-find "mbsync") " -a"))
   (mu4e-update-interval 60)
   (mu4e-attachment-dir "~/downloads")
-  (mu4e-change-filenames-when-moving t))
+  (mu4e-change-filenames-when-moving t)
+  (gnus-group-news-low-empty (:weight "normal" :foreground "#555556" :inherit nil)))
 (after! mu4e
   (setq sendmail-program (executable-find "msmtp")
         send-mail-function #'smtpmail-send-it
