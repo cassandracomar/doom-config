@@ -225,6 +225,7 @@ and set them for all frames (including the defaults for new frames)."
                                    concat r
                                    when rest concat (if titlep ":" "/")))))
         "] "))))
+  (map! :map eglot-mode-map :nv "g D" #'+lookup/references)
   :custom-face
   ;; (eglot-semantic-namespace-face ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-type-face ((t (:inherit font-lock-type-face))))
@@ -1089,3 +1090,4 @@ and set them for all frames (including the defaults for new frames)."
   :custom ((semel-add-help-echo . nil))
   :init
   (add-hook! emacs-lisp-mode :append #'semel-mode #'cursor-sensor-mode))
+
