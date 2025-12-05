@@ -151,7 +151,14 @@
   :group 'gnus-group)
 
 (defface gnus-group-news-low
-  '((t (:inherit gnus-group-news-low-empty :weight bold)))
+  '((((class color)
+      (background dark))
+     (:foreground "DarkTurquoise"))
+    (((class color)
+      (background light))
+     (:foreground "DarkGreen"))
+    (t
+     ()))
   "Low level newsgroup face."
   :group 'gnus-group)
 
