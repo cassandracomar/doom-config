@@ -639,7 +639,8 @@
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
   :custom-face
-  (haskell-operator-face ((t (:inherit haskell-keyword-face)))))
+  (haskell-operator-face ((t (:inherit haskell-keyword-face))))
+  (haskell-definition-face ((t (:inherit haskell-keyword-face)))))
 ;; (use-package! haskell-ts-mode
 ;;   :config
 ;;   (add-hook 'haskell-ts-mode-hook #'lsp!)
