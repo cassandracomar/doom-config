@@ -784,7 +784,7 @@
 (use-package! mu4e
   :defer t
   :init
-  (set-face-attribute 'gnus-group-news-low-empty :foreground #555556 :weight 'normal :inherit nil)
+  ;; (set-face-attribute 'gnus-group-news-low-empty :foreground #555556 :weight 'normal :inherit nil)
   :config
   (set-email-account!
    "cass@nie.rs"
