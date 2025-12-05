@@ -138,6 +138,23 @@
 (defun eshell/async-command-to-string (cmd &rest args)
   (aio-wait-for (aio-run cmd (list (combine-and-quote-strings (cons cmd args) " ")))))
 
+(defface gnus-group-news-low-empty
+  '((((class color)
+      (background dark))
+     (:foreground "DarkTurquoise"))
+    (((class color)
+      (background light))
+     (:foreground "DarkGreen"))
+    (t
+     ()))
+  "Low level empty newsgroup face."
+  :group 'gnus-group)
+
+(defface gnus-group-news-low
+  '((t (:inherit gnus-group-news-low-empty :weight bold)))
+  "Low level newsgroup face."
+  :group 'gnus-group)
+
 (defun disinherit-face (face &optional frame)
   "Make FACE non-inherited on FRAME without changing its appearance.
 
@@ -839,15 +856,14 @@ and set them for all frames (including the defaults for new frames)."
 (setq confirm-kill-emacs nil)
 
 (use-package! telephone-line
+  :init
+  (setq 'gnus-group-news-low)
   :config
   (telephone-line-mode 1))
 ;;
 ;; mu4e settings
 (use-package! mu4e
   :defer t
-  ;; :init
-  ;; (disinherit-face 'gnus-group-news-low)
-  ;; (disinherit-face 'gnus-group-news-low-empty)
   :config
   (set-email-account!
    "cass@nie.rs"
