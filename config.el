@@ -180,15 +180,15 @@
                                    concat r
                                    when rest concat (if titlep ":" "/")))))
         "] "))))
-  ;; :custom-face
+  :custom-face
   ;; (eglot-semantic-namespace-face ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-type-face ((t (:inherit font-lock-type-face))))
   ;; (eglot-semantic-class-face ((t (:inherit font-lock-type-face))))
-  ;; (eglot-semantic-enum-face ((t (:inherit font-lock-type-face))))
-  ;; (eglot-semantic-enumMember-face ((t (:inherit font-lock-constant-face))))
+  (eglot-semantic-enum-face ((t (:inherit font-lock-type-face))))
+  (eglot-semantic-enumMember-face ((t (:inherit font-lock-constant-face))))
   ;; (eglot-semantic-interface-face ((t (:inherit font-lock-type-face))))
   ;; (eglot-semantic-struct-face ((t (:inherit font-lock-type-face))))
-  ;; (eglot-semantic-typeParameter-face ((t (:inherit font-lock-variable-name-face))))
+  (eglot-semantic-typeParameter-face ((t (:inherit font-lock-variable-name-face))))
   ;; (eglot-semantic-parameter-face ((t (:inherit font-lock-variable-use-face))))
   ;; (eglot-semantic-variable-face ((t (:inherit font-lock-variable-use-face))))
   ;; (eglot-semantic-property-face ((t (:inherit font-lock-property-use-face))))
@@ -202,8 +202,8 @@
   ;; (eglot-semantic-comment-face ((t (:inherit font-lock-comment-face))))
   ;; (eglot-semantic-string-face ((t (:inherit font-lock-string-face))))
   ;; (eglot-semantic-number-face ((t (:inherit font-lock-constant-face))))
-  ;; (eglot-semantic-regexp-face ((t (:inherit font-lock-preprocessor-face))))
-  ;; (eglot-semantic-operator-face ((t (:inherit font-lock-keyword-face))))
+  (eglot-semantic-regexp-face ((t (:inherit font-lock-preprocessor-face))))
+  (eglot-semantic-operator-face ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-decorator-face ((t (:inherit font-lock-type-face))))
   ;; (eglot-semantic-declaration-face ((t (:inherit font-lock-function-name-face))))
   ;; (eglot-semantic-definition-face ((t (:inherit font-lock-function-name-face))))
@@ -258,7 +258,7 @@
 (map! :map vertico-map
       "<tab>" #'vertico-insert
       [backtab] #'vertico-previous)
-(map! :leader "b b" #'switch-to-buffer)
+(map! :leader "b b" #'consult-buffer)
 (map! :leader "o u" #'undo-tree-visualize)
 (map! :leader
       "0" #'winum-select-window-0-or-10
