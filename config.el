@@ -153,10 +153,12 @@
 (defface gnus-group-news-low
   '((((class color)
       (background dark))
-     (:foreground "DarkTurquoise"))
+     (:foreground "DarkTurquoise"
+      :weight "bold"))
     (((class color)
       (background light))
-     (:foreground "DarkGreen"))
+     (:foreground "DarkGreen"
+      :weight "bold"))
     (t
      ()))
   "Low level newsgroup face."
