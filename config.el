@@ -591,8 +591,7 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! terraform-mode
   :defer t
   :init
-  (setq terraform-command "tofu")
-  )
+  (setq terraform-command "tofu"))
 
 ;; (use-package! lsp-ui
 ;;   :config
@@ -662,7 +661,7 @@ and set them for all frames (including the defaults for new frames)."
             :type "⦂"
             :composition "∘"
             :dot ".")
-(setq +ligatures-prog-mode-list '("<=<" ">=>" ">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "<*" "<*>" "*>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" ">>" "<<" ">>>" "<<<" "<<<<" ">>>>" ".." "..." "<|" "|>" "<>"))
+(setq +ligatures-prog-mode-list '("<=<" ">=>" ">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "<*" "<*>" "*>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" "<<<<" ">>>>" ">>>" "<<<" ">>" "<<" ".." "..." "<|" "|>" "<>"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
 
 ;; (use-package! lsp-haskell
