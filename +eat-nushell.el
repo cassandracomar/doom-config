@@ -144,5 +144,6 @@
 
 (defun replace-eat-completions ()
   (fish-completion-mode -1)
+  (corfu-mode +1)
   (setq-local completion-at-point-functions
               (cape-company-to-capf #'carapace-nushell-backend (lambda (&rest _) carapace-nushell--active-completions))))
