@@ -154,11 +154,11 @@
   '((((class color)
       (background dark))
      (:foreground "DarkTurquoise"
-      :weight "bold"))
+      :weight bold))
     (((class color)
       (background light))
      (:foreground "DarkGreen"
-      :weight "bold"))
+      :weight bold))
     (t
      ()))
   "Low level newsgroup face."
