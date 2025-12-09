@@ -690,6 +690,7 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! haskell-mode
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
+  (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
   :custom-face
   (haskell-operator-face ((t (:inherit haskell-keyword-face))))
   (haskell-definition-face ((t (:inherit haskell-keyword-face)))))
