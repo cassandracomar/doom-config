@@ -1016,10 +1016,10 @@ and set them for all frames (including the defaults for new frames)."
   :after flycheck-mode
   :config
   (map! :mode flycheck-projectile-error-list-mode
-        "RET" #'flycheck-projectile-error-list-goto-error
-        "<return>" #'flycheck-projectile-error-list-goto-error
-        [return] #'flycheck-projectile-error-list-goto-error
-        "q" #'flycheck-projectile--quit-kill-window))
+        :n "RET" #'flycheck-projectile-error-list-goto-error
+        :n "<return>" #'flycheck-projectile-error-list-goto-error
+        :n [return] #'flycheck-projectile-error-list-goto-error
+        :n "q" #'flycheck-projectile--quit-kill-window))
 
 (use-package! shx
   :after shell
