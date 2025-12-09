@@ -1013,14 +1013,12 @@ and set them for all frames (including the defaults for new frames)."
                                         ; 'line to show errors on the current line
   (setq sideline-backends-right '(sideline-flycheck)))
 (use-package! flycheck-projectile
-  :after flycheck-mode
-  :config
-  (map! :mode flycheck-projectile-error-list-mode
-        :n "RET" #'flycheck-projectile-error-list-goto-error
-        :n "<return>" #'flycheck-projectile-error-list-goto-error
-        :n [return] #'flycheck-projectile-error-list-goto-error
-        :n "q" #'flycheck-projectile--quit-kill-window))
-
+  :after flycheck-mode)
+(map! :map flycheck-projectile-error-list-mode-map
+      :n "RET" #'flycheck-projectile-error-list-goto-error
+      :n "<return>" #'flycheck-projectile-error-list-goto-error
+      :n [return] #'flycheck-projectile-error-list-goto-error
+      :n "q" #'flycheck-projectile--quit-kill-window)
 (use-package! shx
   :after shell
   :hook ((shell-mode-hook . shx-mode)))
