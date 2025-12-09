@@ -34,6 +34,7 @@
 ;; (setq nerd-icons-font-names '("IosevkaNerdFont-Regular.ttf" "SymbolsNerdFont-Regular.ttf"))
 (add-to-list 'default-frame-alist `(font . ,doom-font))
 (add-to-list 'default-frame-alist '(undecorated . t))
+(setq coding-system--for-buffer-diff 'utf-8-unix)
 
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
@@ -403,7 +404,7 @@ and set them for all frames (including the defaults for new frames)."
           (projectile-switch-project . projectile-file)
           (execute-extended-command . command))))
 (after! projectile  
-  (add-to-list 'projectile-globally-ignored-directories "*dist-newstyle"))
+  (add-to-list 'projectile-globally-ignored-directories "dist-newstyle"))
 
 (use-package! consult-projectile
   :defer nil)
