@@ -331,9 +331,15 @@ and set them for all frames (including the defaults for new frames)."
 (map! :nv "g d" #'+lookup/definition)
 (map! :nv "g i" #'+lookup/implementations)
 (map! :nv "H" #'treemacs-select-window)
-;; (map! :nv "L" #'lsp-ui-imenu)
+(map! :n "L" #'flycheck-projectile-list-errors)
+(map! :v "L" #'consult-eglot-symbols)
 (map! :n  "V" #'evil-visual-line)
 (map! :nv "g l" (lambda (l) (apply #'evil-goto-line l)))
+;; (map! :map flycheck-projectile-error-list-mode-map
+;;       :n "RET" #'flycheck-projectile-error-list-goto-error
+;;       :n "<return>" #'flycheck-projectile-error-list-goto-error
+;;       :n [return] #'flycheck-projectile-error-list-goto-error
+;;       :n "q" #'flycheck-projectile--quit-kill-window)
 
 ;; TRANSIENT STATES
 (use-package! hercules)
@@ -1005,20 +1011,22 @@ and set them for all frames (including the defaults for new frames)."
   :init
   (setq sideline-force-display-if-exceeds t))
 
-(use-package! sideline-flycheck
+(use-package! sideline-flymake
   :after sideline
-  :hook ((flycheck-mode . sideline-flycheck-setup))
+  :hook ((flymake-mode . sideline-flymake-setup))
   :init
-  (setq sideline-flycheck-display-mode 'point) ;; 'point to show errors only on point
+  (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
-  (setq sideline-backends-right '(sideline-flycheck)))
-(use-package! flycheck-projectile
-  :after flycheck-mode)
-(map! :map flycheck-projectile-error-list-mode-map
-      :n "RET" #'flycheck-projectile-error-list-goto-error
-      :n "<return>" #'flycheck-projectile-error-list-goto-error
-      :n [return] #'flycheck-projectile-error-list-goto-error
-      :n "q" #'flycheck-projectile--quit-kill-window)
+  (setq sideline-backends-right '(sideline-flymake)))
+;; (use-package! sideline-flycheck
+;;   :after sideline
+;;   :hook ((flycheck-mode . sideline-flycheck-setup))
+;;   :init
+;;   (setq sideline-flycheck-display-mode 'point) ;; 'point to show errors only on point
+;;                                         ; 'line to show errors on the current line
+;;   (setq sideline-backends-right '(sideline-flycheck)))
+;; (use-package! flycheck-projectile
+;;   :after flycheck-mode)
 (use-package! shx
   :after shell
   :hook ((shell-mode-hook . shx-mode)))
