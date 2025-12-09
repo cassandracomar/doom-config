@@ -1001,17 +1001,19 @@ and set them for all frames (including the defaults for new frames)."
   (advice-add 'eshell/async-command-to-string :around #'envrc-propagate-environment))
 
 (use-package! sideline
-  :after eglot flymake
+  :after eglot flycheck
   :init
   (setq sideline-force-display-if-exceeds t))
 
-(use-package! sideline-flymake
+(use-package! sideline-flycheck
   :after sideline
-  :hook ((flymake-mode . sideline-mode))
+  :hook ((flycheck-mode . sideline-flycheck-setup))
   :init
-  (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
+  (setq sideline-flycheck-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
-  (setq sideline-backends-right '(sideline-flymake)))
+  (setq sideline-backends-right '(sideline-flycheck)))
+(use-package! flycheck-projectile
+  :after flycheck-mode)
 
 (use-package! shx
   :after shell
