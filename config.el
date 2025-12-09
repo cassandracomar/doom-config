@@ -1015,7 +1015,7 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! flycheck-projectile
   :after flycheck-mode
   :config
-  (map! :map flycheck-error-list-mode-map
+  (map! :map flycheck-projectile-error-list-mode-map
         :n
         "RET" #'flycheck-projectile-error-list-goto-error
         "<return>" #'flycheck-projectile-error-list-goto-error
