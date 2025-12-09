@@ -402,6 +402,8 @@ and set them for all frames (including the defaults for new frames)."
           (projectile-find-dir . projectile-file)
           (projectile-switch-project . projectile-file)
           (execute-extended-command . command))))
+(after! projectile  
+  (add-to-list 'projectile-globally-ignored-directories "*dist-newstyle"))
 
 (use-package! consult-projectile
   :defer nil)
