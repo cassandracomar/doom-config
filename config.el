@@ -210,6 +210,7 @@ and set them for all frames (including the defaults for new frames)."
   (load! "+eglot")
   :config
   (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
+
   (add-hook! 'eglot-managed-mode-hook
     (add-to-list
      'mode-line-misc-info
