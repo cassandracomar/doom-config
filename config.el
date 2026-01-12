@@ -237,7 +237,7 @@ and set them for all frames (including the defaults for new frames)."
   (my-font-lock-constant-face ((t (:foreground "#e3871b"))))
   (eglot-semantic-namespace ((t (:foreground "#fb3d81"))))
   (eglot-semantic-type ((t (:inherit my-font-lock-type-face))))
-  (eglot-semantic-class ((t (:foreground "#336c77"))))
+  (eglot-semantic-class ((t (:inherit elisp-symbol-role))))
   (eglot-semantic-enum ((t (:inherit elisp-major-mode-name))))
   (eglot-semantic-enumMember ((t (:inherit my-font-lock-constant-face :slant italic))))
   (eglot-semantic-interface ((t (:inherit elisp-symbol-role))))
