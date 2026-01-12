@@ -208,6 +208,7 @@ and set them for all frames (including the defaults for new frames)."
   :defer nil
   :init
   (load! "+eglot")
+  (add-to-list 'eglot-semantic-token-types "const")
   :config
   (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
   (add-hook! 'eglot-managed-mode-hook
@@ -254,7 +255,8 @@ and set them for all frames (including the defaults for new frames)."
   (eglot-semantic-regexp ((t (:inherit font-lock-preprocessor-face))))
   (eglot-semantic-operator ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-decorator ((t (:inherit font-lock-type-face))))
-  ;; (eglot-semantic-declaration ((t (:inherit font-lock-function-name-face))))
+  (eglot-semantic-const ((t (:inherit font-lock-constant-face))))
+  (eglot-semantic-declaration ((t (:inherit font-lock-variable-name-face))))
   (eglot-semantic-definition ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-readonly ((t (:inherit font-lock-constant-face))))
   ;; (eglot-semantic-static ((t (:inherit font-lock-keyword-face))))
