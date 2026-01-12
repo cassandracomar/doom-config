@@ -115,6 +115,6 @@
 (package! sideline)
 (package! sideline-flycheck)
 (package! flycheck-projectile)
-(package! eglot :recipe (:host github :repo "cassandracomar/eglot") :pin "bb0faeda7679a3941766e28ebb7774d7d3e65ad0")
+(package! eglot :recipe (:host github :repo "joaotavora/eglot") :pin "2c672c5c38f97c98f2735310dc1d3a41846dacc1")
 (package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "d41d37c21efe1ba3a906ebca2d5611fcb5e84f5c")
 (package! debbugs)
