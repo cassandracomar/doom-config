@@ -208,7 +208,6 @@ and set them for all frames (including the defaults for new frames)."
   :defer nil
   :init
   (load! "+eglot")
-  (add-to-list 'eglot-semantic-token-types "const")
   :config
   (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
   (add-hook! 'eglot-managed-mode-hook
@@ -230,6 +229,7 @@ and set them for all frames (including the defaults for new frames)."
                                    when rest concat (if titlep ":" "/")))))
         "] "))))
   (map! :map eglot-mode-map :nv "g D" #'+lookup/references)
+  (add-to-list 'eglot-semantic-token-types "const")
   :custom-face
   ;; (eglot-semantic-namespace ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-type ((t (:inherit font-lock-type-face))))
