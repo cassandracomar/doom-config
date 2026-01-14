@@ -1131,6 +1131,7 @@ and set them for all frames (including the defaults for new frames)."
 ;;         "d o" #'mermaid-open-browser
 ;;         "d d" #'mermaid-open-doc))
 (use-package! mermaid-ts-mode
+  :mode (("\\.mmd\'" . mermaid-ts-mode))
   :defer t)
 
 (use-package! ob-mermaid
