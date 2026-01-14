@@ -105,6 +105,30 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
       (pcase kind
         ("end" (refreshf))))))
 
+(defvar +eglot-after-envrc-hook '())
+(defvar-local +eglot-after-envrc-run? nil)
+(defun +eglot-ensure-reconnected ()
+  (interactive)
+  (if (eglot-managed-p)
+      (eglot-reconnect (eglot-current-server) t)
+    (lsp!)))
+
+(defun +envrc-status-watcher (symbol newval operation where)
+  (when (and (equal symbol 'envrc--status)
+             (eq operation 'set)
+             (bufferp where)
+             (buffer-file-name where) ;; only try to start eglot this way in file-visiting buffers
+             (equal newval 'on))
+    (with-current-buffer where
+      (when (and (eglot--lookup-mode major-mode)
+                 (not +eglot-after-envrc-run?))
+        (message "starting eglot in %s" where)
+        (run-hooks '+eglot-after-envrc-hook)
+        ;; make sure hooks are only triggered once
+        (setq +eglot-after-envrc-run? t)))))
+(add-variable-watcher 'envrc--status #'+envrc-status-watcher)
+(add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-reconnected)
+
 (map! :leader
       "c x" #'consult-flymake
       "p x" #'consult-flymake-project)
