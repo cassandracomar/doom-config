@@ -1117,22 +1117,19 @@ and set them for all frames (including the defaults for new frames)."
   :init
   (add-hook! emacs-lisp-mode :append #'semel-mode #'cursor-sensor-mode))
 
-;; (use-package! mermaid-mode
-;;   :defer t
-;;   :mode (("\\.mmd\\'" . mermaid-mode))
-;;   :config
-;;   (map! :map mermaid-mode-map
-;;         :localleader
-;;         :nv
-;;         "d c" #'mermaid-compile
-;;         "d f" #'mermaid-compile-file
-;;         "d b" #'mermaid-compile-buffer
-;;         "d r" #'mermaid-compile-region
-;;         "d o" #'mermaid-open-browser
-;;         "d d" #'mermaid-open-doc))
-(use-package! mermaid-ts-mode
-  :mode (("\\.mmd\'" . mermaid-ts-mode))
-  :defer t)
+(use-package! mermaid-mode
+  :defer t
+  :mode (("\\.mmd\\'" . mermaid-mode))
+  :config
+  (map! :map mermaid-mode-map
+        :localleader
+        :nv
+        "d c" #'mermaid-compile
+        "d f" #'mermaid-compile-file
+        "d b" #'mermaid-compile-buffer
+        "d r" #'mermaid-compile-region
+        "d o" #'mermaid-open-browser
+        "d d" #'mermaid-open-doc))
 
 (use-package! ob-mermaid
   :after ob
