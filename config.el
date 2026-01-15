@@ -272,6 +272,10 @@ and set them for all frames (including the defaults for new frames)."
   ;; (eglot-semantic-defaultLibrary ((t (:inherit font-lock-preprocessor-face))))
   )
 
+(use-package! eglot-hover
+  :defer t
+  :hook ((eglot-managed-mode . eglot-hover-mode)))
+
 ;; just force a rebuild
 
 ;; KEYBINDINGS
@@ -430,6 +434,7 @@ and set them for all frames (including the defaults for new frames)."
 ;; magit
 ;; (after! magit
 ;;   (setq with-editor-emacsclient-executable "/opt/homebrew/bin/emacsclient"))
+(add-hook! 'after-save-hook #'magit-after-save-refresh-status)
 
 ;; (use-package! magit-delta
 ;;   :disabled t

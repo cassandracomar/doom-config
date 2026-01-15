@@ -108,7 +108,6 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
 (defvar +eglot-after-envrc-hook '())
 (defvar-local +eglot-after-envrc-run? nil)
 (defun +eglot-ensure-reconnected ()
-  (interactive)
   (if (eglot-managed-p)
       (eglot-reconnect (eglot-current-server) t)
     (lsp!)))
@@ -122,10 +121,9 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
     (with-current-buffer where
       (when (and (eglot--lookup-mode major-mode)
                  (not +eglot-after-envrc-run?))
-        (message "starting eglot in %s" where)
-        (run-hooks '+eglot-after-envrc-hook)
         ;; make sure hooks are only triggered once
-        (setq +eglot-after-envrc-run? t)))))
+        (setq +eglot-after-envrc-run? t)
+        (run-hooks '+eglot-after-envrc-hook)))))
 (add-variable-watcher 'envrc--status #'+envrc-status-watcher)
 (add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-reconnected)
 
