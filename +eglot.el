@@ -125,7 +125,7 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
         (setq +eglot-after-envrc-run? t)
         (run-hooks '+eglot-after-envrc-hook)))))
 (add-variable-watcher 'envrc--status #'+envrc-status-watcher)
-(add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-reconnected)
+(add-hook! '+eglot-after-envrc-hook #'lsp!)
 
 (map! :leader
       "c x" #'consult-flymake
