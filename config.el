@@ -35,6 +35,7 @@
 (add-to-list 'default-frame-alist `(font . ,doom-font))
 (add-to-list 'default-frame-alist '(undecorated . t))
 (setq coding-system--for-buffer-diff 'utf-8-unix)
+(add-to-list 'auto-coding-alist '("/\\.editorconfig" . utf-8-emacs-unix))
 
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
