@@ -105,27 +105,27 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
       (pcase kind
         ("end" (refreshf))))))
 
-;; (defvar +eglot-after-envrc-hook '())
-;; (defvar-local +eglot-after-envrc-run? nil)
-;; (defun +eglot-ensure-connected ()
-;;   (when (and (eglot-managed-p)
-;;              (not (eglot-current-server)))
-;;     (lsp!)))
+(defvar +eglot-after-envrc-hook '())
+(defvar-local +eglot-after-envrc-run? nil)
+(defun +eglot-ensure-connected ()
+  (when (and (eglot-managed-p)
+             (not (eglot-current-server)))
+    (lsp!)))
 
-;; (defun +envrc-status-watcher (symbol newval operation where)
-;;   (when (and (equal symbol 'envrc--status)
-;;              (eq operation 'set)
-;;              (bufferp where)
-;;              (buffer-file-name where) ;; only try to start eglot this way in file-visiting buffers
-;;              (equal newval 'on))
-;;     (with-current-buffer where
-;;       (when (and (eglot--lookup-mode major-mode)
-;;                  (not +eglot-after-envrc-run?))
-;;         ;; make sure hooks are only triggered once
-;;         (setq +eglot-after-envrc-run? t)
-;;         (run-hooks '+eglot-after-envrc-hook)))))
-;; (add-variable-watcher 'envrc--status #'+envrc-status-watcher)
-;; (add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-connected)
+(defun +envrc-status-watcher (symbol newval operation where)
+  (when (and (equal symbol 'envrc--status)
+             (eq operation 'set)
+             (bufferp where)
+             (buffer-file-name where) ;; only try to start eglot this way in file-visiting buffers
+             (equal newval 'on))
+    (with-current-buffer where
+      (when (and (eglot--lookup-mode major-mode)
+                 (not +eglot-after-envrc-run?))
+        ;; make sure hooks are only triggered once
+        (setq +eglot-after-envrc-run? t)
+        (run-hooks '+eglot-after-envrc-hook)))))
+(add-variable-watcher 'envrc--status #'+envrc-status-watcher)
+(add-hook! '+eglot-after-envrc-hook #'lsp!)
 
 (map! :leader
       "c x" #'consult-flymake
