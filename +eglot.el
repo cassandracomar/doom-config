@@ -107,9 +107,9 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
 
 (defvar +eglot-after-envrc-hook '())
 (defvar-local +eglot-after-envrc-run? nil)
-(defun +eglot-ensure-reconnected ()
-  (if (eglot-managed-p)
-      (eglot-reconnect (eglot-current-server) t)
+(defun +eglot-ensure-connected ()
+  (when (and (eglot-managed-p)
+             (not (eglot-current-server)))
     (lsp!)))
 
 (defun +envrc-status-watcher (symbol newval operation where)
@@ -125,7 +125,7 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
         (setq +eglot-after-envrc-run? t)
         (run-hooks '+eglot-after-envrc-hook)))))
 (add-variable-watcher 'envrc--status #'+envrc-status-watcher)
-(add-hook! '+eglot-after-envrc-hook #'lsp!)
+(add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-connected)
 
 (map! :leader
       "c x" #'consult-flymake
