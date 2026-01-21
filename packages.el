@@ -121,3 +121,4 @@
 (package! mermaid-mode)
 (package! ob-mermaid)
 (package! eglot-hover :recipe (:repo "https://codeberg.org/slotThe/eglot-hover") :pin "44b8c8629a8fb6ef034e9a6b0681ea6db5324924")
+(package! elisp-benchmarks)

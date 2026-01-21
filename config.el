@@ -1141,3 +1141,6 @@ and set them for all frames (including the defaults for new frames)."
   :after ob
   :init
   (add-to-list '+org-babel-mode-alist '(mermaid . mermaid)))
+
+(use-package! elisp-benchmarks
+  :defer t)
