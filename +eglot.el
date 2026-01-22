@@ -38,7 +38,7 @@
                                                               :lifetimeElisionHints (:enable t)
                                                               :parameterHints (:enable t)
                                                               :typeHints (:enable t)))
-                                 :nixd (:formatting (:command ["alejandra"])
+                                 :nixd (:formatting (:command ["nix" "fmt" "--"])
                                         :nixpkgs (:expr "import (builtins.getFlake \"github:nixos/nixpkgs\") {}")
                                         :options
                                         (:nixos (:expr "(builtins.getFlake (builtins.toString ./.)).nixosConfigurations.yew.options")
