@@ -385,6 +385,9 @@ and set them for all frames (including the defaults for new frames)."
          corfu-max-width 60)
   :custom
   corfu-auto t)
+(use-package! corfu-auto
+  :config
+  (setq! corfu-auto-prefix 0))
 ;; (use-package corfu-pixel-perfect
 ;;   :after (corfu)
 ;;   :hook (global-corfu-mode . corfu-pixel-perfect-mode)
