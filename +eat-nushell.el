@@ -48,7 +48,8 @@
             (raw-completions (apply #'carapace-completion--call
                                     `(,carapace-completion-command ,command ,(symbol-name shell) ,@tokens)))
             (parsed (ignore-errors (json-parse-string raw-completions :object-type 'plist :array-type 'array))))
-      (when parsed
+      (when (and parsed
+                 (not (equal parsed '[])))
         (cl-reduce (lambda (table comp)
                      (cl-destructuring-bind (&key value &allow-other-keys) comp
                        (puthash (s-replace-regexp "['\"`]" "" value) comp table)
