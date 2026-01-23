@@ -48,14 +48,17 @@
             (raw-completions (apply #'carapace-completion--call
                                     `(,carapace-completion-command ,command ,(symbol-name shell) ,@tokens)))
             (parsed (ignore-errors (json-parse-string raw-completions :object-type 'plist :array-type 'array))))
-      (when (and parsed
+      (if (s-equals? command "nix")
+          (carapace-completion--fish-fallback raw-prompt)
+        (if (and parsed
                  (not (equal parsed '[])))
-        (cl-reduce (lambda (table comp)
-                     (cl-destructuring-bind (&key value &allow-other-keys) comp
-                       (puthash (s-replace-regexp "['\"`]" "" value) comp table)
-                       table))
-                   parsed
-                   :initial-value (make-hash-table :test #'equal :size (length parsed))))
+            (cl-reduce (lambda (table comp)
+                         (cl-destructuring-bind (&key value &allow-other-keys) comp
+                           (puthash (s-replace-regexp "['\"`]" "" value) comp table)
+                           table))
+                       parsed
+                       :initial-value (make-hash-table :test #'equal :size (length parsed)))
+          (carapace-completion--fish-fallback raw-prompt)))
     (carapace-completion--fish-fallback raw-prompt)))
 
 (defun carapace-nushell--line-offset (offset-bounds)
