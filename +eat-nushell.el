@@ -23,10 +23,14 @@
 
 (setq carapace-completion-command (executable-find "carapace"))
 (defun carapace-completion--fish-fallback (raw-prompt)
-  (let* ((prompt (if (equal raw-prompt "") " " raw-prompt))
+  (let* ((prompt (if (equal raw-prompt "")
+                     " "
+                   raw-prompt))
          (completions (fish-completion--list-completions prompt)))
     (cl-reduce (lambda (table comp)
-                 (puthash (s-concat comp " ") `(:display ,comp :value ,comp) table)
+                 (puthash (s-concat comp " ")
+                          `(:display ,comp :value ,comp)
+                          table)
                  table)
                completions
                :initial-value (make-hash-table :test #'equal :size (length completions)))))
@@ -80,7 +84,7 @@
          (rawend (save-excursion (search-forward-regexp "\\($\\|\s\\)")))
          ;; handle inclusivity of bounds
          (beg (if (eql (char-after rawbeg) ?\s) (+ rawbeg 1) rawbeg))
-         (end (if (eql (char-before rawend) ?\s) (- rawend 1) rawend))
+         (end rawend)
          (bol (comint-line-beginning-position))
          (eol (pos-eol)))
     (list
@@ -116,7 +120,9 @@
                                                  (s-concat completion-prompt "`")
                                                completion-prompt))
                               (`(,beg ,end) (carapace-nushell--arg quoted-prompt))
-                              (real-end (if (cl-oddp quote-count) (- end 1) end))
+                              (real-end (if (cl-oddp quote-count)
+                                            (- end 1)
+                                          end))
                               (prefix (buffer-substring-no-properties beg (point)))
                               (unquoted-prefix (s-replace-regexp "['\"`]" "" prefix))
                               (suffix (buffer-substring-no-properties (point) real-end)))

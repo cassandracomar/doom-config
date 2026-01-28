@@ -1109,8 +1109,8 @@ and set them for all frames (including the defaults for new frames)."
   :mode (("\\.nu\\'" . nushell-mode))
   :config
   (add-hook 'nushell-mode-hook #'lsp 'append))
-(use-package! nushell-ts-mode
-  :hook ((nushell-mode . nushell-ts-mode)))
+;; (use-package! nushell-ts-mode
+;;   :hook ((nushell-mode . nushell-ts-mode)))
 
 ;; (use-package! rego-mode
 ;;   :defer t
