@@ -382,7 +382,7 @@ and set them for all frames (including the defaults for new frames)."
          global-corfu-modes t
          corfu-auto t
          corfu-count 16
-         corfu-max-width 60)
+         corfu-max-width 120)
   :custom
   corfu-auto t)
 (use-package! corfu-auto
