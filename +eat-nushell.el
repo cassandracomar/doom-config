@@ -45,25 +45,7 @@
              args))))
 
 (defun carapace-completion--list-completions-with-desc (shell raw-prompt)
-  (if-let* ((quote-count (s-count-matches "`" raw-prompt))
-            (prompt (s-replace "`" "'" (if (cl-oddp quote-count) (s-concat raw-prompt "`") raw-prompt)))
-            (tokens (split-string-shell-command prompt))
-            (command (car tokens))
-            (raw-completions (apply #'carapace-completion--call
-                                    `(,carapace-completion-command ,command ,(symbol-name shell) ,@tokens)))
-            (parsed (ignore-errors (json-parse-string raw-completions :object-type 'plist :array-type 'array))))
-      (if (s-equals? command "nix")
-          (carapace-completion--fish-fallback raw-prompt)
-        (if (and parsed
-                 (not (equal parsed '[])))
-            (cl-reduce (lambda (table comp)
-                         (cl-destructuring-bind (&key value &allow-other-keys) comp
-                           (puthash (s-replace-regexp "['\"`]" "" value) comp table)
-                           table))
-                       parsed
-                       :initial-value (make-hash-table :test #'equal :size (length parsed)))
-          (carapace-completion--fish-fallback raw-prompt)))
-    (carapace-completion--fish-fallback raw-prompt)))
+  (carapace-completion--fish-fallback raw-prompt))
 
 (defun carapace-nushell--line-offset (offset-bounds)
   (cl-flet ((offset-f (bound) (+ (comint-line-beginning-position) bound)))
@@ -153,4 +135,7 @@
          (insert requoted-arg))))))
 
 (defun replace-eat-completions ()
-  (corfu-mode +1))
+  (fish-completion-mode -1)
+  (corfu-mode +1)
+  (setq-local completion-at-point-functions
+              (cape-company-to-capf #'carapace-nushell-backend (lambda (&rest _) carapace-nushell--active-completions))))
