@@ -52,6 +52,7 @@
 
 (package! code-review :disable t)
 (package! docker-tramp :disable t)
+(package! elnode :recipe (:host github :repo "nicferrier/elnode" :branch "master") :pin "a2aaba9558af7daec720409bd064e22707e34a22")
                                         ; version bumps
 ;; (unpin! haskell-mode)
 ;; (package! lsp-mode
