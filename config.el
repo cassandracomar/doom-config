@@ -694,29 +694,6 @@ and set them for all frames (including the defaults for new frames)."
 (setq +ligatures-prog-mode-list '("<=<" ">=>" ">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "<*" "<*>" "*>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" "<<<<" ">>>>" ">>>" "<<<" ">>" "<<" ".." "..." "<|" "|>" "<>"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
 
-;; (use-package! lsp-haskell
-;;   :init
-;;   (setq lsp-haskell-session-loading "singleComponent")
-;;   ;; (setq lsp-haskell-server-path "haskell-language-server-wrapper")
-;;   ;; (setq lsp-haskell-server-wrapper-function (lambda (argv) (append (list "emacs-lsp-booster" "--") argv)))
-;;   (setq lsp-haskell-formatting-provider "fourmolu")
-;;   (setq lsp-haskell-plugin-fourmolu-config-external t)
-;;   (setq lsp-rename-use-prepare nil)
-;;   (setq lsp-haskell-plugin-semantic-tokens-global-on t)
-;;   (setq lsp-haskell-plugin-rename-config-cross-module t)
-;;   (setq lsp-haskell-max-completions 120)
-
-;;   (lsp-defcustom lsp-haskell-plugin-ghcide-type-lenses-local-binding-inlay-hint-on t
-;;     "Enables local binding inlay hints"
-;;     :type 'boolean
-;;     :group 'lsp-haskell-plugins
-;;     :package-version '(lsp-mode . "9.0.0")
-;;     :lsp-path "haskell.plugin.ghcide-type-lenses.config.localBindingInlayHintOn")
-;;   (setq lsp-haskell-plugin-ghcide-type-lenses-local-binding-inlay-hint-on t)
-;;   (setq lsp-haskell-plugin-ghcide-type-lenses-config-mode "always")
-
-;;   :config
-;;   (+format-with-lsp-mode))
 (use-package! haskell-mode
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
@@ -724,16 +701,6 @@ and set them for all frames (including the defaults for new frames)."
   :custom-face
   (haskell-operator-face ((t (:inherit haskell-keyword-face))))
   (haskell-definition-face ((t (:inherit haskell-keyword-face)))))
-;; (use-package! haskell-ts-mode
-;;   :config
-;;   (add-hook 'haskell-ts-mode-hook #'lsp!)
-;;   (add-to-list 'eglot-server-programs '(haskell-ts-mode "haskell-language-server-wrapper" "-d" "lsp"))
-;;   (setq-local treesit-font-lock-level 3)
-;;   :custom
-;;   (haskell-ts-font-lock-level 3)
-;;   (haskell-ts-ghci "ghci")
-;;   (haskell-ts-use-indent t))
-;; (add-hook! haskell-ts-mode 'prettify-symbols-mode)
 
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
@@ -1114,9 +1081,10 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! nushell-mode
   :mode (("\\.nu\\'" . nushell-mode))
   :config
-  (add-hook 'nushell-mode-hook #'lsp 'append))
-;; (use-package! nushell-ts-mode
-;;   :hook ((nushell-mode . nushell-ts-mode)))
+  (+format-with-lsp-mode -1))
+(use-package! nushell-ts-mode
+  :hook ((nushell-mode . nushell-ts-mode)))
+(add-hook! nushell-mode #'lsp)
 
 ;; (use-package! rego-mode
 ;;   :defer t
