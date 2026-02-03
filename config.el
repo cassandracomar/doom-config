@@ -234,6 +234,8 @@ and set them for all frames (including the defaults for new frames)."
   (add-to-list 'eglot-semantic-token-types "const")
   (add-to-list 'eglot-semantic-token-types "lifetime")
   (add-to-list 'eglot-semantic-token-types "generic")
+  (add-to-list 'eglot-semantic-token-types "constant")
+  (remove "defaultLibrary" 'eglot-semantic-token-modifiers)
   :custom-face
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
   (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
@@ -256,6 +258,8 @@ and set them for all frames (including the defaults for new frames)."
   (eglot-semantic-method ((t (:inherit font-lock-function-name-face :slant italic))))
   (eglot-semantic-macro ((t (:inherit font-lock-preprocessor-face :slant italic))))
   (eglot-semantic-generic ((t (:inherit font-lock-variable-name-face :slant italic))))
+  (eglot-semantic-const ((t (:inherit my-font-lock-constant-face))))
+  (eglot-semantic-constant ((t (:inherit my-font-lock-constant-face))))
   ;; (eglot-semantic-keyword ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-modifier ((t (:inherit font-lock-function-name-face))))
   ;; (eglot-semantic-comment ((t (:inherit font-lock-comment-face))))
@@ -274,7 +278,7 @@ and set them for all frames (including the defaults for new frames)."
   ;; (eglot-semantic-async ((t (:inherit font-lock-preprocessor-face))))
   (eglot-semantic-modification ((t (:underline t :slant normal))))
   ;; (eglot-semantic-documentation ((t (:inherit font-lock-doc-face))))
-  (eglot-semantic-defaultLibrary ((t nil))))
+  )
 
 (use-package! eglot-hover
   :defer t
