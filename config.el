@@ -828,15 +828,14 @@ and set them for all frames (including the defaults for new frames)."
   :hook ((nushell-mode . nushell-ts-mode)))
 (add-hook! nushell-mode #'lsp)
 
-;; (use-package! rego-mode
-;;   :defer t
-;;   :mode "\\.rego\\'"
-;;   :init
-;;   (set-eglot-client! rego-mode '("regols"))
-;;   (add-hook! 'rego-mode #'eglot #'+format-with-lsp-mode)
-;;   :custom
-;;   (rego-format-at-save nil))
-;; (setq vundo-glyph-alist vundo-unicode-symbols)
+(use-package! rego-mode
+  :defer t
+  :mode (("\\.rego\\'" . rego-mode))
+  :init
+  (set-eglot-client! rego-mode '("regols"))
+  (add-hook! rego-mode #'eglot #'+format-with-lsp-mode)
+  :custom
+  (rego-format-at-save nil))
 (use-package! semel
   :custom ((semel-add-help-echo . nil))
   :init
