@@ -258,26 +258,15 @@ and set them for all frames (including the defaults for new frames)."
   (eglot-semantic-method ((t (:inherit font-lock-function-name-face :slant italic))))
   (eglot-semantic-macro ((t (:inherit font-lock-preprocessor-face :slant italic))))
   (eglot-semantic-generic ((t (:inherit font-lock-variable-name-face :slant italic))))
-  ;; (eglot-semantic-keyword ((t (:inherit font-lock-keyword-face))))
-  ;; (eglot-semantic-modifier ((t (:inherit font-lock-function-name-face))))
-  ;; (eglot-semantic-comment ((t (:inherit font-lock-comment-face))))
-  ;; (eglot-semantic-string ((t (:inherit font-lock-string-face))))
   (eglot-semantic-number ((t (:inherit my-font-lock-constant-face))))
   (eglot-semantic-regexp ((t (:inherit font-lock-preprocessor-face))))
   (eglot-semantic-operator ((t (:inherit font-lock-keyword-face))))
-  ;; (eglot-semantic-decorator ((t (:inherit font-lock-type-face))))
   (eglot-semantic-const ((t (:inherit my-font-lock-constant-face))))
   (eglot-semantic-constant ((t (:inherit my-font-lock-constant-face))))
   (eglot-semantic-declaration ((t (:underline t :slant normal))))
   (eglot-semantic-definition ((t (:underline t :slant normal))))
-  ;; (eglot-semantic-readonly ((t (:inherit font-lock-constant-face))))
   (eglot-semantic-static ((t (:overline t :slant normal))))
-  ;; (eglot-semantic-deprecated ((t (:inherit eglot-diagnostic-tag-deprecated-face))))
-  ;; (eglot-semantic-abstract ((t (:inherit font-lock-keyword-face))))
-  ;; (eglot-semantic-async ((t (:inherit font-lock-preprocessor-face))))
-  (eglot-semantic-modification ((t (:underline t :slant normal))))
-  ;; (eglot-semantic-documentation ((t (:inherit font-lock-doc-face))))
-  )
+  (eglot-semantic-modification ((t (:underline t :slant normal)))))
 
 (use-package! eglot-hover
   :defer t
@@ -472,7 +461,6 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! markdown-mode
   :config
-  ;; (company-mode -1)
   (setq fill-column 120)
   (auto-fill-mode))
 (add-hook! evil-markdown-mode
@@ -632,8 +620,7 @@ and set them for all frames (including the defaults for new frames)."
  "up-prod-chhq2ctl" "kubectl --context=up-prod-chhq-2 $*"
  "up-prod-use21ctl" "kubectl --context=up-prod-use2-1 $*"
  "xdct-prod-ch2d1ctl" "kubectl --context=xdct-prod-ch2d-1 $*"
- "xdct-prod-use21ctl" "kubectl --context=xdct-prod-use2-1 $*"
- )
+ "xdct-prod-use21ctl" "kubectl --context=xdct-prod-use2-1 $*")
 
 (defun shell-new ()
   (interactive)
