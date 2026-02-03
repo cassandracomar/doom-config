@@ -296,8 +296,6 @@ and set them for all frames (including the defaults for new frames)."
 (map! :leader "o o" #'envrc-reload)
 (map! :leader "p p" #'consult-projectile-switch-project)
 (map! :leader "p f" #'consult-projectile)
-;; (map! :nv "TAB" #'company-indent-or-complete-common
-;;       :nv [tab] #'company-indent-or-complete-common)
 (map! :map corfu-map
       :i "C-s" #'+corfu/move-to-minibuffer
       :i
@@ -353,11 +351,6 @@ and set them for all frames (including the defaults for new frames)."
 (map! :v "L" #'consult-eglot-symbols)
 (map! :n  "V" #'evil-visual-line)
 (map! :nv "g l" (lambda (l) (apply #'evil-goto-line l)))
-;; (map! :map flycheck-projectile-error-list-mode-map
-;;       :n "RET" #'flycheck-projectile-error-list-goto-error
-;;       :n "<return>" #'flycheck-projectile-error-list-goto-error
-;;       :n [return] #'flycheck-projectile-error-list-goto-error
-;;       :n "q" #'flycheck-projectile--quit-kill-window)
 
 ;; TRANSIENT STATES
 (use-package! hercules)
@@ -394,16 +387,6 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! corfu-auto
   :config
   (setq! corfu-auto-prefix 0))
-;; (use-package corfu-pixel-perfect
-;;   :after (corfu)
-;;   :hook (global-corfu-mode . corfu-pixel-perfect-mode)
-;;   :custom
-;;   (corfu-pixel-perfect-ignore-annotation-modes '(haskell-mode)))
-;; (use-package! consult-hoogle
-;;   :ensure haskell-mode
-;;   :after haskell-mode
-;;   :config
-;;   (map! "C-S-K" #'consult-hoogle-project))
 
 (use-package! orderless
   :config
@@ -442,22 +425,7 @@ and set them for all frames (including the defaults for new frames)."
   (show-smartparens-global-mode +1))
 
 ;; magit
-;; (after! magit
-;;   (setq with-editor-emacsclient-executable "/opt/homebrew/bin/emacsclient"))
 (add-hook! 'after-save-hook #'magit-after-save-refresh-status)
-
-;; (use-package! magit-delta
-;;   :disabled t
-;;   :hook (magit-mode . magit-delta-mode)
-;;   :config
-;;   (setq magit-delta-delta-args '("--max-line-distance" "0.6" "--color-only"))
-;;   (setq magit-save-repository-buffers t)
-;;   (setq magit-process-finish-apply-ansi-colors t))
-;; (use-package! diff-hl
-;;   :config
-;;   (remove-hook! 'magit-pre-refresh-hook  #'diff-hl-magit-pre-refresh)
-;;   (remove-hook! 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)
-;;   )
 
 (use-package! forge
   :config
@@ -466,176 +434,12 @@ and set them for all frames (including the defaults for new frames)."
           "git.drwholdings.com"               ; WEBHOST and INSTANCE-ID
           forge-github-repository)    ; CLASS
         forge-alist))
-;; set up LSP
-;; (use-package! lsp
-;;   ;; :defer t
-;;   :demand t
-;;   :init
-;;   (defun lsp-booster--advice-json-parse (old-fn &rest args)
-;;     "Try to parse bytecode instead of json."
-;;     (or
-;;      (when (equal (following-char) ?#)
-;;        (let ((bytecode (read (current-buffer))))
-;;          (when (byte-code-function-p bytecode)
-;;            (funcall bytecode))))
-;;      (apply old-fn args)))
-;;   (advice-add (if (progn (require 'json)
-;;                          (fboundp 'json-parse-buffer))
-;;                   'json-parse-buffer
-;;                 'json-read)
-;;               :around
-;;               #'lsp-booster--advice-json-parse)
-
-;;   (defun lsp-booster--advice-final-command (old-fn cmd &optional test?)
-;;     "Prepend emacs-lsp-booster command to lsp CMD."
-;;     (let ((orig-result (funcall old-fn cmd test?)))
-;;       (if (and (not test?)                             ;; for check lsp-server-present?
-;;                (not (file-remote-p default-directory)) ;; see lsp-resolve-final-command, it would add extra shell wrapper
-;;                lsp-use-plists
-;;                (not (functionp 'json-rpc-connection))  ;; native json-rpc
-;;                (executable-find "emacs-lsp-booster"))
-;;           (progn
-;;             (when-let ((command-from-exec-path (executable-find (car orig-result))))  ;; resolve command from exec-path (in case not found in $PATH)
-;;               (setcar orig-result command-from-exec-path))
-;;             (message "Using emacs-lsp-booster for %s!" orig-result)
-;;             (cons "emacs-lsp-booster" orig-result))
-;;         orig-result)))
-;;   (advice-add 'lsp-resolve-final-command :around #'lsp-booster--advice-final-command)
-
-;;   (defun minad/lsp-mode-setup-completion ()
-;;     (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
-;;           '(orderless)) ;; Configure orderless
-;;     (setq-local completion-at-point-functions (list (cape-capf-buster #'lsp-completion-at-point))))
-
-;;   (setq lsp-auto-guess-root t)
-;;   (setq lsp-rust-analyzer-server-format-inlay-hints t)
-;;   (setq lsp-inlay-hint-enable t)
-;;   (setq lsp-rust-analyzer-display-parameter-hints t)
-;;   (setq lsp-rust-analyzer-display-chaining-hints t)
-;;   (setq lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
-;;   (setq lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names t)
-;;   ;; (setq lsp-rust-analyzer-display-closure-return-type-hints t)
-;;   (setq lsp-rust-analyzer-display-reborrow-hints "always")
-;;   (setq lsp-rust-analyzer-binding-mode-hints t)
-;;   (setq lsp-rust-analyzer-lens-enable t)
-;;   (setq lsp-rust-analyzer-lens-references-adt-enable t)
-;;   (setq lsp-rust-analyzer-lens-implementations-enable t)
-;;   (setq lsp-rust-analyzer-lens-references-trait-enable t)
-;;   (setq lsp-rust-analyzer-lens-references-method-enable t)
-;;   (setq lsp-rust-analyzer-lens-references-enum-variant-enable t)
-;;   (setq lsp-rust-analyzer-proc-macro-enable t)
-;;   (setq lsp-rust-analyzer-cargo-load-out-dirs-from-check t)
-;;   (setq lsp-rust-unstable-features t)
-;;   ;; (setq lsp-completion-provider :capf)
-;;   (setq lsp-auto-execute-action t)
-;;   (setq lsp-before-save-edits t)
-;;   (setq lsp-enable-snippet t)
-;;   (setq lsp-rust-analyzer-cargo-watch-enable t)
-;;   ;; (setq lsp-rust-analyzer-cargo-all-targets t)
-;;   (setq lsp-rust-analyzer-cargo-watch-command "clippy")
-;;   (setq lsp-rust-analyzer-cargo-watch-args ["--tests"])
-;;   ;; (setq lsp-rust-analyzer-cargo-unset-test ["core", "derivative"])
-;;   (setq lsp-rust-analyzer-experimental-proc-attr-macros t)
-;;   ;; (setq lsp-nix-nil-formatter ["nixpkgs-fmt"])
-
-;;   (setq nix-command-path (executable-find "nix"))
-
-;;   (defun pmx--project-flake-path ()
-;;     (let ((flake-path (expand-file-name "flake.nix" (projectile-project-root))))
-;;       (setq-local lsp-nix-nixd-nixpkgs-expr
-;;                   (if (file-exists-p flake-path)
-;;                       (format "import (builtins.getFlake \"%s\").inputs.nixpkgs { }" (file-name-directory flake-path))
-;;                     "import <nixpkgs> { }"))
-
-;;       (setq-local lsp-nix-nixd-server-arguments
-;;                   `("--log=verbose" "--semantic-tokens=true" "--inlay-hints" ,(format "--nixpkgs-expr=%s" lsp-nix-nixd-nixpkgs-expr)))))
-
-;;   (add-hook! 'nix-mode-hook #'pmx--project-flake-path)
-
-;;   (setq lsp-nix-nixd-formatting-command [ "nix" "fmt" "--" ])
-;;   (setq lsp-nix-nil-server-path nil)
-;;   ;; (setq lsp-use-plists t)
-;;   ;; (setq lsp-rust-analyzer-server-command '("emacs-lsp-booster" "rust-analyzer"))
-;;   ;; (setq lsp-rust-analyzer-diagnostics-disabled ["unresolved-proc-macro"])
-;;   ;; (setq lsp-rust-features ["k8s_integration"])
-;;   :config
-;;   (add-hook! lsp-semantic-tokens-mode
-;;     (setq-local max-lisp-eval-depth 16000))
-;;   ;; (setq company-minimum-prefix-length 1
-;;   ;;       company-idle-delay 0.0)
-
-;;   (lsp-defcustom lsp-nix-nil-flake-auto-archive t
-;;     "auto archiving behavior for flake inputs that might use network"
-;;     :type 'boolean
-;;     :group 'lsp-nix-nil
-;;     :lsp-path "nil.nix.flake.autoArchive"
-;;     :package-version '(lsp-mode . "8.0.1"))
-;;   (lsp-defcustom lsp-nix-nil-flake-auto-eval-inputs t
-;;     " Whether to auto-eval flake inputs.
-;;     The evaluation result is used to improve completion, but may cost
-;;     lots of time and/or memory."
-;;     :type 'boolean
-;;     :group 'lsp-nix-nil
-;;     :lsp-path "nil.nix.flake.autoEvalInputs"
-;;     :package-version '(lsp-mode . "8.0.1"))
-;;   (lsp-defcustom  lsp-nix-nil-nixpkgs-input-name "nixpkgs"
-;;     " The input name of nixpkgs for NixOS options evaluation.
-;;   The options hierarchy is used to improve completion, but may cost
-;;   lots of time and/or memory.
-;;   If this value is `null` or is not found in the workspace flake's
-;;   inputs, NixOS options are not evaluated."
-;;     :type 'string
-;;     :group 'lsp-nix-nil
-;;     :lsp-path "nil.nix.flake.nixpkgsInputName"
-;;     :package-version '(lsp-mode . "8.0.1"))
-;;   (setq lsp-enable-folding t
-;;         lsp-enable-text-document-color t)
-;;   (setq lsp-semantic-tokens-enable t)
-;;   (add-hook! 'lsp-before-initialize-hook
-;;     (require 'haskell-font-lock)
-;;     (let ((faces '(("interface" . font-lock-preprocessor-face)
-;;                    ("enum" . haskell-type-face)
-;;                    ("enumMember" . haskell-definition-face)
-;;                    ("operator" . font-lock-keyword-face)
-;;                    ("macro" . font-lock-preprocessor-face)
-;;                    ("typeParameter" . font-lock-variable-name-face)
-;;                    ("property" . haskell-definition-face)
-;;                    ("modifier" . font-lock-preprocessor-face)
-;;                    ("decorator" . haskell-pragma-face))))
-;;       (cl-loop for face in faces do
-;;                (add-to-list 'lsp-semantic-token-faces face))))
-;;   (set-lookup-handlers! lsp-mode :documentation #'lsp-ui-doc-toggle)
-;;   (remove-hook! 'lsp-mode-hook #'lsp-completion-mode)
-;;   (add-hook! 'lsp-mode-hook  (lsp-semantic-tokens-mode +1))
-;;   (add-hook! #'lsp-completion-mode #'minad/lsp-mode-setup-completion)
-
-;;   (with-eval-after-load 'terraform-mode
-;;     (setf (alist-get 'terraform-mode lsp-language-id-configuration) "opentofu")))
-
-;; (load! "+lsp-tofu")
-;; (require 'lsp-tofu)
-;; (add-to-list 'lsp-client-packages 'lsp-tofu)
-;; (delq 'lsp-terraform lsp-client-packages)
-;; (setf (alist-get 'terraform-mode lsp-language-id-configuration) "opentofu")
 
 (use-package! terraform-mode
   :defer t
   :init
   (setq terraform-command "tofu"))
 
-;; (use-package! lsp-ui
-;;   :config
-;;   (setq lsp-ui-sideline-enable t)
-;;   (setq lsp-ui-sideline-show-hover t)
-;;   (setq lsp-ui-sideline-show-code-actions t))
-;; (use-package! lsp-yaml
-;;   ;; :config
-;;   ;; (puthash "kubernetes" "*.yaml" lsp-yaml-schemas)
-;;   )
-
-;; (after! lsp-mode
-;;   ;; https://github.com/emacs-lsp/lsp-mode/issues/3577#issuecomment-1709232622
-;;   (delete 'lsp-terraform lsp-client-packages))
 (use-package! rustic
   :defer t
   :config
@@ -677,16 +481,7 @@ and set them for all frames (including the defaults for new frames)."
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 
-;; (use-package! lsp-treemacs
-;;   :after lsp)
-;; (after! lsp-treemacs
-;;   (lsp-treemacs-sync-mode 1))
-
-;; sh stuff
-;; (add-hook! sh-mode #'lsp)
-
                                         ; haskell stuff
-;; (add-hook! haskell-mode #'lsp)
 (plist-put! +ligatures-extra-symbols
             :type "⦂"
             :composition "∘"
@@ -751,7 +546,6 @@ and set them for all frames (including the defaults for new frames)."
       [remap evil-org-org-insert-heading-below] #'+org/insert-item-above
       [remap evil-org-open-below] #'+org/insert-item-below)
 
-
                                         ; elasticsearch
 (use-package! es-mode
   :after org
@@ -766,9 +560,6 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! jsonnet-mode
   :defer t
   :mode "(\\.libsonnet|\\.jsonnet)")
-;; (use-package! jsonnet-language-server
-;;   :after jsonnet-mode
-;;   :init (setq lsp-jsonnet-executable "jsonnet-language-server --tanka --lint"))
 (use-package! jq-mode
   :mode "\\.jq$")
 
@@ -783,10 +574,6 @@ and set them for all frames (including the defaults for new frames)."
 (evil-ex-define-cmd "q" 'kill-this-buffer)
 (evil-ex-define-cmd "wq" 'ex-save-kill-buffer-and-close )
 (evil-ex-define-cmd "x" 'ex-save-kill-buffer-and-close )
-
-;; ensure aliases get saved
-;; (advice-remove #'eshell-write-aliases-list #'ignore)
-
 
 (defun eshell/gh-query-repos (hostname owner)
   (let*
@@ -819,9 +606,7 @@ and set them for all frames (including the defaults for new frames)."
        (table `(("query-string" . ,query-string)
                 ("gh-command" . ,gh-command)
                 ("jq-process" . ,jq-process))))
-    (s-format "${gh-command} | ${jq-process}" 'aget table)
-    )
-  )
+    (s-format "${gh-command} | ${jq-process}" 'aget table)))
 
 (set-eshell-alias!
  "s" "eshell/git status"
@@ -897,25 +682,6 @@ and set them for all frames (including the defaults for new frames)."
         message-kill-buffer-on-exit t))
 (use-package! debbugs)
 
-;; (use-package! excorporate
-;;   :custom
-;;   (excorporate-calendar-show-day-function #'exco-calfw-show-day)
-;;   (excorporate-time-zone "Eastern Standard Time")
-;;   (excorporate-configuration
-;;    '("ccomar@drwholdings.com" . "https://webmail.drwholdings.com/EWS/Exchange.asmx"))
-;;   (org-agenda-include-diary t)
-;;   :config
-;;   (require 'excorporate-calfw)
-;;   ;;  (if (daemonp)
-;;   ;;      (add-hook 'after-make-frame-functions
-;;   ;;                (lambda (frame)
-;;   ;;                  (interactive)
-;;   ;;                  (with-selected-frame frame
-;;   ;;                      (excorporate)
-;;   ;;                      )))
-;;   ;;      (excorporate))
-;;   )
-
 (defun +calendar/show-day ()
   (interactive)
   (apply #'exco-calfw-show-day (cfw:cursor-to-nearest-date)))
@@ -936,8 +702,6 @@ and set them for all frames (including the defaults for new frames)."
   (read-only-mode +1))
 (setq magit-process-apply-ansi-colors t)
 (add-hook! magit-post-stage-hook #'colorize-buffer)
-
-
 
 (defun clone-or-update-command (line)
   (let* ((split (s-slice-at "[[:space:]]+" line))
@@ -962,13 +726,6 @@ and set them for all frames (including the defaults for new frames)."
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
-;; (add-hook! 'org-mode-hook '(org-fragtog-mode))
-;; (add-hook! 'lean4-mode-hook
-;;   (set-input-method "Lean")
-;;   (toggle-input-method))
-;; (use-package! lean4-mode
-;;   :mode "\\.lean\\'")
-
 (use-package! protobuf-mode
   :mode "\\.proto\\'")
 
@@ -976,13 +733,6 @@ and set them for all frames (including the defaults for new frames)."
   :config
   (setq! envrc-async-processing t)
   (envrc-global-mode))
-
-;; (use-package! sublimity
-;;   :config
-;;   (require 'sublimity-scroll)
-;;   (setq sublimity-scroll-weight 5
-;;         sublimity-scroll-drift-length 1)
-;;   (sublimity-mode))
 
 (after! eshell
 
@@ -1009,15 +759,7 @@ and set them for all frames (including the defaults for new frames)."
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
   (setq sideline-backends-right '(sideline-flymake)))
-;; (use-package! sideline-flycheck
-;;   :after sideline
-;;   :hook ((flycheck-mode . sideline-flycheck-setup))
-;;   :init
-;;   (setq sideline-flycheck-display-mode 'point) ;; 'point to show errors only on point
-;;                                         ; 'line to show errors on the current line
-;;   (setq sideline-backends-right '(sideline-flycheck)))
-;; (use-package! flycheck-projectile
-;;   :after flycheck-mode)
+
 (use-package! shx
   :after shell
   :hook ((shell-mode-hook . shx-mode)))
