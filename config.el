@@ -232,6 +232,7 @@ and set them for all frames (including the defaults for new frames)."
         "] "))))
   (map! :map eglot-mode-map :nv "g D" #'+lookup/references)
   (add-to-list 'eglot-semantic-token-types "const")
+  (add-to-list 'eglot-semantic-token-types "lifetime")
   :custom-face
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
   (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
