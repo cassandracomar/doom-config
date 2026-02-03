@@ -233,6 +233,7 @@ and set them for all frames (including the defaults for new frames)."
   (map! :map eglot-mode-map :nv "g D" #'+lookup/references)
   (add-to-list 'eglot-semantic-token-types "const")
   (add-to-list 'eglot-semantic-token-types "lifetime")
+  (add-to-list 'eglot-semantic-token-types "generic")
   :custom-face
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
   (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
@@ -254,6 +255,7 @@ and set them for all frames (including the defaults for new frames)."
   (eglot-semantic-function ((t (:inherit font-lock-function-name-face :slant italic))))
   (eglot-semantic-method ((t (:inherit font-lock-function-name-face :slant italic))))
   (eglot-semantic-macro ((t (:inherit font-lock-preprocessor-face :slant italic))))
+  (eglot-semantic-generic ((t (:inherit font-lock-variable-name-face :slant italic))))
   ;; (eglot-semantic-keyword ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-modifier ((t (:inherit font-lock-function-name-face))))
   ;; (eglot-semantic-comment ((t (:inherit font-lock-comment-face))))
