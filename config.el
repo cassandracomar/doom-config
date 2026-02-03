@@ -235,7 +235,7 @@ and set them for all frames (including the defaults for new frames)."
   (add-to-list 'eglot-semantic-token-types "lifetime")
   (add-to-list 'eglot-semantic-token-types "generic")
   (add-to-list 'eglot-semantic-token-types "constant")
-  (setq 'eglot-semantic-token-modifiers (remove "defaultLibrary" eglot-semantic-token-modifiers))
+  (setq eglot-semantic-token-modifiers (remove "defaultLibrary" eglot-semantic-token-modifiers))
   (add-to-list 'eglot-semantic-token-modifiers "associated")
   :custom-face
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
