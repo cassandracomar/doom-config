@@ -236,12 +236,11 @@ and set them for all frames (including the defaults for new frames)."
   (add-to-list 'eglot-semantic-token-types "generic")
   (add-to-list 'eglot-semantic-token-types "constant")
   (setq eglot-semantic-token-modifiers (remove "defaultLibrary" eglot-semantic-token-modifiers))
-  (add-to-list 'eglot-semantic-token-modifiers "associated")
   :custom-face
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
   (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
   (my-font-lock-type-parameter-face ((t (:foreground "#66d9ef"))))
-  (my-font-lock-constant-face ((t (:foreground "#e3871b"))))
+  (my-font-lock-constant-face ((t (:inherit font-lock-property-use-face))))
   (eglot-semantic-namespace ((t (:foreground "#fb3d81"))))
   (eglot-semantic-type ((t (:inherit my-font-lock-type-face))))
   (eglot-semantic-class ((t (:inherit elisp-symbol-role))))
@@ -277,7 +276,6 @@ and set them for all frames (including the defaults for new frames)."
   ;; (eglot-semantic-abstract ((t (:inherit font-lock-keyword-face))))
   ;; (eglot-semantic-async ((t (:inherit font-lock-preprocessor-face))))
   (eglot-semantic-modification ((t (:underline t :slant normal))))
-  (eglot-semantic-associated ((t (:inherit font-lock-property-use-face))))
   ;; (eglot-semantic-documentation ((t (:inherit font-lock-doc-face))))
   )
 
