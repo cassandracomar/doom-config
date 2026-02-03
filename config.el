@@ -245,6 +245,7 @@ and set them for all frames (including the defaults for new frames)."
   (eglot-semantic-interface ((t (:inherit elisp-symbol-role))))
   (eglot-semantic-struct ((t (:inherit elisp-major-mode-name))))
   (eglot-semantic-typeParameter ((t (:inherit my-font-lock-type-parameter-face :slant italic))))
+  (eglot-semantic-lifetime ((t (:inherit font-lock-preprocessor-face :slant italic))))
   (eglot-semantic-parameter ((t (:inherit my-font-lock-variable-use-face :slant italic))))
   (eglot-semantic-variable ((t (:inherit font-lock-variable-name-face :slant italic))))
   (eglot-semantic-property ((t (:inherit font-lock-property-use-face :slant italic))))
