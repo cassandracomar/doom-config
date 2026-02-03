@@ -18,13 +18,8 @@
 ;;   :around #'doom-module-list
 ;;   (nreverse (apply fn args)))
 
-;; (setenv "LSP_USE_PLISTS" "true")
 (setq! package-native-compile t)
 (setq! native-comp-jit-compilation nil)
-;; (setq-default native-comp-driver-options
-;;               '("-Wl,-w"
-;;                 "-Wl,-L/nix/store/zl3aslw7dhrk6wb5nv960hnc2v27l3j5-libgccjit-14-20241116/lib/gcc/aarch64-apple-darwin/14.2.1"
-;;                 "-Wl,-L/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/lib"))
 (doom! :input
        ;;chinese
        ;;japanese
@@ -66,15 +61,15 @@
        :editor
        (evil +everywhere); come to the dark side, we have cookies
        file-templates    ; auto-snippets for empty files
-       fold              ; (nigh) universal code folding
+       ;; fold              ; (nigh) universal code folding
        (format +onsave +lsp)  ; automated prettiness
        ;;god               ; run Emacs commands without modifier keys
        ;;lispy             ; vim for lisp, for people who don't like vim
-       multiple-cursors  ; editing in many places at once
+       ;; multiple-cursors  ; editing in many places at once
        ;;objed             ; text object editing for the innocent
        ;;parinfer          ; turn lisp into python, sort of
-       rotate-text       ; cycle region at point between text candidates
-       snippets          ; my elves. They type so I don't have to
+       ;; rotate-text       ; cycle region at point between text candidates
+       ;; snippets          ; my elves. They type so I don't have to
        word-wrap         ; soft wrapping with language-aware indent
 
        :emacs
@@ -106,18 +101,18 @@
        ;; (lsp +peek)
        (lsp +eglot +booster)
        (magit +forge)    ; a git porcelain for Emacs
-       make              ; run make tasks from Emacs
+       ;; make              ; run make tasks from Emacs
        ;;pass              ; password manager for nerds
        ;;pdf               ; pdf enhancements
        ;;prodigy           ; FIXME managing external services & code builders
        ;;rgb               ; creating color strings
        (terraform +lsp)         ; infrastructure as code
-       tmux              ; an API for interacting with tmux
-       upload            ; map local to remote projects via ssh/ftp
+       ;; tmux              ; an API for interacting with tmux
+       ;; upload            ; map local to remote projects via ssh/ftp
        tree-sitter
 
        :os
-       macos             ; MacOS-specific commands
+       ;; macos             ; MacOS-specific commands
        (tty +osc)
 
        :lang
@@ -125,7 +120,7 @@
        ;;assembly          ; assembly for fun or debugging
        (cc +lsp +tree-sitter)                ; C/C++/Obj-C madness
        (clojure +lsp +tree-sitter)           ; java with a lisp
-       common-lisp       ; if you've seen one lisp, you've seen them all
+       ;; common-lisp       ; if you've seen one lisp, you've seen them all
        ;;coq               ; proofs-as-programs
        ;;crystal           ; ruby at the speed of c
        ;;csharp            ; unity, .NET, and mono shenanigans
@@ -147,7 +142,7 @@
        (javascript +lsp +tree-sitter)        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
-       (latex +lsp +cdlatex)             ; writing papers in Emacs has never been so fun
+       ;; (latex +lsp +cdlatex)             ; writing papers in Emacs has never been so fun
        ;; lean
        ;;factor
        ;;ledger            ; an accounting system in Emacs
@@ -156,7 +151,7 @@
        ;;nim               ; python + lisp at the speed of c
        (nix +lsp +tree-sitter)               ; I hereby declare "nix geht mehr!"
        ;;ocaml             ; an objective camel
-       (org +dragndrop +gnuplot +hugo +journal +pandoc +pretty)               ; organize your plain life in plain text
+       (org +pandoc +pretty)               ; organize your plain life in plain text
        ;;perl              ; write code no one else can comprehend
        ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
@@ -167,7 +162,7 @@
        ;;rest              ; Emacs as a REST client
        ;;rst               ; ReST in peace
        (ruby +rails +lsp +tree-sitter)     ; 1.step {|i| p "Ruby is #{i.even? ? 'love' : 'life'}"}
-       (rust +lsp)              ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
+       (rust +lsp +tree-sitter)              ; Fe2O3.unwrap().unwrap().unwrap().unwrap()
        ;;scala             ; java, but good
        ;;scheme            ; a fully conniving family of lisps
        sh                ; she sells {ba,z,fi}sh shells on the C xor
@@ -192,10 +187,3 @@
        :config
        ;;literate
        (default +bindings +smartparens))
-
-
-;; (setq native-comp-jit-compilation nil)
-;; (setq native-comp-jit-compilation-deny-list nil)
-;; (setq inhibit-automatic-native-compilation nil)
-;; (after! (doom-packages straight)
-;;   (setq straight--native-comp-available t))
