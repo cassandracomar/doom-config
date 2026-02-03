@@ -274,8 +274,7 @@ and set them for all frames (including the defaults for new frames)."
   ;; (eglot-semantic-async ((t (:inherit font-lock-preprocessor-face))))
   (eglot-semantic-modification ((t (:underline t :slant normal))))
   ;; (eglot-semantic-documentation ((t (:inherit font-lock-doc-face))))
-  ;; (eglot-semantic-defaultLibrary ((t (:inherit font-lock-preprocessor-face))))
-  )
+  (eglot-semantic-defaultLibrary ((t nil))))
 
 (use-package! eglot-hover
   :defer t
