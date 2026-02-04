@@ -710,16 +710,12 @@ and set them for all frames (including the defaults for new frames)."
 (map! :leader "RET" #'+eat/here)
 (map! :leader "<return>" #'+eat/here)
 
-(use-package! nushell-mode
-  :defer t
-  :mode ("\\.nu\\'" . nushell-mode)
-  :config
-  (+format-with-lsp-mode -1))
-
 (use-package! nushell-ts-mode
-  :after nushell-mode
-  :hook ((nushell-mode . nushell-ts-mode)
-         (nushell-ts-mode . lsp!)))
+  :command nushell-ts-mode
+  :defer t
+  :mode (("\\.nu\\'" . nushell-ts-mode))
+  :hook ((nushell-ts-mode . lsp!)))
+(add-hook! nushell-ts-mode (+format-with-lsp-mode -1))
 
 (use-package! semel
   :after elisp-mode
