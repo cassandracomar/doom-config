@@ -600,42 +600,6 @@ and set them for all frames (including the defaults for new frames)."
   (setq! envrc-async-processing t)
   (envrc-global-mode))
 
-(after! eshell
-  (require 'aio)
-  (defun aio-call-process (name buffer cmd)
-    (let ((process (apply #'start-process name buffer "bash" (list "-c" cmd)))
-          (promise (aio-promise))
-          (s (aio-make-select)))
-      (aio-select-add
-       s
-       (prog1 promise
-         (setf (process-sentinel process)
-               (lambda (_ status) (aio-resolve promise (lambda () status))))))))
-
-  (aio-defun aio-run (name cmd)
-    (letrec ((curr (current-buffer))
-             (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
-             (cap (set-buffer temp))
-             (a (erase-buffer)))
-      (aio-await (apply #'aio-call-process name (current-buffer) cmd))
-      (let ((r (buffer-string))
-            (cap (set-buffer curr)))
-        r)))
-
-  (defun eshell/async-command-to-string (cmd &rest args)
-    (aio-wait-for (aio-run cmd (list (combine-and-quote-strings (cons cmd args) " ")))))
-
-  (defun +esh-help/async-man-string (cmd)
-    "Return help string for the shell command CMD."
-    (let ((lang (getenv "LANG")))
-      (setenv "LANG" "C")
-      (let ((str (aio-wait-for (aio-run manual-program (list (format "%s %s | col -b" manual-program (file-name-base cmd)))))))
-        (setenv "LANG" lang)
-        str)))
-
-  (advice-add 'esh-help-man-string :override #'+esh-help/async-man-string)
-  (advice-add 'eshell/async-command-to-string :around #'envrc-propagate-environment))
-
 (use-package! sideline
   :after eglot flymake
   :init
@@ -647,9 +611,6 @@ and set them for all frames (including the defaults for new frames)."
   :init
   (setq sideline-flymake-display-mode 'point) 
   (setq sideline-backends-right '(sideline-flymake)))
-(add-hook! sideline-mode
-  (flymake-popon-mode -1)
-  (global-flymake-popon-mode -1))
 
 (use-package! eat
   :defer t
