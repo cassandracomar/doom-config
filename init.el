@@ -70,9 +70,9 @@
 
        :emacs
        (dired +icons)             ; making dired pretty [functional]
-       electric          ; smarter, keyword-based electric-indent
+       ;; electric          ; smarter, keyword-based electric-indent
        ;; (ibuffer +icons)         ; interactive buffer management
-       vc                ; version-control and Emacs, sitting in a tree
+       ;; vc                ; version-control and Emacs, sitting in a tree
        (undo +tree)
 
        :term
