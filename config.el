@@ -189,7 +189,7 @@
   (add-to-list 'eglot-semantic-token-types "lifetime")
   (add-to-list 'eglot-semantic-token-types "generic")
   (add-to-list 'eglot-semantic-token-types "constant")
-  (setq eglot-semantic-token-modifiers (remove "defaultLibrary" eglot-semantic-token-modifiers))
+  (setq eglot-semantic-token-modifiers (remove "documentation" (remove "defaultLibrary" eglot-semantic-token-modifiers)))
   (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
   :custom-face
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
@@ -221,8 +221,7 @@
   (eglot-semantic-declaration ((t (:underline t :slant normal))))
   (eglot-semantic-definition ((t (:underline t :slant normal))))
   (eglot-semantic-static ((t (:overline t :slant normal))))
-  (eglot-semantic-modification ((t (:underline t :slant normal))))
-  (eglot-semantic-documentation ((t (:slant normal)))))
+  (eglot-semantic-modification ((t (:underline t :slant normal)))))
 
 (use-package! eglot-hover
   :defer t
