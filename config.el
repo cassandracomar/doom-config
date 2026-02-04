@@ -643,10 +643,9 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! sideline-flymake
   :after sideline flymake
-  :hook '((flymake-mode . sideline-flymake-setup))
+  :hook '((flymake-mode . sideline-mode))
   :init
-  (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
-                                        ; 'line to show errors on the current line
+  (setq sideline-flymake-display-mode 'point) 
   (setq sideline-backends-right '(sideline-flymake)))
 
 (use-package! eat
