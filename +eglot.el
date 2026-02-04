@@ -85,13 +85,6 @@ each hook is run for each project buffer.")
   (run-with-idle-timer 1 nil #'+eglot-reload-inlay-hints)
   (run-with-idle-timer 1 nil #'+eglot-semtok-reload))
 
-;; or without doom:
-;;
-;; (add-hook +eglot-post-load-hook
-;;           (lambda ()
-;;             (eglot--semantic-tokens-mode +1)
-;;             (eglot--semantic-tokens-queue-update)))
-
 (cl-defmethod eglot-handle-notification :after
   (server (_method (eql $/progress)) &key _token value)
   "wait for the server to finish loading the project before attempting to
