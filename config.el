@@ -718,8 +718,9 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! nushell-ts-mode
   :after nushell-mode
-  :config
-  (setq nushell-ts-mode--keywords (remove "source" nushell-ts-mode--keywords))
+  :init
+  (setq-hook! 'nushell-ts-mode-hook
+    nushell-ts-mode--keywords (remove "source" nushell-ts-mode--keywords))
   :hook ((nushell-mode . nushell-ts-mode)
          (nushell-ts-mode . lsp!)))
 
