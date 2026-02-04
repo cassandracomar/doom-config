@@ -647,7 +647,9 @@ and set them for all frames (including the defaults for new frames)."
   :init
   (setq sideline-flymake-display-mode 'point) 
   (setq sideline-backends-right '(sideline-flymake)))
-(add-hook! sideline-mode (flymake-popon-mode -1) (global-flymake-popon-mode -1))
+(add-hook! sideline-mode
+  (flymake-popon-mode -1)
+  (global-flymake-popon-mode -1))
 
 (use-package! eat
   :defer t
