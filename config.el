@@ -99,7 +99,7 @@
 (setq with-editor-emacsclient-executable (executable-find "emacsclient"))
 (setq! forge-database-connector 'sqlite-builtin)
 
-                                        ; set up env vars from encrypted sources
+;; set up env vars from encrypted sources
 (setq auth-sources (list (format "%s/.authinfo.gpg" (getenv "HOME"))))
 (setq epa-file-encrypt-to '("cass@ndra.io"))
 (setq epa-file-select-keys nil)
@@ -141,26 +141,6 @@
      ()))
   "Low level newsgroup face."
   :group 'gnus-group)
-
-(defun disinherit-face (face &optional frame)
-  "Make FACE non-inherited on FRAME without changing its appearance.
-
-Sets each of the face's unspecified attributes to the the
-corresponding value from the face specified in its `:inherit'
-attribute, and sets its `:inherit' attribute to nil.
-
-If FRAME is provided, read and set FACE's attributes for that frame.
-If FRAME is t, read and set the defaults for face FACE for new frames.
-If FRAME is nil, read attributes from the selected frame
-and set them for all frames (including the defaults for new frames)."
-  (let ((face-attrs (delq :inherit
-                          (mapcar 'car face-attribute-name-alist)))
-        (args '(:inherit nil)))
-    (dolist (attr face-attrs args)
-      (push (face-attribute face attr frame t) args)
-      (push attr args))
-    (apply 'set-face-attribute face frame args)))
-
 
 ;; UI
 (use-package! doom-modeline
@@ -391,9 +371,9 @@ and set them for all frames (including the defaults for new frames)."
   :defer t
   :config
   (push '("git.drwholdings.com"               ; GITHOST
-          "git.drwholdings.com/api/v3"           ; APIHOST
+          "git.drwholdings.com/api/v3"        ; APIHOST
           "git.drwholdings.com"               ; WEBHOST and INSTANCE-ID
-          forge-github-repository)    ; CLASS
+          forge-github-repository)            ; CLASS
         forge-alist))
 
 (use-package! terraform-mode
@@ -460,13 +440,13 @@ and set them for all frames (including the defaults for new frames)."
   (+format-with-lsp-mode))
 
 ;; yaml-mode
-(after! yaml-mode
-  (add-to-list 'auto-mode-alist '("\\.yaml\\.j2\\'" . yaml-mode))
-  (set-company-backend! 'yaml-mode 'company-capf)
-  ;; (set-company-backend! 'yaml-ts-mode 'company-capf)
-  (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-mode))
-  (corfu-mode +1))
-(add-hook! yaml-mode (corfu-mode +1))
+(use-package! yaml-ts-mode
+  :commands yaml-ts-mode
+  :mode "\\.yaml\\(\\.j2\\)?\\'"
+  :config
+  (set-company-backend! 'yaml-ts-mode 'company-capf)
+  (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-ts-mode)))
+(add-hook! yaml-ts-mode (corfu-mode +1))
 
 ;; projectile
 (add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))
@@ -483,10 +463,10 @@ and set them for all frames (including the defaults for new frames)."
       [remap evil-org-org-insert-heading-below] #'+org/insert-item-above
       [remap evil-org-open-below] #'+org/insert-item-below)
 
-                                        ; jsonnett
+;; jsonnett
 (use-package! jsonnet-mode
   :defer t
-  :mode "(\\.libsonnet|\\.jsonnet)"
+  :mode "\\(\\.libsonnet\\|\\.jsonnet\\)\\'"
   :hook '((jsonnet-mode . lsp!)))
 
 (load! "+eshell")
