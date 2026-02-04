@@ -89,14 +89,13 @@
 (setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
 (setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
 (setenv "TERM" "xterm-256color")
-(setenv "PAGER" "cat")
-(setenv "DOOMPAGER" "cat")
+(setenv "PAGER" "bat -f -pp")
+(setenv "DOOMPAGER" "bat -f -pp")
 
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
 (setq enable-local-eval t)
 (setq with-editor-emacsclient-executable (executable-find "emacsclient"))
-;; (setq! with-editor-emacsclient-executable "/opt/homebrew/bin/emacsclient")
 (setq! forge-database-connector 'sqlite-builtin)
 
                                         ; set up env vars from encrypted sources
@@ -247,8 +246,6 @@ and set them for all frames (including the defaults for new frames)."
   :defer t
   :hook ((eglot-managed-mode . eglot-hover-mode)))
 
-;; just force a rebuild
-
 ;; KEYBINDINGS
 (defun consult-flymake-project (&rest _)
   (interactive)
@@ -377,14 +374,14 @@ and set them for all frames (including the defaults for new frames)."
   :demand t)
 
 ;; configure evil
-                                        ; make evil-search-word look for symbol rather than word boundaries
+;; make evil-search-word look for symbol rather than word boundaries
 (defalias #'forward-evil-word #'forward-evil-symbol)
 (setq! evil-symbol-word-search t)
 
-                                        ; don't substitute globally by default
+;; don't substitute globally by default
 (setq! evil-ex-substitute-global nil)
 
-                                        ; set up smartparens
+;; set up smartparens
 (after! smartparens
   (show-smartparens-global-mode +1))
 
@@ -446,7 +443,7 @@ and set them for all frames (including the defaults for new frames)."
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 
-                                        ; haskell stuff
+;; haskell stuff
 (plist-put! +ligatures-extra-symbols
             :type "⦂"
             :composition "∘"
@@ -617,15 +614,14 @@ and set them for all frames (including the defaults for new frames)."
                (lambda (_ status) (aio-resolve promise (lambda () status))))))))
 
   (aio-defun aio-run (name cmd)
-             (interactive)
-             (letrec ((curr (current-buffer))
-                      (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
-                      (cap (set-buffer temp))
-                      (a (erase-buffer)))
-               (aio-await (apply #'aio-call-process name (current-buffer) cmd))
-               (let ((r (buffer-string))
-                     (cap (set-buffer curr)))
-                 r)))
+    (letrec ((curr (current-buffer))
+             (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
+             (cap (set-buffer temp))
+             (a (erase-buffer)))
+      (aio-await (apply #'aio-call-process name (current-buffer) cmd))
+      (let ((r (buffer-string))
+            (cap (set-buffer curr)))
+        r)))
 
   (defun eshell/async-command-to-string (cmd &rest args)
     (aio-wait-for (aio-run cmd (list (combine-and-quote-strings (cons cmd args) " ")))))
@@ -721,8 +717,8 @@ and set them for all frames (including the defaults for new frames)."
   :after elisp-mode
   :config
   (setq semel-add-help-echo nil)
-  :hook ((emacs-lisp-mode . semel-mode)
-         (emacs-lisp-mode . cursor-sensor-mode)))
+  :hook '((emacs-lisp-mode . semel-mode)
+          (emacs-lisp-mode . cursor-sensor-mode)))
 
 (use-package! rego-mode
   :defer t
