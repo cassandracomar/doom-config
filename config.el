@@ -308,8 +308,7 @@ and set them for all frames (including the defaults for new frames)."
 (map! :nv "g d" #'+lookup/definition)
 (map! :nv "g i" #'+lookup/implementations)
 (map! :nv "H" #'treemacs-select-window)
-(map! :n "L" #'flycheck-projectile-list-errors)
-(map! :v "L" #'consult-eglot-symbols)
+(map! :nv "L" #'eglot-hierarchy-mode)
 (map! :n  "V" #'evil-visual-line)
 (map! :nv "g l" (lambda (l) (apply #'evil-goto-line l)))
 
@@ -638,7 +637,7 @@ and set them for all frames (including the defaults for new frames)."
   (advice-add 'eshell/async-command-to-string :around #'envrc-propagate-environment))
 
 (use-package! sideline
-  :after eglot flycheck
+  :after eglot flymake
   :init
   (setq sideline-force-display-if-exceeds t))
 

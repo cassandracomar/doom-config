@@ -69,7 +69,7 @@
 (package! nushell-ts-mode :recipe (:host github :repo "cassandracomar/nushell-ts-mode") :pin "a88f99bd8a135decccf3b8b46637beefffa85a1b")
 (package! spacious-padding)
 (package! sideline)
-(package! sideline-flycheck)
+(package! sideline-flymake)
 (package! flycheck-projectile)
 (package! mermaid-mode)
 (package! ob-mermaid)
