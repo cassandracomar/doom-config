@@ -711,7 +711,7 @@ and set them for all frames (including the defaults for new frames)."
 (map! :leader "<return>" #'+eat/here)
 
 (use-package! nushell-ts-mode
-  :command nushell-ts-mode
+  :commands nushell-ts-mode
   :defer t
   :mode (("\\.nu\\'" . nushell-ts-mode))
   :hook ((nushell-ts-mode . lsp!)))
