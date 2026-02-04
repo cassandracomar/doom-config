@@ -617,15 +617,15 @@ and set them for all frames (including the defaults for new frames)."
                (lambda (_ status) (aio-resolve promise (lambda () status))))))))
 
   (aio-defun aio-run (name cmd)
-    (interactive)
-    (letrec ((curr (current-buffer))
-             (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
-             (cap (set-buffer temp))
-             (a (erase-buffer)))
-      (aio-await (apply #'aio-call-process name (current-buffer) cmd))
-      (let ((r (buffer-string))
-            (cap (set-buffer curr)))
-        r)))
+             (interactive)
+             (letrec ((curr (current-buffer))
+                      (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
+                      (cap (set-buffer temp))
+                      (a (erase-buffer)))
+               (aio-await (apply #'aio-call-process name (current-buffer) cmd))
+               (let ((r (buffer-string))
+                     (cap (set-buffer curr)))
+                 r)))
 
   (defun eshell/async-command-to-string (cmd &rest args)
     (aio-wait-for (aio-run cmd (list (combine-and-quote-strings (cons cmd args) " ")))))
@@ -729,9 +729,10 @@ and set them for all frames (including the defaults for new frames)."
   :custom
   (rego-format-at-save nil))
 (use-package! semel
-  :defer t
+  :init
+  (add-hook! emacs-lisp-mode :append #'semel-mode #'cursor-sensor-mode)
   :custom ((semel-add-help-echo . nil)))
-(add-hook! emacs-lisp-mode #'semel-mode #'cursor-sensor-mode)
+
 
 (use-package! mermaid-mode
   :defer t
