@@ -14,10 +14,6 @@
 ;;      Alternatively, press 'gd' (or 'C-c g d') on a module to browse its
 ;;      directory (for easy access to its source code).
 
-;; (defadvice! fixed-doom-module-list (fn &rest args)
-;;   :around #'doom-module-list
-;;   (nreverse (apply fn args)))
-
 (setq! package-native-compile t)
 (setq! native-comp-jit-compilation nil)
 (doom! :input
@@ -52,7 +48,7 @@
        (vc-gutter +pretty)         ; vcs diff in the fringe
        vi-tilde-fringe   ; fringe tildes to mark beyond EOB
        (window-select +numbers)     ; visually switch windows
-       workspaces        ; tab emulation, persistence & separate workspaces
+       ;; workspaces        ; tab emulation, persistence & separate workspaces
        ;;zen               ; distraction-free coding or writing
        ;; (emoji +ascii +github +unicode)
        minimap
@@ -75,14 +71,14 @@
        :emacs
        (dired +icons)             ; making dired pretty [functional]
        electric          ; smarter, keyword-based electric-indent
-       (ibuffer +icons)         ; interactive buffer management
+       ;; (ibuffer +icons)         ; interactive buffer management
        vc                ; version-control and Emacs, sitting in a tree
        (undo +tree)
 
        :term
        eshell            ; a consistent, cross-platform shell (WIP)
-       shell             ; a terminal REPL for Emacs
-       term              ; terminals in Emacs
+       ;; shell             ; a terminal REPL for Emacs
+       ;; term              ; terminals in Emacs
 
        :checkers
        (syntax +childframe +icons +flymake)              ; tasing you for every semicolon you forget
@@ -98,7 +94,6 @@
        ;;ein               ; tame Jupyter notebooks with emacs
        (eval +overlay)     ; run code, run (also, repls)
        (lookup +docsets)              ; navigate your code and its documentation
-       ;; (lsp +peek)
        (lsp +eglot +booster)
        (magit +forge)    ; a git porcelain for Emacs
        ;; make              ; run make tasks from Emacs

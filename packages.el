@@ -1,4 +1,4 @@
-;; -*- no-byte-compile: t; -*-
+;; -*- no-byte-compile: t; lexical-binding: t; -*-
 ;;; $DOOMDIR/packages.el
 
 ;; To install a package with Doom you must declare them here, run 'doom sync' on
@@ -52,7 +52,7 @@
 
 (package! code-review :disable t)
 (package! docker-tramp :disable t)
-                                        ; version bumps
+;; version bumps
 (package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "a7c773fac315f640526a6f35cd3c60edaa51b2b4")
 
 ;; new packages
