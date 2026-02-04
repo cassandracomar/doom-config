@@ -221,7 +221,8 @@
   (eglot-semantic-declaration ((t (:underline t :slant normal))))
   (eglot-semantic-definition ((t (:underline t :slant normal))))
   (eglot-semantic-static ((t (:overline t :slant normal))))
-  (eglot-semantic-modification ((t (:underline t :slant normal)))))
+  (eglot-semantic-modification ((t (:underline t :slant normal))))
+  (eglot-semantic-documentation ((t (:slant normal)))))
 
 (use-package! eglot-hover
   :defer t
