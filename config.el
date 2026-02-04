@@ -602,20 +602,25 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! sideline
   :after eglot flymake
+  :hook '((flymake-mode . sideline-mode))
   :init
   (setq sideline-force-display-if-exceeds t))
 
 (use-package! sideline-flymake
   :after sideline flymake
-  :hook '((flymake-mode . sideline-mode))
   :init
-  (setq sideline-flymake-display-mode 'point) 
-  (setq sideline-backends-right '(sideline-flymake)))
+  (setq sideline-flymake-display-mode 'point))
+
+(use-package! sideline-eglot
+  :after sideline flymake
+  :init
+  (setq sideline-backends-right '(sideline-flymake sideline-eglot)))
 
 (use-package! eat
   :defer t
   :init
   (load! "+eat-nushell")
+  (setq process-adaptive-read-buffering t)
   :config
   (setq-hook! 'eat-mode-hook consult-preview-key nil)
   (add-hook 'eat-exec-hook

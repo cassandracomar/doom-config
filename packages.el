@@ -71,6 +71,7 @@
 (package! spacious-padding)
 (package! sideline)
 (package! sideline-flymake)
+(package! sideline-eglot)
 (package! flycheck-projectile)
 (package! mermaid-mode)
 (package! ob-mermaid)
