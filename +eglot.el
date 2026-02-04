@@ -77,9 +77,13 @@ each hook is run for each project buffer.")
 (defun +eglot-reload-inlay-hints ()
   (eglot--update-hints (point-min) (point-max)))
 
+(defun +eglot-semtok-reload ()
+  (eglot-semantic-tokens-mode -1)
+  (eglot-semantic-tokens-mode +1))
+
 (add-hook! +eglot-post-load
   (run-with-idle-timer 1 nil #'+eglot-reload-inlay-hints)
-  (run-with-idle-timer 1 nil #'font-lock-fontify-buffer))
+  (run-with-idle-timer 1 nil #'+eglot-semtok-reload))
 
 ;; or without doom:
 ;;
