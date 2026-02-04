@@ -26,7 +26,7 @@
                                                       :trait (:enable t)
                                                       :run (:enable t)
                                                       :updateTest (:enable t)))
-                                  :semanticHighlighting (:comments (:enable t)
+                                  :semanticHighlighting (:comments (:enable :json-false)
                                                          :doc (:comment (:inject (:enable :json-false)))
                                                          :operator (:specialization (:enable t))
                                                          :punctuation (:enable t
