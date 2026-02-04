@@ -169,7 +169,7 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! spacious-padding
   :demand t
-  :hook ((after-init . spacious-padding-mode))
+  :hook '((after-init . spacious-padding-mode))
   :init
   (setq spacious-padding-widths
         '( :internal-border-width 5
@@ -244,7 +244,7 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! eglot-hover
   :defer t
-  :hook ((eglot-managed-mode . eglot-hover-mode)))
+  :hook '((eglot-managed-mode . eglot-hover-mode)))
 
 ;; KEYBINDINGS
 (defun consult-flymake-project (&rest _)
@@ -644,7 +644,7 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! sideline-flymake
   :after sideline
-  :hook ((flymake-mode . sideline-flymake-setup))
+  :hook '((flymake-mode . sideline-flymake-setup))
   :init
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
@@ -709,8 +709,8 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! nushell-ts-mode
   :commands nushell-ts-mode
   :defer t
-  :mode (("\\.nu\\'" . nushell-ts-mode))
-  :hook ((nushell-ts-mode . lsp!)))
+  :mode '(("\\.nu\\'" . nushell-ts-mode))
+  :hook '((nushell-ts-mode . lsp!)))
 (add-hook! nushell-ts-mode (+format-with-lsp-mode -1))
 
 (use-package! semel
