@@ -612,7 +612,7 @@ and set them for all frames (including the defaults for new frames)."
   (setq sideline-flymake-display-mode 'point))
 
 (use-package! sideline-eglot
-  :after sideline flymake
+  :after sideline eglot
   :init
   (setq sideline-backends-right '(sideline-flymake sideline-eglot)))
 
