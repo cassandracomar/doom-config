@@ -63,7 +63,8 @@
                                         :hover t
                                         :validate t
                                         :format (:enable t)
-                                        :kubernetesCRDStore (:enable t))
+                                        :kubernetesCRDStore (:enable t)
+                                        :suggest (:parentSkeletonSelectedFirst :json-false))
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
 
