@@ -718,7 +718,7 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! nushell-ts-mode
   :after nushell-mode
   :hook ((nushell-mode . nushell-ts-mode)
-         (nushell-mode . lsp!)))
+         (nushell-ts-mode . lsp!)))
 
 (use-package! rego-mode
   :defer t
