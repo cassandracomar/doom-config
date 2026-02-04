@@ -728,14 +728,10 @@ and set them for all frames (including the defaults for new frames)."
   (add-hook! rego-mode #'eglot #'+format-with-lsp-mode)
   :custom
   (rego-format-at-save nil))
-(use-package! semel
-  :command semel-mode
-  :defer t
-  :init
-  (setq semel-add-help-echo nil))
+
 (add-hook 'emacs-lisp-mode-hook #'semel-mode)
 (add-hook 'emacs-lisp-mode-hook #'cursor-sensor-mode)
-
+(setq semel-add-help-echo nil)
 
 (use-package! mermaid-mode
   :defer t
