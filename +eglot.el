@@ -58,12 +58,12 @@
                                                     :rename (:config (:crossModule t)
                                                              :usePrepare :json-false
                                                              :diff t)))
-                                 :yaml-language-server (:yaml (:schemaStore (:enable t :url "https://schemastore.org/api/json/catalog.json")
-                                                               :completion t
-                                                               :hover t
-                                                               :validate t
-                                                               :format (:enable t)
-                                                               :kubernetesCRDStore (:enable t)))
+                                 :yaml (:schemaStore (:enable t :url "https://schemastore.org/api/json/catalog.json")
+                                        :completion t
+                                        :hover t
+                                        :validate t
+                                        :format (:enable t)
+                                        :kubernetesCRDStore (:enable t))
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
 
