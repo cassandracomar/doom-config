@@ -182,7 +182,6 @@ and set them for all frames (including the defaults for new frames)."
            :scroll-bar-width 2)))
 
 (use-package! eglot
-  :defer t
   :init
   (load! "+eglot")
   :config
