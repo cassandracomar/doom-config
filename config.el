@@ -397,7 +397,8 @@
   :mode "\\.md\\'"
   :hook '((markdown-mode . auto-fill-mode))
   :config
-  (add-to-list 'markdown-code-lang-modes '("nix" . nix-ts-mode)))
+  (add-to-list 'markdown-code-lang-modes '("nix" . nix-ts-mode))
+  (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-ts-mode)))
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 
@@ -444,8 +445,7 @@
   :commands yaml-ts-mode
   :mode "\\.yaml\\(\\.j2\\)?\\'"
   :config
-  (set-company-backend! 'yaml-ts-mode 'company-capf)
-  (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-ts-mode)))
+  (set-company-backend! 'yaml-ts-mode 'company-capf))
 (add-hook! yaml-ts-mode (corfu-mode +1))
 
 ;; projectile
