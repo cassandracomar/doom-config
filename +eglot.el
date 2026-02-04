@@ -5,7 +5,7 @@
 (require 'cl-macs)
 
 ;; uncomment to debug lsp events
-(cl-callf plist-put eglot-events-buffer-config :size 2000000)
+;; (cl-callf plist-put eglot-events-buffer-config :size 2000000)
 (add-hook! terraform-mode
   (setq-local completion-at-point-functions #'eglot-completion-at-point))
 (set-eglot-client! '(terraform-mode :language-id "opentofu") '("tofu-ls" "serve") "tofu-ls")
@@ -63,7 +63,12 @@
                                         :hover t
                                         :validate t
                                         :format (:enable t)
-                                        :kubernetesCRDStore (:enable t))
+                                        :kubernetesCRDStore (:enable t)
+                                        :schemas ((https://www.schemastore.org/github-workflow.json . ".github/workflows/*.{yml,yaml}")
+                                                  ;; (https://www.schemastore.org/github-action.json . "action.{yml,yaml}")
+                                                  ;; (https://www.schemastore.org/kustomization.json . "kustomization.{yml,yaml}")
+                                                  ;; (kubernetes . ["k8s-*/kustomizations/**/*.{yml,yaml}" "k8s-*/clusters/**/*.{yml,yaml}" "k8s-*/gitops/**/*.{yml,yaml}"])
+                                                  ))
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
 
