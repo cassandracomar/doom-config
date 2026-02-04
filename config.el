@@ -732,7 +732,8 @@ and set them for all frames (including the defaults for new frames)."
   :defer t
   :hook ((emacs-lisp-mode . semel-mode)
          (emacs-lisp-mode . cursor-sensor-mode))
-  :custom ((semel-add-help-echo . nil)))
+  :init
+  (setq semel-add-help-echo nil))
 
 
 (use-package! mermaid-mode
