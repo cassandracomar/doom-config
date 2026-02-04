@@ -5,7 +5,7 @@
 (require 'cl-macs)
 
 ;; uncomment to debug lsp events
-;; (cl-callf plist-put eglot-events-buffer-config :size 2000000)
+(cl-callf plist-put eglot-events-buffer-config :size 2000000)
 (add-hook! terraform-mode
   (setq-local completion-at-point-functions #'eglot-completion-at-point))
 (set-eglot-client! '(terraform-mode :language-id "opentofu") '("tofu-ls" "serve") "tofu-ls")
