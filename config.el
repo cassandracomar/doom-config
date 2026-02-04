@@ -712,13 +712,13 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! nushell-mode
   :defer t
-  :mode "\\.nu\\'"
+  :mode ("\\.nu\\'" . nushell-mode)
   :config
   (+format-with-lsp-mode -1))
 (use-package! nushell-ts-mode
-  :defer t
-  :hook ((nushell-mode . nushell-ts-mode)))
-(add-hook! nushell-mode #'lsp)
+  :after nushell-mode
+  :hook ((nushell-mode . nushell-ts-mode)
+         (nushell-mode . lsp!)))
 
 (use-package! rego-mode
   :defer t
