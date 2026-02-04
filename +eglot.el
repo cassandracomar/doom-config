@@ -12,6 +12,7 @@
 (set-eglot-client! '(nix-mode nix-ts-mode) '("nixd" "--semantic-tokens=true") "nixd")
 (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
 (set-eglot-client! '(jsonnet-mode :language-id "jsonnet") '("jsonnet-language-server" "-l" "debug") "jsonnet-language-server")
+(set-eglot-client! '(helm-mode :language-id "helm") '("helm_ls" "serve") "helm-ls")
 
 (setq-default
  jsonrpc-default-request-timeout 30
@@ -57,12 +58,15 @@
                                                     :rename (:config (:crossModule t)
                                                              :usePrepare :json-false
                                                              :diff t)))
-                                 :yaml-language-server (:yaml (:schemaStore (:enable t)
+                                 :yaml-language-server (:yaml (:schemaStore (:enable t :url "https://schemastore.org/api/json/catalog.json")
                                                                :completion t
                                                                :hover t
                                                                :validate t
                                                                :format (:enable t)
-                                                               :kubernetesCRDStore (:enable t)))
+                                                               :kubernetesCRDStore (:enable t)
+                                                               :schemas [("http://json.schemastore.org/github-action.json" . [".github/workflows/*.yml" ".github/workflows/*.yaml"])
+                                                                         ("https://json.schemastore.org/kustomization.json" . ["kustomization.yaml" "kustomization.yml"])
+                                                                         ("kubernetes" . ["k8s-*/kustomizations/**/*.yaml" "k8s-*/kustomizations/**/*.yml" "k8s-*/clusters/**/*.yaml" "k8s-*/clusters/**/*.yml" "k8s-*/gitops/**/*.yaml" "k8s-*/gitops/**/*.yml"])]))
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
 

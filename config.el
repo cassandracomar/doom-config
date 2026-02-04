@@ -448,6 +448,10 @@
   (set-company-backend! 'yaml-ts-mode 'company-capf))
 (add-hook! yaml-ts-mode (corfu-mode +1))
 
+(define-derived-mode helm-mode yaml-mode "helm"
+  "Major mode for editing kubernetes helm templates")
+(add-hook! helm-mode #'lsp!)
+
 ;; projectile
 (add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))
 
