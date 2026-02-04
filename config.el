@@ -709,7 +709,7 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! nushell-ts-mode
   :commands nushell-ts-mode
   :defer t
-  :mode '(("\\.nu\\'" . nushell-ts-mode))
+  :mode "\\.nu\\'"
   :hook '((nushell-ts-mode . lsp!)))
 (add-hook! nushell-ts-mode (+format-with-lsp-mode -1))
 
