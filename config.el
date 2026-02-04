@@ -592,9 +592,6 @@ and set them for all frames (including the defaults for new frames)."
         message-send-mail-function #'message-send-mail-with-sendmail
         message-kill-buffer-on-exit t))
 
-(map! :map cfw:calendar-mode-map :m "m" #'+calendar/show-day)
-(map! :leader "c o" #'+calendar/open)
-
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
@@ -733,9 +730,8 @@ and set them for all frames (including the defaults for new frames)."
   (rego-format-at-save nil))
 (use-package! semel
   :defer t
-  :custom ((semel-add-help-echo . nil))
-  :hook ((emacs-lisp-mode . semel-mode)
-         (emacs-lisp-mode . cursor-sensor-mode)))
+  :custom ((semel-add-help-echo . nil)))
+(add-hook! emacs-lisp-mode #'semel-mode #'cursor-sensor-mode)
 
 (use-package! mermaid-mode
   :defer t
