@@ -64,9 +64,9 @@
                                                                :validate t
                                                                :format (:enable t)
                                                                :kubernetesCRDStore (:enable t)
-                                                               :schemas [(("http://json.schemastore.org/github-action.json" . [".github/workflows/*.yml" ".github/workflows/*.yaml"]))
-                                                                         (("https://json.schemastore.org/kustomization.json" . ["kustomization.yaml" "kustomization.yml"]))
-                                                                         (("kubernetes" . ["k8s-*/kustomizations/**/*.yaml" "k8s-*/kustomizations/**/*.yml" "k8s-*/clusters/**/*.yaml" "k8s-*/clusters/**/*.yml" "k8s-*/gitops/**/*.yaml" "k8s-*/gitops/**/*.yml"]))]))
+                                                               :schemas [((https://json.schemastore.org/github-action.json . [".github/workflows/*.yml" ".github/workflows/*.yaml"]))
+                                                                         ((https://json.schemastore.org/kustomization.json . ["kustomization.yaml" "kustomization.yml"]))
+                                                                         ((kubernetes . ["k8s-*/kustomizations/**/*.yaml" "k8s-*/kustomizations/**/*.yml" "k8s-*/clusters/**/*.yaml" "k8s-*/clusters/**/*.yml" "k8s-*/gitops/**/*.yaml" "k8s-*/gitops/**/*.yml"]))]))
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
 
