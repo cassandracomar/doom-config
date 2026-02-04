@@ -26,8 +26,10 @@
                                                       :trait (:enable t)
                                                       :run (:enable t)
                                                       :updateTest (:enable t)))
-                                  :semanticHighlighting (:punctuation :operator (:specialization (:enable t))
-                                                                      (:enable t
+                                  :semanticHighlighting (:comments (:enable t)
+                                                         :doc (:comment (:inject (:enable t)))
+                                                         :operator (:specialization (:enable t))
+                                                         :punctuation (:enable t
                                                                        :separate (:macro (:bang t))
                                                                        :specialization (:enable t)))
                                   :inlayHints (:bindingModeHints (:enable t)
