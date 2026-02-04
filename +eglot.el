@@ -11,6 +11,7 @@
 (set-eglot-client! '(terraform-mode :language-id "opentofu") '("tofu-ls" "serve") "tofu-ls")
 (set-eglot-client! '(nix-mode nix-ts-mode) '("nixd" "--semantic-tokens=true") "nixd")
 (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
+(set-eglot-client! '(jsonnet-mode :language-id "jsonnet") '("jsonnet-language-server" "-l" "debug") "jsonnet-language-server")
 
 (setq-default
  jsonrpc-default-request-timeout 30

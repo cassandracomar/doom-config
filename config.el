@@ -506,10 +506,6 @@ and set them for all frames (including the defaults for new frames)."
     :type "::")
   (+format-with-lsp-mode))
 
-;;                                         groovy stuff
-(after! groovy-mode
-  (add-to-list 'auto-mode-alist '("Jenkinsfile$" . groovy-mode)))
-
 ;;                                         ; yaml-mode
 (after! yaml-mode
   (add-to-list 'auto-mode-alist '("\\.yaml\\.j2\\'" . yaml-mode))
@@ -534,22 +530,11 @@ and set them for all frames (including the defaults for new frames)."
       [remap evil-org-org-insert-heading-below] #'+org/insert-item-above
       [remap evil-org-open-below] #'+org/insert-item-below)
 
-                                        ; elasticsearch
-(use-package! es-mode
-  :after org
-  :mode ("\\.es\\'" . 'es-mode))
-
-                                        ; systemd
-(use-package! systemd
-  :defer t
-  :init (setq systemd-use-company-p t))
-
                                         ; jsonnett
 (use-package! jsonnet-mode
   :defer t
   :mode "(\\.libsonnet|\\.jsonnet)")
-(use-package! jq-mode
-  :mode "\\.jq$")
+(add-hook! jsonnet-mode #'lsp!)
 
 (load! "+eshell")
 
@@ -562,39 +547,6 @@ and set them for all frames (including the defaults for new frames)."
 (evil-ex-define-cmd "q" 'kill-this-buffer)
 (evil-ex-define-cmd "wq" 'ex-save-kill-buffer-and-close )
 (evil-ex-define-cmd "x" 'ex-save-kill-buffer-and-close )
-
-(defun eshell/gh-query-repos (hostname owner)
-  (let*
-      ((query-string
-        (mapconcat
-         (lambda (s) (s-format s 'aget `(("owner" . ,owner) ("hostname" . ,hostname))))
-         '(""
-           "    query {"
-           "      search("
-           "        type:REPOSITORY,"
-           "        query: \"\"\""
-           "          ${owner} in:owner"
-           "          archived:false"
-           "        \"\"\","
-           "        last: 100"
-           "      ) {"
-           "        repos: edges {"
-           "          repo: node {"
-           "            ... on Repository {"
-           "              name"
-           "              sshUrl"
-           "            }"
-           "          }"
-           "        }"
-           "      }"
-           "    }"
-           "") "\n"))
-       (gh-command (s-format "gh api graphql --hostname git.drwholdings.com -f query='${query-string}'" 'aget `(("query-string" . ,query-string))))
-       (jq-process "jq '.data.search.repos[] | .repo | [.name, .sshUrl] | @tsv' -rcM")
-       (table `(("query-string" . ,query-string)
-                ("gh-command" . ,gh-command)
-                ("jq-process" . ,jq-process))))
-    (s-format "${gh-command} | ${jq-process}" 'aget table)))
 
 (set-eshell-alias!
  "s" "eshell/git status"
@@ -635,9 +587,9 @@ and set them for all frames (including the defaults for new frames)."
 
 (setq confirm-kill-emacs nil)
 
-(use-package! telephone-line
-  :config
-  (telephone-line-mode 1))
+;; (use-package! telephone-line
+;;   :config
+;;   (telephone-line-mode 1))
 ;;
 ;; mu4e settings
 (use-package! mu4e
@@ -682,34 +634,6 @@ and set them for all frames (including the defaults for new frames)."
 (map! :map cfw:calendar-mode-map :m "m" #'+calendar/show-day)
 (map! :leader "c o" #'+calendar/open)
 
-(defun colorize-buffer ()
-  (interactive)
-  (read-only-mode -1)
-  (ansi-color-apply-on-region (point-min) (point-max))
-  (read-only-mode +1))
-(setq magit-process-apply-ansi-colors t)
-(add-hook! magit-post-stage-hook #'colorize-buffer)
-
-(defun clone-or-update-command (line)
-  (let* ((split (s-slice-at "[[:space:]]+" line))
-         (name (seq-elt split 0))
-         (url (seq-elt split 1))
-         (table `(("name" . ,name) ("url" . ,url)))
-         (fragment-template  "  if { test -d ${name} } { *echo updating ${name}; pushd ${name}; git checkout main || git checkout master; git pull; popd; } { *echo cloning ${name}; git clone ${url} ${name}; };"))
-    (s-format fragment-template 'aget table)))
-
-(defun wrap-command (command)
-  (let* ((bufname-saver '(setq-local bufname (buffer-name (current-buffer))))
-         (renamer '(rename-buffer bufname)))
-    (cl-concatenate 'string "  " (prin1-to-string bufname-saver) "\n\n" command "\n  " (prin1-to-string renamer))))
-
-(defun partition-commands (commands)
-  (lambda (n)
-    (let* ((len (seq-length commands))
-           (indices (seq-filter (lambda (i) (= (mod i 4) (- n 1))) (number-sequence 0 (- len 1))))
-           (filtered-commands  (seq-map (lambda (i) (seq-elt commands i)) indices)))
-      (wrap-command (mapconcat 'identity filtered-commands "\n")))))
-
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
@@ -746,10 +670,6 @@ and set them for all frames (including the defaults for new frames)."
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
   (setq sideline-backends-right '(sideline-flymake)))
-
-(use-package! shx
-  :after shell
-  :hook ((shell-mode-hook . shx-mode)))
 
 (use-package! eat
   :demand t

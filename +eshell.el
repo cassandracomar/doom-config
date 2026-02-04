@@ -258,12 +258,6 @@
   (map! :map eshell-mode-map :nv
         "$" #'evil-end-of-line))
 
-(use-package! multi-run
-  :defer t
-  :after eshell
-  :config
-  (add-hook! eshell #'visual-line-mode))
-
 (add-hook! eshell-mode
            #'with-editor-export-git-editor
            #'with-editor-export-editor
