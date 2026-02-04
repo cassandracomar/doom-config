@@ -729,8 +729,8 @@ and set them for all frames (including the defaults for new frames)."
   :custom
   (rego-format-at-save nil))
 (use-package! semel
-  :init
-  (add-hook! emacs-lisp-mode :append #'semel-mode #'cursor-sensor-mode)
+  :hook ((emacs-lisp-mode-hook . semel-mode)
+         (emacs-lisp-mode-hook . cursor-sensor-mode))
   :custom ((semel-add-help-echo . nil)))
 
 
