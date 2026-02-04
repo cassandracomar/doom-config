@@ -169,7 +169,7 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! spacious-padding
   :demand t
-  :hook '((after-init . spacious-padding-mode))
+  :hook ((after-init . spacious-padding-mode))
   :init
   (setq spacious-padding-widths
         '( :internal-border-width 5
@@ -211,40 +211,40 @@ and set them for all frames (including the defaults for new frames)."
   (add-to-list 'eglot-semantic-token-types "constant")
   (setq eglot-semantic-token-modifiers (remove "defaultLibrary" eglot-semantic-token-modifiers))
   :custom-face
-  '(my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
-  '(my-font-lock-type-face ((t (:foreground "#5c9cff"))))
-  '(my-font-lock-type-parameter-face ((t (:foreground "#66d9ef"))))
-  '(my-font-lock-constant-face ((t (:inherit font-lock-property-use-face))))
-  '(eglot-semantic-namespace ((t (:foreground "#fb3d81"))))
-  '(eglot-semantic-type ((t (:inherit my-font-lock-type-face))))
-  '(eglot-semantic-class ((t (:inherit elisp-symbol-role))))
-  '(eglot-semantic-enum ((t (:inherit elisp-major-mode-name))))
-  '(eglot-semantic-enumMember ((t (:inherit my-font-lock-constant-face :slant italic))))
-  '(eglot-semantic-interface ((t (:inherit elisp-symbol-role))))
-  '(eglot-semantic-struct ((t (:inherit elisp-major-mode-name))))
-  '(eglot-semantic-typeParameter ((t (:inherit my-font-lock-type-parameter-face :slant italic))))
-  '(eglot-semantic-lifetime ((t (:inherit font-lock-preprocessor-face :slant italic))))
-  '(eglot-semantic-parameter ((t (:inherit my-font-lock-variable-use-face :slant italic))))
-  '(eglot-semantic-variable ((t (:inherit font-lock-variable-name-face :slant italic))))
-  '(eglot-semantic-property ((t (:inherit font-lock-property-use-face :slant italic))))
-  '(eglot-semantic-event ((t (:inherit my-font-lock-type-parameter-face))))
-  '(eglot-semantic-function ((t (:inherit font-lock-function-name-face :slant italic))))
-  '(eglot-semantic-method ((t (:inherit font-lock-function-name-face :slant italic))))
-  '(eglot-semantic-macro ((t (:inherit font-lock-preprocessor-face :slant italic))))
-  '(eglot-semantic-generic ((t (:inherit font-lock-variable-name-face :slant italic))))
-  '(eglot-semantic-number ((t (:inherit my-font-lock-constant-face))))
-  '(eglot-semantic-regexp ((t (:inherit font-lock-preprocessor-face))))
-  '(eglot-semantic-operator ((t (:inherit font-lock-keyword-face))))
-  '(eglot-semantic-const ((t (:inherit my-font-lock-constant-face))))
-  '(eglot-semantic-constant ((t (:inherit my-font-lock-constant-face))))
-  '(eglot-semantic-declaration ((t (:underline t :slant normal))))
-  '(eglot-semantic-definition ((t (:underline t :slant normal))))
-  '(eglot-semantic-static ((t (:overline t :slant normal))))
-  '(eglot-semantic-modification ((t (:underline t :slant normal)))))
+  (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
+  (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
+  (my-font-lock-type-parameter-face ((t (:foreground "#66d9ef"))))
+  (my-font-lock-constant-face ((t (:inherit font-lock-property-use-face))))
+  (eglot-semantic-namespace ((t (:foreground "#fb3d81"))))
+  (eglot-semantic-type ((t (:inherit my-font-lock-type-face))))
+  (eglot-semantic-class ((t (:inherit elisp-symbol-role))))
+  (eglot-semantic-enum ((t (:inherit elisp-major-mode-name))))
+  (eglot-semantic-enumMember ((t (:inherit my-font-lock-constant-face :slant italic))))
+  (eglot-semantic-interface ((t (:inherit elisp-symbol-role))))
+  (eglot-semantic-struct ((t (:inherit elisp-major-mode-name))))
+  (eglot-semantic-typeParameter ((t (:inherit my-font-lock-type-parameter-face :slant italic))))
+  (eglot-semantic-lifetime ((t (:inherit font-lock-preprocessor-face :slant italic))))
+  (eglot-semantic-parameter ((t (:inherit my-font-lock-variable-use-face :slant italic))))
+  (eglot-semantic-variable ((t (:inherit font-lock-variable-name-face :slant italic))))
+  (eglot-semantic-property ((t (:inherit font-lock-property-use-face :slant italic))))
+  (eglot-semantic-event ((t (:inherit my-font-lock-type-parameter-face))))
+  (eglot-semantic-function ((t (:inherit font-lock-function-name-face :slant italic))))
+  (eglot-semantic-method ((t (:inherit font-lock-function-name-face :slant italic))))
+  (eglot-semantic-macro ((t (:inherit font-lock-preprocessor-face :slant italic))))
+  (eglot-semantic-generic ((t (:inherit font-lock-variable-name-face :slant italic))))
+  (eglot-semantic-number ((t (:inherit my-font-lock-constant-face))))
+  (eglot-semantic-regexp ((t (:inherit font-lock-preprocessor-face))))
+  (eglot-semantic-operator ((t (:inherit font-lock-keyword-face))))
+  (eglot-semantic-const ((t (:inherit my-font-lock-constant-face))))
+  (eglot-semantic-constant ((t (:inherit my-font-lock-constant-face))))
+  (eglot-semantic-declaration ((t (:underline t :slant normal))))
+  (eglot-semantic-definition ((t (:underline t :slant normal))))
+  (eglot-semantic-static ((t (:overline t :slant normal))))
+  (eglot-semantic-modification ((t (:underline t :slant normal)))))
 
 (use-package! eglot-hover
   :defer t
-  :hook '((eglot-managed-mode . eglot-hover-mode)))
+  :hook ((eglot-managed-mode . eglot-hover-mode)))
 
 ;; KEYBINDINGS
 (defun consult-flymake-project (&rest _)
@@ -407,8 +407,8 @@ and set them for all frames (including the defaults for new frames)."
   :config
   (setq rustic-format-on-save t)
   :custom-face
-  '(rust-ampersand-face ((t (:inherit font-lock-keyword-face))))
-  '(rust-builtin-formatting-macro ((t (:inherit font-lock-preprocessor-face)))))
+  (rust-ampersand-face ((t (:inherit font-lock-keyword-face))))
+  (rust-builtin-formatting-macro ((t (:inherit font-lock-preprocessor-face)))))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
@@ -457,8 +457,8 @@ and set them for all frames (including the defaults for new frames)."
   (add-hook 'haskell-mode-hook #'lsp!)
   (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
   :custom-face
-  '(haskell-operator-face ((t (:inherit haskell-keyword-face))))
-  '(haskell-definition-face ((t (:inherit haskell-keyword-face)))))
+  (haskell-operator-face ((t (:inherit haskell-keyword-face))))
+  (haskell-definition-face ((t (:inherit haskell-keyword-face)))))
 
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
@@ -616,11 +616,11 @@ and set them for all frames (including the defaults for new frames)."
   (aio-defun aio-run (name cmd)
     (letrec ((curr (current-buffer))
              (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
-             (_ (set-buffer temp))
-             (_ (erase-buffer)))
+             (cap (set-buffer temp))
+             (a (erase-buffer)))
       (aio-await (apply #'aio-call-process name (current-buffer) cmd))
       (let ((r (buffer-string))
-            (_ (set-buffer curr)))
+            (cap (set-buffer curr)))
         r)))
 
   (defun eshell/async-command-to-string (cmd &rest args)
@@ -644,7 +644,7 @@ and set them for all frames (including the defaults for new frames)."
 
 (use-package! sideline-flymake
   :after sideline
-  :hook '((flymake-mode . sideline-flymake-setup))
+  :hook ((flymake-mode . sideline-flymake-setup))
   :init
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
                                         ; 'line to show errors on the current line
@@ -709,8 +709,8 @@ and set them for all frames (including the defaults for new frames)."
 (use-package! nushell-ts-mode
   :commands nushell-ts-mode
   :defer t
-  :mode '(("\\.nu\\'" . nushell-ts-mode))
-  :hook '((nushell-ts-mode . lsp!)))
+  :mode (("\\.nu\\'" . nushell-ts-mode))
+  :hook ((nushell-ts-mode . lsp!)))
 (add-hook! nushell-ts-mode (+format-with-lsp-mode -1))
 
 (use-package! semel
