@@ -642,7 +642,7 @@ and set them for all frames (including the defaults for new frames)."
   (setq sideline-force-display-if-exceeds t))
 
 (use-package! sideline-flymake
-  :after sideline
+  :after sideline flymake
   :hook '((flymake-mode . sideline-flymake-setup))
   :init
   (setq sideline-flymake-display-mode 'point) ;; 'point to show errors only on point
