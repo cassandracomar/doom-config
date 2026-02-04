@@ -63,7 +63,9 @@
                                         :hover t
                                         :validate t
                                         :format (:enable t)
-                                        :kubernetesCRDStore (:enable :json-false))
+                                        :kubernetesCRDStore (:enable :json-false)
+                                        :schemas ((kubernetes . "kustomizations/**/*.yaml")
+                                                  (https://www.schemastore.org/kustomization.json . "kustomizations/**/kustomization.yaml")))
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
 
