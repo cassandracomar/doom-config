@@ -641,12 +641,12 @@ and set them for all frames (including the defaults for new frames)."
   :init
   (setq sideline-force-display-if-exceeds t))
 
-(use-package! sideline-flymake
-  :after sideline flymake
-  :hook '((flymake-mode . sideline-mode))
-  :init
-  (setq sideline-flymake-display-mode 'point) 
-  (setq sideline-backends-right '(sideline-flymake)))
+;; (use-package! sideline-flymake
+;;   :after sideline flymake
+;;   :hook '((flymake-mode . sideline-mode))
+;;   :init
+;;   (setq sideline-flymake-display-mode 'line) 
+;;   (setq sideline-backends-right '(sideline-flymake)))
 
 (use-package! eat
   :defer t
