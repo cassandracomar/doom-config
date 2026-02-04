@@ -19,20 +19,17 @@
  terraform-format-on-save t
  eglot-confirm-server-initiated-edits nil
  eglot-workspace-configuration '(:rust-analyzer
-                                 (:procMacro
-                                  (:enable t
-                                   :attributes (:enable t))
+                                 (:procMacro (:enable t :attributes (:enable t))
                                   :lens (:references (:adt (:enable t)
                                                       :enumVariant (:enable t)
                                                       :method (:enable t)
                                                       :trait (:enable t)
                                                       :run (:enable t)
                                                       :updateTest (:enable t)))
-                                  :semanticHighlighting (:punctuation
-                                                         (:enable t
-                                                          :separate (:macro (:bang t))
-                                                          :specialization (:enable t))
-                                                         :operator (:specialization (:enable t)))
+                                  :semanticHighlighting (:punctuation :operator (:specialization (:enable t))
+                                                                      (:enable t
+                                                                       :separate (:macro (:bang t))
+                                                                       :specialization (:enable t)))
                                   :inlayHints (:bindingModeHints (:enable t)
                                                :chainingHints (:enable t)
                                                :closingBraceHints (:enable t)
