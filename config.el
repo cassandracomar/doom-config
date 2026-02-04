@@ -190,7 +190,7 @@
   (add-to-list 'eglot-semantic-token-types "generic")
   (add-to-list 'eglot-semantic-token-types "constant")
   (setq eglot-semantic-token-modifiers (remove "defaultLibrary" eglot-semantic-token-modifiers))
-  (set-popup-rule! "^\\*eglot-help" :side 'right)
+  ;; (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
   :custom-face
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
   (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
