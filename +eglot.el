@@ -65,7 +65,7 @@
                                         :format (:enable t)
                                         :kubernetesCRDStore (:enable t)
                                         :schemas ((kubernetes . "{kustomizations,clusters,gitops}/**/*.{yaml,yml}")
-                                                  (https://www.schemastore.org/kustomization.json . "{kustomizations,cluster,gitops}/**/kustomization.{yaml,yml}"))
+                                                  (https://www.schemastore.org/kustomization.json . "kustomization.{yaml,yml}"))
                                         :maxItemsComputed 5000)
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
