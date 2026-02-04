@@ -68,7 +68,6 @@
                                                   (https://www.schemastore.org/kustomization.json . "{kustomizations,cluster,gitops}/**/kustomization.{yaml,yml}"))
                                         :maxItemsComputed 5000)
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
-(set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
 
 (defvar +eglot-post-load-hook
   '()
