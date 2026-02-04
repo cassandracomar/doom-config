@@ -51,6 +51,7 @@
 (setq display-line-numbers-type t)
 (menu-bar-mode -1)
 (setq confirm-kill-emacs nil)
+(setq fill-column 120)
 
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;
@@ -168,17 +169,16 @@ and set them for all frames (including the defaults for new frames)."
         doom-modeline-hud t))
 
 (use-package! spacious-padding
-  :demand t
   :hook '((after-init . spacious-padding-mode))
   :init
   (setq spacious-padding-widths
-        '( :internal-border-width 5
-           :header-line-width 4
-           :left-fringe-width 0
-           :mode-line-width 0
-           :tab-width 0
-           :right-divider-width 5
-           :scroll-bar-width 2)))
+        '(:internal-border-width 5
+          :header-line-width 4
+          :left-fringe-width 0
+          :mode-line-width 0
+          :tab-width 0
+          :right-divider-width 5
+          :scroll-bar-width 2)))
 
 (use-package! eglot
   :init
@@ -412,33 +412,12 @@ and set them for all frames (including the defaults for new frames)."
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
 
-(use-package! nix-mode
-  :defer t
-  :init
-  (defun nix--prefix-bounds-override ()
-    "Get bounds of Nix attribute path at point as a (BEG . END) pair, or nil."
-    (save-excursion
-      (when (<= (skip-chars-backward "a-zA-Z0-9'\\-_\\.") 0)
-        (cons (point) (+ (point) (skip-chars-forward "a-zA-Z0-9'\\-_\\."))))))
-  (advice-add #'nix--prefix-bounds :override #'nix--prefix-bounds-override)
-  :config
-  (add-hook! before-save-hook #'nix-format-before-save)
-  (map! :map nix-repl-mode-map
-        :nvi
-        "<tab>" #'completion-at-point
-        "TAB" #'completion-at-point)
-  (add-to-list 'markdown-code-lang-modes '("nix" . nix-mode))
-  :custom
-  (nix-nixfmt-bin "nix fmt -- -"))
-
 (use-package! markdown-mode
   :defer t
+  :mode "\\.md\\'"
+  :hook '((markdown-mode . auto-fill-mode))
   :config
-  (setq fill-column 120)
-  (auto-fill-mode))
-(add-hook! evil-markdown-mode
-  (setq fill-column 120)
-  (auto-fill-mode))
+  (add-to-list 'markdown-code-lang-modes '("nix" . nix-ts-mode)))
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 
@@ -480,7 +459,7 @@ and set them for all frames (including the defaults for new frames)."
     :type "::")
   (+format-with-lsp-mode))
 
-;;                                         ; yaml-mode
+;; yaml-mode
 (after! yaml-mode
   (add-to-list 'auto-mode-alist '("\\.yaml\\.j2\\'" . yaml-mode))
   (set-company-backend! 'yaml-mode 'company-capf)
@@ -507,8 +486,8 @@ and set them for all frames (including the defaults for new frames)."
                                         ; jsonnett
 (use-package! jsonnet-mode
   :defer t
-  :mode "(\\.libsonnet|\\.jsonnet)")
-(add-hook! jsonnet-mode #'lsp!)
+  :mode "(\\.libsonnet|\\.jsonnet)"
+  :hook '((jsonnet-mode . lsp!)))
 
 (load! "+eshell")
 
