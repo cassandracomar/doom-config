@@ -729,11 +729,12 @@ and set them for all frames (including the defaults for new frames)."
   :custom
   (rego-format-at-save nil))
 (use-package! semel
+  :command semel-mode
   :defer t
-  :hook ((emacs-lisp-mode . semel-mode)
-         (emacs-lisp-mode . cursor-sensor-mode))
   :init
   (setq semel-add-help-echo nil))
+(add-hook 'emacs-lisp-mode-hook #'semel-mode)
+(add-hook 'emacs-lisp-mode-hook #'cursor-sensor-mode)
 
 
 (use-package! mermaid-mode
