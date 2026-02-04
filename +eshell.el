@@ -146,6 +146,7 @@
   (add-hook 'eshell-mode-hook #'+eshell-sync-dir-buffer-name))
 
 (use-package! tramp
+  :defer t
   :config
   ;; (eval-when-compile (require 'tramp))
   ;; Define a rsyncx method analogous to scpx
@@ -184,9 +185,11 @@
     (_ (apply #'eshell-external-command command args))))
 
 (use-package! fish-completion
+  :defer t
   :config
   (setq fish-completion-fallback-on-bash-p nil))
 (use-package! eshell-git-prompt
+  :defer t
   :after eshell
   :config
   (defun eshell-git-prompt-powerline2 ()
@@ -248,6 +251,7 @@
   (eshell-git-prompt-use-theme 'powerline2))
 
 (use-package! awscli-capf
+  :defer t
   :after eshell)
 
 (add-hook! eshell-mode

@@ -50,6 +50,7 @@
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
 (setq display-line-numbers-type t)
 (menu-bar-mode -1)
+(setq confirm-kill-emacs nil)
 
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;
@@ -115,31 +116,6 @@
   (evil-terminal-cursor-changer-activate))
 
 ;; utils
-(require 'aio)
-(defun aio-call-process (name buffer cmd)
-  (let ((process (apply #'start-process name buffer "bash" (list "-c" cmd)))
-        (promise (aio-promise))
-        (s (aio-make-select)))
-    (aio-select-add
-     s
-     (prog1 promise
-       (setf (process-sentinel process)
-             (lambda (_ status) (aio-resolve promise (lambda () status))))))))
-
-(aio-defun aio-run (name cmd)
-  (interactive)
-  (letrec ((curr (current-buffer))
-           (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
-           (cap (set-buffer temp))
-           (a (erase-buffer)))
-    (aio-await (apply #'aio-call-process name (current-buffer) cmd))
-    (let ((r (buffer-string))
-          (cap (set-buffer curr)))
-      r)))
-
-(defun eshell/async-command-to-string (cmd &rest args)
-  (aio-wait-for (aio-run cmd (list (combine-and-quote-strings (cons cmd args) " ")))))
-
 (defface gnus-group-news-low-empty
   '((((class color)
       (background dark))
@@ -206,7 +182,7 @@ and set them for all frames (including the defaults for new frames)."
            :scroll-bar-width 2)))
 
 (use-package! eglot
-  :demand t
+  :defer t
   :init
   (load! "+eglot")
   :config
@@ -399,7 +375,7 @@ and set them for all frames (including the defaults for new frames)."
   (add-to-list 'projectile-globally-ignored-directories "dist-newstyle"))
 
 (use-package! consult-projectile
-  :defer nil)
+  :demand t)
 
 ;; configure evil
                                         ; make evil-search-word look for symbol rather than word boundaries
@@ -417,6 +393,7 @@ and set them for all frames (including the defaults for new frames)."
 (add-hook! 'after-save-hook #'magit-after-save-refresh-status)
 
 (use-package! forge
+  :defer t
   :config
   (push '("git.drwholdings.com"               ; GITHOST
           "git.drwholdings.com/api/v3"           ; APIHOST
@@ -460,6 +437,7 @@ and set them for all frames (including the defaults for new frames)."
   (nix-nixfmt-bin "nix fmt -- -"))
 
 (use-package! markdown-mode
+  :defer t
   :config
   (setq fill-column 120)
   (auto-fill-mode))
@@ -478,6 +456,7 @@ and set them for all frames (including the defaults for new frames)."
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
 
 (use-package! haskell-mode
+  :defer t
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
   (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
@@ -542,11 +521,10 @@ and set them for all frames (including the defaults for new frames)."
 (defun ex-save-kill-buffer-and-close ()
   (interactive)
   (save-buffer)
-  (kill-this-buffer)
-  )
+  (kill-this-buffer))
 (evil-ex-define-cmd "q" 'kill-this-buffer)
-(evil-ex-define-cmd "wq" 'ex-save-kill-buffer-and-close )
-(evil-ex-define-cmd "x" 'ex-save-kill-buffer-and-close )
+(evil-ex-define-cmd "wq" 'ex-save-kill-buffer-and-close)
+(evil-ex-define-cmd "x" 'ex-save-kill-buffer-and-close)
 
 (set-eshell-alias!
  "s" "eshell/git status"
@@ -585,11 +563,6 @@ and set them for all frames (including the defaults for new frames)."
     (set-window-buffer currentbuf newbuf)
     (shell newbuf)))
 
-(setq confirm-kill-emacs nil)
-
-;; (use-package! telephone-line
-;;   :config
-;;   (telephone-line-mode 1))
 ;;
 ;; mu4e settings
 (use-package! mu4e
@@ -619,17 +592,6 @@ and set them for all frames (including the defaults for new frames)."
         message-sendmail-extra-arguments '("--read-envelope-from")
         message-send-mail-function #'message-send-mail-with-sendmail
         message-kill-buffer-on-exit t))
-(use-package! debbugs)
-
-(defun +calendar/show-day ()
-  (interactive)
-  (apply #'exco-calfw-show-day (cfw:cursor-to-nearest-date)))
-
-(defun +calendar/open ()
-  (interactive)
-  (cfw:open-calendar-buffer
-   :contents-sources
-   (list (cfw:cal-create-source "Cyan"))))
 
 (map! :map cfw:calendar-mode-map :m "m" #'+calendar/show-day)
 (map! :leader "c o" #'+calendar/open)
@@ -638,6 +600,7 @@ and set them for all frames (including the defaults for new frames)."
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
 (use-package! protobuf-mode
+  :defer t
   :mode "\\.proto\\'")
 
 (use-package! envrc
@@ -646,6 +609,30 @@ and set them for all frames (including the defaults for new frames)."
   (envrc-global-mode))
 
 (after! eshell
+  (require 'aio)
+  (defun aio-call-process (name buffer cmd)
+    (let ((process (apply #'start-process name buffer "bash" (list "-c" cmd)))
+          (promise (aio-promise))
+          (s (aio-make-select)))
+      (aio-select-add
+       s
+       (prog1 promise
+         (setf (process-sentinel process)
+               (lambda (_ status) (aio-resolve promise (lambda () status))))))))
+
+  (aio-defun aio-run (name cmd)
+    (interactive)
+    (letrec ((curr (current-buffer))
+             (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
+             (cap (set-buffer temp))
+             (a (erase-buffer)))
+      (aio-await (apply #'aio-call-process name (current-buffer) cmd))
+      (let ((r (buffer-string))
+            (cap (set-buffer curr)))
+        r)))
+
+  (defun eshell/async-command-to-string (cmd &rest args)
+    (aio-wait-for (aio-run cmd (list (combine-and-quote-strings (cons cmd args) " ")))))
 
   (defun +esh-help/async-man-string (cmd)
     "Return help string for the shell command CMD."
@@ -672,7 +659,7 @@ and set them for all frames (including the defaults for new frames)."
   (setq sideline-backends-right '(sideline-flymake)))
 
 (use-package! eat
-  :demand t
+  :defer t
   :init
   (load! "+eat-nushell")
   :config
@@ -728,29 +715,32 @@ and set them for all frames (including the defaults for new frames)."
 (map! :leader "<return>" #'+eat/here)
 
 (use-package! nushell-mode
-  :mode (("\\.nu\\'" . nushell-mode))
+  :defer t
+  :mode "\\.nu\\'"
   :config
   (+format-with-lsp-mode -1))
 (use-package! nushell-ts-mode
+  :defer t
   :hook ((nushell-mode . nushell-ts-mode)))
 (add-hook! nushell-mode #'lsp)
 
 (use-package! rego-mode
   :defer t
-  :mode (("\\.rego\\'" . rego-mode))
+  :mode "\\.rego\\'"
   :init
   (set-eglot-client! rego-mode '("regols"))
   (add-hook! rego-mode #'eglot #'+format-with-lsp-mode)
   :custom
   (rego-format-at-save nil))
 (use-package! semel
+  :defer t
   :custom ((semel-add-help-echo . nil))
-  :init
-  (add-hook! emacs-lisp-mode :append #'semel-mode #'cursor-sensor-mode))
+  :hook ((emacs-lisp-mode . semel-mode)
+         (emacs-lisp-mode . cursor-sensor-mode)))
 
 (use-package! mermaid-mode
   :defer t
-  :mode (("\\.mmd\\'" . mermaid-mode))
+  :mode "\\.mmd\\'"
   :config
   (map! :map mermaid-mode-map
         :localleader
@@ -763,6 +753,7 @@ and set them for all frames (including the defaults for new frames)."
         "d d" #'mermaid-open-doc))
 
 (use-package! ob-mermaid
+  :defer t
   :after ob
   :init
   (add-to-list '+org-babel-mode-alist '(mermaid . mermaid)))
