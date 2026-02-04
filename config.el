@@ -715,10 +715,18 @@ and set them for all frames (including the defaults for new frames)."
   :mode ("\\.nu\\'" . nushell-mode)
   :config
   (+format-with-lsp-mode -1))
+
 (use-package! nushell-ts-mode
   :after nushell-mode
   :hook ((nushell-mode . nushell-ts-mode)
          (nushell-ts-mode . lsp!)))
+
+(use-package! semel
+  :after elisp-mode
+  :config
+  (setq semel-add-help-echo nil)
+  :hook ((emacs-lisp-mode . semel-mode)
+         (emacs-lisp-mode . cursor-sensor-mode)))
 
 (use-package! rego-mode
   :defer t
