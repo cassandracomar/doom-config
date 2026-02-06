@@ -75,6 +75,6 @@
 (package! flycheck-projectile)
 (package! mermaid-mode)
 (package! ob-mermaid)
-(package! eglot-hover :recipe (:repo "https://codeberg.org/therivercass/eglot-hover") :pin "db2381e96507d5d2e25c81ea031e7290a944cb20")
+(package! eglot-hover :recipe (:repo "https://codeberg.org/therivercass/eglot-hover") :pin "f8e9084444bee295e81846cffe93e43a3f7c0e6b")
 (package! elisp-benchmarks)
 (package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "649cb73aa8bcc5fe06869fa09e83992639fcf07b")
