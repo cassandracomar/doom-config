@@ -225,9 +225,9 @@
 
 (set-popup-rule! ".*doom eval.*" :action '(display-buffer-no-window))
 
-;; (use-package! eglot-hover
-;;   :defer t
-;;   :hook '((eglot-managed-mode . eglot-hover-mode)))
+(use-package! eglot-hover
+  :defer t
+  :hook '((eglot-managed-mode . eglot-hover-mode)))
 
 ;; KEYBINDINGS
 (defun consult-flymake-project (&rest _)
