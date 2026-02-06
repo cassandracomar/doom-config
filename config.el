@@ -223,6 +223,8 @@
   (eglot-semantic-static ((t (:overline t :slant normal))))
   (eglot-semantic-modification ((t (:underline t :slant normal)))))
 
+(set-popup-rule! ".*doom eval.*" :action '(display-buffer-no-window))
+
 ;; (use-package! eglot-hover
 ;;   :defer t
 ;;   :hook '((eglot-managed-mode . eglot-hover-mode)))
