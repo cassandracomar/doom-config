@@ -223,9 +223,9 @@
   (eglot-semantic-static ((t (:overline t :slant normal))))
   (eglot-semantic-modification ((t (:underline t :slant normal)))))
 
-(use-package! eglot-hover
-  :defer t
-  :hook '((eglot-managed-mode . eglot-hover-mode)))
+;; (use-package! eglot-hover
+;;   :defer t
+;;   :hook '((eglot-managed-mode . eglot-hover-mode)))
 
 ;; KEYBINDINGS
 (defun consult-flymake-project (&rest _)
