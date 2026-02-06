@@ -13,6 +13,7 @@
 (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
 (set-eglot-client! '(jsonnet-mode :language-id "jsonnet") '("jsonnet-language-server" "-l" "debug") "jsonnet-language-server")
 (set-eglot-client! '(helm-mode :language-id "helm") '("helm_ls" "serve") "helm-ls")
+(set-eglot-client! '(nu-ts-mode) '("nu" "--lsp") "nu")
 
 (setq-default
  jsonrpc-default-request-timeout 30

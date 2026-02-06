@@ -639,12 +639,12 @@
 (map! :leader "RET" #'+eat/here)
 (map! :leader "<return>" #'+eat/here)
 
-(use-package! nushell-ts-mode
-  :commands nushell-ts-mode
+(use-package! nu-ts-mode
+  :commands nu-ts-mode
   :defer t
   :mode "\\.nu\\'"
-  :hook '((nushell-ts-mode . lsp!)))
-(add-hook! nushell-ts-mode (+format-with-lsp-mode -1))
+  :hook '((nu-ts-mode . lsp!)))
+(add-hook! nu-ts-mode (+format-with-lsp-mode -1))
 
 (use-package! semel
   :after elisp-mode
