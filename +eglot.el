@@ -53,7 +53,9 @@
                                                                           :hideNamedConstructor t))
                                                  :completion (:termSearch (:enable t))
                                                  :hover (:actions (:references (:enable t)))
-                                                 :typing (:triggerChars "=.{(><"))
+                                                 :typing (:triggerChars "=.{(><")
+                                                 :workspace (:symbol (:search (:scope "workspace_and_dependencies")
+                                                                              (:kind "all_symbols"))))
                                  :nixd (:formatting (:command ["nix" "fmt" "--"])
                                         :nixpkgs (:expr "import (builtins.getFlake \"github:nixos/nixpkgs\") {}")
                                         :options
