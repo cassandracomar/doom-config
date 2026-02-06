@@ -18,43 +18,42 @@
  jsonrpc-default-request-timeout 30
  terraform-format-on-save t
  eglot-confirm-server-initiated-edits nil
- eglot-workspace-configuration '(:rust-analyzer
-                                 (:procMacro (:enable t :attributes (:enable t))
-                                  :lens (:references (:adt (:enable t)
-                                                      :enumVariant (:enable t)
-                                                      :method (:enable t)
-                                                      :trait (:enable t)
-                                                      :run (:enable t)
-                                                      :updateTest (:enable t)))
-                                  :semanticHighlighting (:comments (:enable t)
-                                                         :doc (:comment (:inject (:enable t)))
-                                                         :operator (:specialization (:enable t))
-                                                         :punctuation (:enable t
-                                                                       :separate (:macro (:bang t))
-                                                                       :specialization (:enable t)))
-                                  :inlayHints (:bindingModeHints (:enable t)
-                                               :chainingHints (:enable t)
-                                               :closingBraceHints (:enable t)
-                                               :closureCaptureHints (:enable t)
-                                               :closureReturnTypeHints (:enable t)
-                                               :discriminantHints (:enable t)
-                                               :expressionAdjustmentHints (:enable t)
-                                               :genericParameterHints (:const (:enable t)
-                                                                       :lifetime (:enable t)
-                                                                       :type (:enable t))
-                                               :implicitDrops (:enable t)
-                                               :implicitSizedBoundHints (:enable t)
-                                               :impliedDynTraitHints (:enable t)
-                                               :lifetimeElisionHints (:enable t
-                                                                      :useParameterNames t)
-                                               :parameterHints (:enable t
-                                                                :missingArguments (:enable t))
-                                               :typeHints (:enable t
-                                                           :hideInferredTypes t
-                                                           :hideNamedConstructor t))
-                                  :completion (:termSearch :enable t)
-                                  :hover (:actions :references :enable t)
-                                  :typing (:triggerChars "=.{(><"))
+ eglot-workspace-configuration '(:rust-analyzer (:procMacro (:enable t :attributes (:enable t))
+                                                 :lens (:references (:adt (:enable t)
+                                                                     :enumVariant (:enable t)
+                                                                     :method (:enable t)
+                                                                     :trait (:enable t)
+                                                                     :run (:enable t)
+                                                                     :updateTest (:enable t)))
+                                                 :semanticHighlighting (:comments (:enable t)
+                                                                        :doc (:comment (:inject (:enable t)))
+                                                                        :operator (:specialization (:enable t))
+                                                                        :punctuation (:enable t
+                                                                                      :separate (:macro (:bang t))
+                                                                                      :specialization (:enable t)))
+                                                 :inlayHints (:bindingModeHints (:enable t)
+                                                              :chainingHints (:enable t)
+                                                              :closingBraceHints (:enable t)
+                                                              :closureCaptureHints (:enable t)
+                                                              :closureReturnTypeHints (:enable t)
+                                                              :discriminantHints (:enable t)
+                                                              :expressionAdjustmentHints (:enable t)
+                                                              :genericParameterHints (:const (:enable t)
+                                                                                      :lifetime (:enable t)
+                                                                                      :type (:enable t))
+                                                              :implicitDrops (:enable t)
+                                                              :implicitSizedBoundHints (:enable t)
+                                                              :impliedDynTraitHints (:enable t)
+                                                              :lifetimeElisionHints (:enable t
+                                                                                     :useParameterNames t)
+                                                              :parameterHints (:enable t
+                                                                               :missingArguments (:enable t))
+                                                              :typeHints (:enable t
+                                                                          :hideInferredTypes t
+                                                                          :hideNamedConstructor t))
+                                                 :completion (:termSearch :enable t)
+                                                 :hover (:actions :references :enable t)
+                                                 :typing (:triggerChars "=.{(><"))
                                  :nixd (:formatting (:command ["nix" "fmt" "--"])
                                         :nixpkgs (:expr "import (builtins.getFlake \"github:nixos/nixpkgs\") {}")
                                         :options
