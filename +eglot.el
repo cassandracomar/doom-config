@@ -51,8 +51,8 @@
                                                               :typeHints (:enable t
                                                                           :hideInferredTypes t
                                                                           :hideNamedConstructor t))
-                                                 :completion (:termSearch :enable t)
-                                                 :hover (:actions :references :enable t)
+                                                 :completion (:termSearch (:enable t))
+                                                 :hover (:actions (:references (:enable t)))
                                                  :typing (:triggerChars "=.{(><"))
                                  :nixd (:formatting (:command ["nix" "fmt" "--"])
                                         :nixpkgs (:expr "import (builtins.getFlake \"github:nixos/nixpkgs\") {}")
