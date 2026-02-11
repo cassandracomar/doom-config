@@ -100,6 +100,7 @@
 (setq! forge-database-connector 'sqlite-builtin)
 
 ;; set up env vars from encrypted sources
+(setq auth-sources (list (format "%s/.authinfo.gpg" (getenv "HOME")) (format "%s/.authinfo" (getenv "HOME"))))
 (setq epa-file-encrypt-to '("cass@ndra.io"))
 (setq epa-file-select-keys nil)
 (setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
