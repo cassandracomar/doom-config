@@ -708,7 +708,7 @@
   (set-face-attribute 'notmuch-search-non-matching-authors nil :inherit 'notmuch-tree-match-author-face)
   (set-face-attribute 'notmuch-tree-no-match-author-face nil :inherit 'notmuch-tree-match-author-face)
   (set-face-attribute 'notmuch-tree-no-match-date-face nil :inherit 'notmuch-tree-match-date-face)
-  (set-face-attribute 'notmuch-tree-no-match-tag-face nil :inherit 'notmuch-tree-match-tag-face)))
+  (set-face-attribute 'notmuch-tree-no-match-tag-face nil :inherit 'notmuch-tree-match-tag-face))
 
 (after! corfu
   ;; See
