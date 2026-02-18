@@ -568,6 +568,8 @@
   (setq +notmuch-sync-backend 'mbsync
         +notmuch-mail-folder "~/.local/share/maildir"))
 (use-package! notmuch-multi
+  :commands =notmuch notmuch
+  :defer t
   :config
   (map! :map notmuch-search-mode-map
         :desc "Archive the currently selected thread or region. #pim" "A" #'notmuch-search-archive-thread
