@@ -570,6 +570,7 @@
   :commands =notmuch notmuch
   :defer t
   :config
+  (set-popup-rule! "^\\*notmuch-hello" :size 100)
   (setq +notmuch-sync-backend 'mbsync
         +notmuch-mail-folder "~/.local/share/maildir"))
 (use-package! notmuch-multi
