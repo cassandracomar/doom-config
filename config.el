@@ -749,6 +749,7 @@
 
 (use-package! eat
   :defer t
+  :commands +eat/here eat
   :init
   (load! "+eat-nushell")
   (setq process-adaptive-read-buffering t)
