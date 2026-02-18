@@ -161,6 +161,8 @@
           :scroll-bar-width 2)))
 
 (use-package! eglot
+  :defer t
+  :commands eglot eglot-ensure lsp!
   :init
   (load! "+eglot")
   :config
@@ -445,6 +447,7 @@
 
 ;; yaml-mode
 (use-package! yaml-ts-mode
+  :defer t
   :commands yaml-ts-mode
   :mode "\\.yaml\\(\\.j2\\)?\\'"
   :config
@@ -654,26 +657,7 @@
   ;; - https://github.com/doomemacs/doomemacs/issues/7747
   ;; - https://github.com/minad/corfu/issues/121
   ;; - https://nmbug.notmuchmail.org/nmweb/show/871qzfzgic.fsf%40gmail.com
-
   (add-hook 'notmuch-message-mode-hook (lambda () (corfu-mode -1))))
-
-;; See
-;; - https://github.com/doomemacs/doomemacs/issues/7747
-;; - https://github.com/minad/corfu/issues/121
-;; - https://nmbug.notmuchmail.org/nmweb/show/871qzfzgic.fsf%40gmail.com
-(if (modulep! :completion corfu)
-    (after! corfu
-      (add-hook 'notmuch-message-mode-hook (lambda () (corfu-mode -1))))
-  (progn
-    (defun pim-pop-from-message-completion()
-      "Some bug with notmuch address completion due to
-having `notmuch-address-expand-name'in the
-`message--old-style-completion-functions' variable.
-
-See https://github.com/doomemacs/doomemacs/issues/7747#issuecomment-2265358795"
-      (pop message--old-style-completion-functions))
-
-    (advice-add 'message-completion-function :after #'pim-pop-from-message-completion)))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
@@ -689,17 +673,20 @@ See https://github.com/doomemacs/doomemacs/issues/7747#issuecomment-2265358795"
 
 (use-package! sideline
   :after eglot flymake
+  :defer t
   :hook '((flymake-mode . sideline-mode))
   :init
   (setq sideline-force-display-if-exceeds t))
 
 (use-package! sideline-flymake
   :after sideline flymake
+  :defer t
   :init
   (setq sideline-flymake-display-mode 'point))
 
 (use-package! sideline-eglot
   :after sideline eglot
+  :defer t
   :init
   (setq sideline-backends-right '(sideline-flymake sideline-eglot)))
 
@@ -771,6 +758,7 @@ See https://github.com/doomemacs/doomemacs/issues/7747#issuecomment-2265358795"
 
 (use-package! semel
   :after elisp-mode
+  :defer t
   :config
   (setq semel-add-help-echo nil)
   :hook '((emacs-lisp-mode . semel-mode)
