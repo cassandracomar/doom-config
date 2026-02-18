@@ -645,13 +645,62 @@
                                  (vertical-tee . "├")
                                  (bottom . "└")
                                  ;; (arrow . "►")
-                                 (arrow . "─►")))
-  (set-face-attribute 'notmuch-tag-unread nil :inherit 'warning)
-  (set-face-attribute 'notmuch-search-matching-authors nil :inherit 'notmuch-tree-match-author-face)
-  (set-face-attribute 'notmuch-search-non-matching-authors nil :inherit 'notmuch-tree-match-author-face)
-  (set-face-attribute 'notmuch-tree-no-match-author-face nil :inherit 'notmuch-tree-match-author-face)
-  (set-face-attribute 'notmuch-tree-no-match-date-face nil :inherit 'notmuch-tree-match-date-face)
-  (set-face-attribute 'notmuch-tree-no-match-tag-face nil :inherit 'notmuch-tree-match-tag-face))
+                                 (arrow . "─►"))
+        pi-notmuch-saved-searches `(( :name "Inbox"
+                                      :query "tag:inbox"
+                                      :sort-order newest-first
+                                      :search-type tree
+                                      :key ,(kbd "i"))
+                                    (:name "Unread Inbox"
+                                     :query "tag:unread and tag:inbox"
+                                     :sort-order newest-first
+                                     :search-type tree
+                                     :key ,(kbd "u"))
+                                    (:name "Unread"
+                                     :query "tag:unread"
+                                     :sort-order newest-first
+                                     :search-type tree
+                                     :key ,(kbd "U"))
+                                    (:name "All"
+                                     :query "*"
+                                     :sort-order newest-first
+                                     :search-type tree
+                                     :key ,(kbd "a"))
+                                    (:name "Archived"
+                                     :query "tag:archived"
+                                     :sort-order newest-first
+                                     :search-type tree
+                                     :key ,(kbd "A"))
+                                    (:name "Important"
+                                     :query "tag:important"
+                                     :sort-order newest-first
+                                     :search-type tree
+                                     :key ,(kbd "I"))
+                                    (:name "Starred"
+                                     :query "tag:flagged"
+                                     :sort-order newest-first
+                                     :search-type tree
+                                     :key ,(kbd "s"))))
+  (notmuch-multi-accounts-saved-searches-set `((:account (:name "mountclare.net" :query "tag:mountclare.net" :key-prefix "m")
+                                                :searches ,(append pi-notmuch-saved-searches
+                                                                   `((:name "Unclassified"
+                                                                      :query "folder:cass@mountclare.net/inbox AND tag:read AND NOT tag:expire"
+                                                                      :sort-order newest-first
+                                                                      :search-type tree
+                                                                      :key ,(kbd "x")))))
+                                               (:account (:name "nie.rs" :query "tag:nie.rs" :key-prefix "n")
+                                                :searches ,(append pi-notmuch-saved-searches
+                                                                   `((:name "Unclassified"
+                                                                      :query "folder:cass@nie.rs/inbox AND tag:read AND NOT tag:expire"
+                                                                      :sort-order newest-first
+                                                                      :search-type tree
+                                                                      :key ,(kbd "x"))))))))
+(set-face-attribute 'notmuch-tag-unread nil :inherit 'warning)
+(set-face-attribute 'notmuch-search-matching-authors nil :inherit 'notmuch-tree-match-author-face)
+(set-face-attribute 'notmuch-search-non-matching-authors nil :inherit 'notmuch-tree-match-author-face)
+(set-face-attribute 'notmuch-tree-no-match-author-face nil :inherit 'notmuch-tree-match-author-face)
+(set-face-attribute 'notmuch-tree-no-match-date-face nil :inherit 'notmuch-tree-match-date-face)
+(set-face-attribute 'notmuch-tree-no-match-tag-face nil :inherit 'notmuch-tree-match-tag-face))
 
 (after! corfu
   ;; See
