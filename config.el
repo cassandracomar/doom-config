@@ -564,12 +564,13 @@
       message-kill-buffer-on-exit t)
 
 (use-package! notmuch
+  :commands =notmuch notmuch
+  :defer t
   :config
   (setq +notmuch-sync-backend 'mbsync
         +notmuch-mail-folder "~/.local/share/maildir"))
 (use-package! notmuch-multi
-  :commands =notmuch notmuch
-  :defer t
+  :after notmuch
   :config
   (map! :map notmuch-search-mode-map
         :desc "Archive the currently selected thread or region. #pim" "A" #'notmuch-search-archive-thread
@@ -640,14 +641,13 @@
                                  (vertical-tee . "├")
                                  (bottom . "└")
                                  ;; (arrow . "►")
-                                 (arrow . "─►")
-                                 )))
-(set-face-attribute 'notmuch-tag-unread nil :inherit 'warning)
-(set-face-attribute 'notmuch-search-matching-authors nil :inherit 'notmuch-tree-match-author-face)
-(set-face-attribute 'notmuch-search-non-matching-authors nil :inherit 'notmuch-tree-match-author-face)
-(set-face-attribute 'notmuch-tree-no-match-author-face nil :inherit 'notmuch-tree-match-author-face)
-(set-face-attribute 'notmuch-tree-no-match-date-face nil :inherit 'notmuch-tree-match-date-face)
-(set-face-attribute 'notmuch-tree-no-match-tag-face nil :inherit 'notmuch-tree-match-tag-face))
+                                 (arrow . "─►")))
+  (set-face-attribute 'notmuch-tag-unread nil :inherit 'warning)
+  (set-face-attribute 'notmuch-search-matching-authors nil :inherit 'notmuch-tree-match-author-face)
+  (set-face-attribute 'notmuch-search-non-matching-authors nil :inherit 'notmuch-tree-match-author-face)
+  (set-face-attribute 'notmuch-tree-no-match-author-face nil :inherit 'notmuch-tree-match-author-face)
+  (set-face-attribute 'notmuch-tree-no-match-date-face nil :inherit 'notmuch-tree-match-date-face)
+  (set-face-attribute 'notmuch-tree-no-match-tag-face nil :inherit 'notmuch-tree-match-tag-face))
 
 (after! corfu
   ;; See
