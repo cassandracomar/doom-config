@@ -555,13 +555,17 @@
   (mu4e-update-interval 60)
   (mu4e-attachment-dir "~/downloads")
   (mu4e-change-filenames-when-moving t))
-(after! mu4e
-  (setq sendmail-program (executable-find "msmtp")
-        send-mail-function #'smtpmail-send-it
-        message-sendmail-f-is-evil t
-        message-sendmail-extra-arguments '("--read-envelope-from")
-        message-send-mail-function #'message-send-mail-with-sendmail
-        message-kill-buffer-on-exit t))
+
+(setq sendmail-program (executable-find "msmtp")
+      send-mail-function #'smtpmail-send-it
+      message-sendmail-f-is-evil t
+      message-sendmail-extra-arguments '("--read-envelope-from")
+      message-send-mail-function #'message-send-mail-with-sendmail
+      message-kill-buffer-on-exit t)
+(use-package! notmuch
+  :config
+  (setq +notmuch-sync-backend 'mbsync
+        +notmuch-mail-folder "~/.local/share/maildir"))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
