@@ -530,7 +530,7 @@
   :defer t
   :config
   (set-email-account!
-   "cass@nie.rs"
+   "nie.rs"
    '((user-full-name . "Cassandra Comar")
      (user-mail-address . "cass@nie.rs")
      (mtpmail-smtp-user . "cass@nie.rs")
@@ -539,7 +539,7 @@
      (mu4e-trash-folder      . "/cass@nie.rs/trash")
      (mu4e-refile-folder     . "/cass@nie.rs/archive")))
   (set-email-account!
-   "cass@mountclare.net"
+   "mountclare.net"
    '((user-full-name . "Cassandra Comar")
      (user-mail-address . "cass@mountclare.net")
      (mtpmail-smtp-user . "cass@mountclare.net")
