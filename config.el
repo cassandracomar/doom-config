@@ -694,7 +694,14 @@
                                                                       :query "folder:cass@nie.rs/inbox AND tag:read AND NOT tag:expire"
                                                                       :sort-order newest-first
                                                                       :search-type tree
-                                                                      :key ,(kbd "x"))))))))
+                                                                      :key ,(kbd "y")))))
+                                               (:account (:name "drwholdings.com" :query "tag:drwholdings.com" :key-prefix "d")
+                                                :searches ,(append pi-notmuch-saved-searches
+                                                                   `((:name "Unclassified"
+                                                                      :query "folder:drwholdings.com/inbox AND tag:read AND NOT tag:expire"
+                                                                      :sort-order newest-first
+                                                                      :search-type tree
+                                                                      :key ,(kbd "z"))))))))
 (set-face-attribute 'notmuch-tag-unread nil :inherit 'warning)
 (set-face-attribute 'notmuch-search-matching-authors nil :inherit 'notmuch-tree-match-author-face)
 (set-face-attribute 'notmuch-search-non-matching-authors nil :inherit 'notmuch-tree-match-author-face)
