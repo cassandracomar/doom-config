@@ -827,7 +827,7 @@
   :defer t
   :mode "\\.rego\\'"
   :init
-  (set-eglot-client! rego-mode '("regols"))
+  (set-eglot-client! '(rego-mode) '("regols"))
   (add-hook! rego-mode #'eglot #'+format-with-lsp-mode)
   :custom
   (rego-format-at-save nil))
