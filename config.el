@@ -636,7 +636,7 @@
                               ("important" (propertize tag 'face 'notmuch-tag-flagged) "❗")
                               ("passed" (propertize tag 'face 'notmuch-tag-flagged) "P")
                               ("replied" (propertize tag 'face 'notmuch-tag-flagged) "R")
-                              ("spam" (propertize tag 'face 'notmuch-tag-flagged) "🕱")
+                              ("spam" (propertize tag 'face 'notmuch-tag-flagged) "🐟")
                               ("signed" (propertize tag 'face 'notmuch-tag-flagged) "🔒"))
         notmuch-thread-symbols '((prefix . " ")
                                  (top . "─")
@@ -646,11 +646,11 @@
                                  (bottom . "└")
                                  ;; (arrow . "►")
                                  (arrow . "─►"))
-        pi-notmuch-saved-searches `(( :name "Inbox"
-                                      :query "tag:inbox"
-                                      :sort-order newest-first
-                                      :search-type tree
-                                      :key ,(kbd "i"))
+        pi-notmuch-saved-searches `((:name "Inbox"
+                                     :query "tag:inbox"
+                                     :sort-order newest-first
+                                     :search-type tree
+                                     :key ,(kbd "i"))
                                     (:name "Unread Inbox"
                                      :query "tag:unread and tag:inbox"
                                      :sort-order newest-first
@@ -695,7 +695,7 @@
                                                                       :sort-order newest-first
                                                                       :search-type tree
                                                                       :key ,(kbd "y")))))
-                                               (:account (:name "drwholdings.com" :query "tag:drwholdings.com" :key-prefix "d")
+                                               (:account (:name "drwholdings.com" :query "tag:drwholdings.com" :key-prefix "o")
                                                 :searches ,(append pi-notmuch-saved-searches
                                                                    `((:name "Unclassified"
                                                                       :query "folder:drwholdings.com/Inbox AND tag:read AND NOT tag:expire"
