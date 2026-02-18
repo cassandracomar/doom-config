@@ -16,8 +16,7 @@
 
 (setq! package-native-compile t)
 (setq! native-comp-jit-compilation nil)
-(doom! (source :name pimacs :repo "pivaldi/pimacs" :pin "19d31b3a15061c3ab572411d958dc934b252727c")
-       :input
+(doom! :input
        ;;chinese
        ;;japanese
 
@@ -181,6 +180,4 @@
 
        :config
        ;;literate
-       (default +bindings +smartparens)
-       :pimacs
-       notmuch)
+       (default +bindings +smartparens))
