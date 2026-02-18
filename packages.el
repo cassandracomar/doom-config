@@ -50,7 +50,6 @@
 ;; our package manager can't deal with; see raxod502/straight.el#279)
                                         ;(package! builtin-package :recipe (:branch "develop"))
 
-(package! code-review :disable t)
 (package! docker-tramp :disable t)
 (package! flymake-popon :disable t)
 ;; version bumps
