@@ -44,7 +44,9 @@
       :desc "complete addresses" "<tab>" #'completion-at-point)
 
 (setq notmuch-hello-sections '(notmuch-multi-hello-insert-accounts-searches
-                               notmuch-hello-insert-alltags)
+                               notmuch-hello-insert-search
+                               notmuch-hello-insert-recent-searches
+                               notmuch-hello-insert-footer)
       notmuch-show-logo nil
       notmuch-column-control t
       notmuch-hello-auto-refresh t
