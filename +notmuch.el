@@ -180,5 +180,5 @@
       (no-cache t))))
 
 (advice-add #'notmuch-company :override #'+notmuch-company-cape)
-
-(add-hook! 'notmuch-message-mode-hook (setq-local completion-at-point-functions (list (cape-company-to-capf 'notmuch-company))))
+(setq-hook! 'notmuch-message-mode-hook
+  completion-at-point-functions (list (cape-company-to-capf 'notmuch-company)))
