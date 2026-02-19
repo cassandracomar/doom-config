@@ -138,46 +138,5 @@
 (set-face-attribute 'notmuch-tree-no-match-date-face nil :inherit 'notmuch-tree-match-date-face)
 (set-face-attribute 'notmuch-tree-no-match-tag-face nil :inherit 'notmuch-tree-match-tag-face)
 
-(defun company-grab (regexp &optional expression limit)
-  (when (looking-back regexp limit)
-    (or (match-string-no-properties (or expression 0)) "")))
-(defun +notmuch-company-cape (command &optional arg &rest _ignore)
-  "`company-mode' completion back-end for `notmuch'."
-  (interactive (list 'interactive))
-  (let ((case-fold-search t)
-	(completion-ignore-case t))
-    (cl-case command
-      (prefix (and (or (derived-mode-p 'message-mode)
-		       (derived-mode-p 'org-msg-edit-mode))
-		   (looking-back
-		    (concat notmuch-address-completion-headers-regexp ".*")
-		    (line-beginning-position))
-                   (setq notmuch-company-last-prefix
-			 (company-grab "[:,][ \t]*\\(.*\\)" 1 (point-at-bol)))))
-      (candidates (cond
-		   ((notmuch-address--harvest-ready)
-		    ;; Update harvested addressed from time to time
-		    (notmuch-address-harvest-trigger)
-		    (notmuch-address-matching arg))
-		   (t
-		    (cons :async
-			  (lambda (callback)
-			    ;; First run quick asynchronous harvest
-			    ;; based on what the user entered so far
-			    (notmuch-address-harvest
-			     arg nil
-			     (lambda (_proc _event)
-			       (funcall callback (notmuch-address-matching arg))
-			       ;; Then start the (potentially long-running)
-			       ;; full asynchronous harvest if necessary
-			       (notmuch-address-harvest-trigger))))))))
-      (match (if (string-match notmuch-company-last-prefix arg)
-		 (match-end 0)
-	       0))
-      (post-completion
-       (run-hook-with-args 'notmuch-address-post-completion-functions arg))
-      (no-cache t))))
-
-(advice-add #'notmuch-company :override #'+notmuch-company-cape)
-
+(load! "+company.el")
 (add-hook! 'notmuch-message-mode-hook (setq-local completion-at-point-functions (list (cape-company-to-capf 'notmuch-company))))
