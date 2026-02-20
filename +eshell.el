@@ -223,66 +223,71 @@
   :defer t
   :config
   (setq fish-completion-fallback-on-bash-p nil))
-(use-package! eshell-git-prompt
+;; (use-package! eshell-git-prompt
+;;   :after eshell
+;;   :config
+;;   (defun eshell-git-prompt-powerline2 ()
+;;     (let ((segment-separator "\xe0b0")
+;;           (branch            "\xe0a0")
+;;           (detached          "\x27a6")
+;;           (cross             "\x2718")
+;;           dir git git-face sign)
+;;       (setq dir
+;;             (propertize
+;;              (concat
+;;               " "
+;;               (unless (eshell-git-prompt-exit-success-p)
+;;                 (concat cross " "))
+;;               (eshell-git-prompt-powerline-dir)
+;;               " ")
+;;              'face 'eshell-git-prompt-powerline-dir-face))
+;;       (setq git
+;;             (when (eshell-git-prompt--git-root-dir)
+;;               (setq git-face
+;;                     (if (eshell-git-prompt--collect-status)
+;;                         'eshell-git-prompt-powerline-not-clean-face
+;;                       'eshell-git-prompt-powerline-clean-face))
+;;               (setq eshell-git-prompt-branch-name (eshell-git-prompt--branch-name))
+;;               (propertize
+;;                (concat " "
+;;                        (-if-let (branch-name eshell-git-prompt-branch-name)
+;;                            (concat branch " " branch-name)
+;;                          (concat detached " "(eshell-git-prompt--commit-short-sha)))
+;;                        " ")
+;;                'face git-face)))
+;;       (setq sign
+;;             (concat
+;;              (with-face "\n└─" 'eshell-git-prompt-multiline2-secondary-face)
+;;              (if (not (eshell-git-prompt-exit-success-p))
+;;                  (with-face ">>" 'eshell-git-prompt-multiline2-fail-face)
+;;                (with-face ">>" 'eshell-git-prompt-multiline2-secondary-face))))
+;;       (eshell-git-prompt---str-read-only
+;;        (concat
+;;         (with-face "┌─" 'eshell-git-prompt-multiline2-secondary-face)
+;;         (if git
+;;             (concat dir
+;;                     (with-face segment-separator
+;;                       :foreground (face-background 'eshell-git-prompt-powerline-dir-face)
+;;                       :background (face-background git-face))
+;;                     git
+;;                     (with-face segment-separator
+;;                       :foreground (face-background git-face)))
+;;           (concat dir
+;;                   (with-face segment-separator
+;;                     :foreground (face-background 'eshell-git-prompt-powerline-dir-face))))
+;;         sign " "))))
+
+;;   (defconst eshell-git-prompt-powerline2-regexp "^[^$\n]*└─>>  ")
+;;   (add-to-list 'eshell-git-prompt-themes
+;;                '(powerline2
+;;                  eshell-git-prompt-powerline2
+;;                  eshell-git-prompt-powerline2-regexp))
+;;   (eshell-git-prompt-use-theme 'powerline2))
+(use-package! eshell-p10k
   :after eshell
   :config
-  (defun eshell-git-prompt-powerline2 ()
-    (let ((segment-separator "\xe0b0")
-          (branch            "\xe0a0")
-          (detached          "\x27a6")
-          (cross             "\x2718")
-          dir git git-face sign)
-      (setq dir
-            (propertize
-             (concat
-              " "
-              (unless (eshell-git-prompt-exit-success-p)
-                (concat cross " "))
-              (eshell-git-prompt-powerline-dir)
-              " ")
-             'face 'eshell-git-prompt-powerline-dir-face))
-      (setq git
-            (when (eshell-git-prompt--git-root-dir)
-              (setq git-face
-                    (if (eshell-git-prompt--collect-status)
-                        'eshell-git-prompt-powerline-not-clean-face
-                      'eshell-git-prompt-powerline-clean-face))
-              (setq eshell-git-prompt-branch-name (eshell-git-prompt--branch-name))
-              (propertize
-               (concat " "
-                       (-if-let (branch-name eshell-git-prompt-branch-name)
-                           (concat branch " " branch-name)
-                         (concat detached " "(eshell-git-prompt--commit-short-sha)))
-                       " ")
-               'face git-face)))
-      (setq sign
-            (concat
-             (with-face "\n└─" 'eshell-git-prompt-multiline2-secondary-face)
-             (if (not (eshell-git-prompt-exit-success-p))
-                 (with-face ">>" 'eshell-git-prompt-multiline2-fail-face)
-               (with-face ">>" 'eshell-git-prompt-multiline2-secondary-face))))
-      (eshell-git-prompt---str-read-only
-       (concat
-        (with-face "┌─" 'eshell-git-prompt-multiline2-secondary-face)
-        (if git
-            (concat dir
-                    (with-face segment-separator
-                      :foreground (face-background 'eshell-git-prompt-powerline-dir-face)
-                      :background (face-background git-face))
-                    git
-                    (with-face segment-separator
-                      :foreground (face-background git-face)))
-          (concat dir
-                  (with-face segment-separator
-                    :foreground (face-background 'eshell-git-prompt-powerline-dir-face))))
-        sign " "))))
-
-  (defconst eshell-git-prompt-powerline2-regexp "^[^$\n]*└─>>  ")
-  (add-to-list 'eshell-git-prompt-themes
-               '(powerline2
-                 eshell-git-prompt-powerline2
-                 eshell-git-prompt-powerline2-regexp))
-  (eshell-git-prompt-use-theme 'powerline2))
+  (setq eshell-prompt-function #'eshell-p10k-default-prompt
+        eshell-prompt-regexp eshell-p10k-prompt-regex))
 
 (use-package! awscli-capf
   :defer t

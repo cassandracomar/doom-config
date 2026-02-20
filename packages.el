@@ -60,7 +60,7 @@
 (package! fish-completion)
 (package! bash-completion)
 (package! su :recipe (:host github :repo "PythonNut/su.el") :pin "e097f31b3bbb8581d045d0e684d3f129f90e8085")
-(package! eshell-git-prompt)
+(package! eshell-p10k :recipe (:host github :repo "elken/eshell-p10k") :pin "61dcd0602cb7e3c65a58268f119279bc452f9600")
 (package! hercules)
 (package! jsonnet-mode)
 (package! protobuf-mode)
