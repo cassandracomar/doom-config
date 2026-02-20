@@ -163,9 +163,8 @@
 (use-package! eglot
   :defer t
   :commands eglot eglot-ensure lsp!
-  :init
-  (load! "+eglot")
   :config
+  (load! "+eglot")
   (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
 
   (add-hook! 'eglot-managed-mode-hook
