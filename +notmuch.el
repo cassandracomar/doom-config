@@ -1,5 +1,22 @@
 ;;; +notmuch.el --- configure notmuch -*- lexical-binding: t; -*-
 
+(after! consult-notmuch
+  (setq consult-notmuch-export-function #'notmuch-tree)
+  (add-to-list 'embark-exporters-alist '(notmuch-result . consult-notmuch-export)))
+
+(defun +notmuch-find-tag ()
+  (interactive)
+  (let* ((tag (notmuch-select-tag-with-completion "notmuch tag: "))
+         (ftag (format "tag:%s" tag))
+         (current (notmuch-tree-get-query))
+         (new (if current (format "%s and %s" ftag current) ftag)))
+    (notmuch-tree new)))
+
+(defun +consult-notmuch-tree ()
+  (interactive)
+  (let ((current (notmuch-tree-get-query)))
+    (consult-notmuch-tree (when current (format "%s and " current)))))
+
 (map! :map notmuch-search-mode-map
       :desc "Archive the currently selected thread or region. #pim" "A" #'notmuch-search-archive-thread
       :desc "Filter or LIMIT the current search results. #pim" "/" #'notmuch-search-filter ; alias for l
@@ -41,7 +58,17 @@
 
       :map notmuch-message-mode-map :ni
       :desc "complete addresses" "TAB" #'completion-at-point
-      :desc "complete addresses" "<tab>" #'completion-at-point)
+      :desc "complete addresses" "<tab>" #'completion-at-point
+
+      :map notmuch-common-keymap
+      :desc "search for a tag" :n "s" #'+notmuch-find-tag
+      :desc "search for a query" :n "S" #'consult-notmuch-tree
+      :desc "search for a query without preview" :n "t" #'notmuch-tree
+
+      :map notmuch-tree-mode-map
+      :desc "search for a tag" :n "s" #'+notmuch-find-tag
+      :desc "search for a query" :n "S" #'+consult-notmuch-tree
+      :desc "search for a query without preview" :n "t" #'notmuch-tree)
 
 (setq notmuch-hello-sections '(notmuch-multi-hello-insert-accounts-searches
                                notmuch-hello-insert-search
@@ -77,12 +104,12 @@
                                ;; (arrow . "►")
                                (arrow . "─►"))
       pi-notmuch-saved-searches `((:name "Inbox"
-                                   :query "tag:inbox"
+                                   :query "tag:inbox and -tag:trash"
                                    :sort-order newest-first
                                    :search-type tree
                                    :key ,(kbd "i"))
                                   (:name "Unread Inbox"
-                                   :query "tag:unread and tag:inbox"
+                                   :query "tag:unread and tag:inbox and -tag:trash"
                                    :sort-order newest-first
                                    :search-type tree
                                    :key ,(kbd "u"))
@@ -111,24 +138,25 @@
                                    :sort-order newest-first
                                    :search-type tree
                                    :key ,(kbd "s"))))
+
 (notmuch-multi-accounts-saved-searches-set `((:account (:name "mountclare.net" :query "tag:mountclare.net" :key-prefix "m")
                                               :searches ,(append pi-notmuch-saved-searches
                                                                  `((:name "Unclassified"
-                                                                    :query "folder:cass@mountclare.net/Inbox AND tag:read AND NOT tag:expire"
+                                                                    :query "tag:mountclare.net AND tag:read AND NOT tag:expire"
                                                                     :sort-order newest-first
                                                                     :search-type tree
                                                                     :key ,(kbd "x")))))
                                              (:account (:name "nie.rs" :query "tag:nie.rs" :key-prefix "n")
                                               :searches ,(append pi-notmuch-saved-searches
                                                                  `((:name "Unclassified"
-                                                                    :query "folder:cass@nie.rs/Inbox AND tag:read AND NOT tag:expire"
+                                                                    :query "tag:nie.rs AND tag:read AND NOT tag:expire"
                                                                     :sort-order newest-first
                                                                     :search-type tree
                                                                     :key ,(kbd "y")))))
                                              (:account (:name "drwholdings.com" :query "tag:drwholdings.com" :key-prefix "o")
                                               :searches ,(append pi-notmuch-saved-searches
                                                                  `((:name "Unclassified"
-                                                                    :query "folder:drwholdings.com/Inbox AND tag:read AND NOT tag:expire"
+                                                                    :query "tag:drwholdings.com AND tag:read AND NOT tag:expire"
                                                                     :sort-order newest-first
                                                                     :search-type tree
                                                                     :key ,(kbd "z")))))))
