@@ -224,7 +224,6 @@
   :config
   (setq fish-completion-fallback-on-bash-p nil))
 (use-package! eshell-git-prompt
-  :defer t
   :after eshell
   :config
   (defun eshell-git-prompt-powerline2 ()
@@ -268,14 +267,14 @@
         (if git
             (concat dir
                     (with-face segment-separator
-                               :foreground (face-background 'eshell-git-prompt-powerline-dir-face)
-                               :background (face-background git-face))
+                      :foreground (face-background 'eshell-git-prompt-powerline-dir-face)
+                      :background (face-background git-face))
                     git
                     (with-face segment-separator
-                               :foreground (face-background git-face)))
+                      :foreground (face-background git-face)))
           (concat dir
                   (with-face segment-separator
-                             :foreground (face-background 'eshell-git-prompt-powerline-dir-face))))
+                    :foreground (face-background 'eshell-git-prompt-powerline-dir-face))))
         sign " "))))
 
   (defconst eshell-git-prompt-powerline2-regexp "^[^$\n]*└─>>  ")
