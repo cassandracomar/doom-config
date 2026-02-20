@@ -268,14 +268,14 @@
         (if git
             (concat dir
                     (with-face segment-separator
-                      :foreground (face-background 'eshell-git-prompt-powerline-dir-face)
-                      :background (face-background git-face))
+                               :foreground (face-background 'eshell-git-prompt-powerline-dir-face)
+                               :background (face-background git-face))
                     git
                     (with-face segment-separator
-                      :foreground (face-background git-face)))
+                               :foreground (face-background git-face)))
           (concat dir
                   (with-face segment-separator
-                    :foreground (face-background 'eshell-git-prompt-powerline-dir-face))))
+                             :foreground (face-background 'eshell-git-prompt-powerline-dir-face))))
         sign " "))))
 
   (defconst eshell-git-prompt-powerline2-regexp "^[^$\n]*└─>>  ")
@@ -300,7 +300,7 @@
 (add-hook! eshell-mode
            #'with-editor-export-git-editor
            #'with-editor-export-editor
-           #'global-fish-completion-mode
+           #'fish-completion-mode
            #'solaire-mode
            ;; #'awscli-capf-add
            #'(lambda () (eshell/alias "git")))
