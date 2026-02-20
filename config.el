@@ -250,7 +250,7 @@
       [return] #'corfu-complete
       [backspace] #'evil-delete-backward-char-and-join
       "DEL" #'evil-delete-backward-char-and-join)
-(map! :gnvi
+(map! :map prog-mode-map :nvi
       "<tab>" #'indent-for-tab-command
       "TAB" #'indent-for-tab-command)
 
