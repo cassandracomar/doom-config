@@ -286,8 +286,33 @@
 (use-package! eshell-p10k
   :after eshell
   :config
+  (defun +eshell-emit-prompt ()
+    "Emit a prompt if eshell is being used interactively."
+    (when (boundp 'ansi-color-context-region)
+      (setq ansi-color-context-region nil))
+    (run-hooks 'eshell-before-prompt-hook)
+    (if (not eshell-prompt-function)
+        (set-marker eshell-last-output-end (point))
+      (let ((prompt (funcall eshell-prompt-function)))
+        (add-text-properties
+         0 (length prompt)
+         (if eshell-highlight-prompt
+             '( read-only t
+                field prompt
+                font-lock-face eshell-prompt
+                front-sticky (read-only field font-lock-face)
+                rear-nonsticky (read-only field font-lock-face))
+           '( field prompt
+              read-only t                         
+              front-sticky (read-only field)      
+              rear-nonsticky (read-only field)))
+         prompt)
+        (eshell-interactive-filter nil prompt)))
+    (run-hooks 'eshell-after-prompt-hook))
+  (advice-add 'eshell-emit-prompt :override #'+eshell-emit-prompt)
   (setq eshell-prompt-function #'eshell-p10k-default-prompt
-        eshell-prompt-regexp eshell-p10k-prompt-regex))
+        eshell-prompt-regexp eshell-p10k-prompt-regex
+        eshell-highlight-prompt nil))
 
 (use-package! awscli-capf
   :defer t
