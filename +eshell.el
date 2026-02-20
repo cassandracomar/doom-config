@@ -157,14 +157,14 @@
                (lambda (_ status) (aio-resolve promise (lambda () status))))))))
 
   (aio-defun aio-run (name cmd)
-    (letrec ((curr (current-buffer))
-             (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
-             (cap (set-buffer temp))
-             (a (erase-buffer)))
-      (aio-await (apply #'aio-call-process name (current-buffer) cmd))
-      (let ((r (buffer-string))
-            (cap (set-buffer curr)))
-        r)))
+             (letrec ((curr (current-buffer))
+                      (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
+                      (cap (set-buffer temp))
+                      (a (erase-buffer)))
+               (aio-await (apply #'aio-call-process name (current-buffer) cmd))
+               (let ((r (buffer-string))
+                     (cap (set-buffer curr)))
+                 r)))
 
   (defun eshell/async-command-to-string (cmd &rest args)
     (aio-wait-for (aio-run cmd (list (combine-and-quote-strings (cons cmd args) " ")))))
@@ -286,8 +286,9 @@
 (use-package! eshell-p10k
   :after eshell
   :config
-  (setq eshell-prompt-function #'eshell-p10k-default-prompt
-        eshell-prompt-regexp eshell-p10k-prompt-regex))
+  (setq-hook! eshell-mode-hook
+    eshell-prompt-function #'eshell-p10k-default-prompt
+    eshell-prompt-regexp eshell-p10k-prompt-regex))
 
 (use-package! awscli-capf
   :defer t
