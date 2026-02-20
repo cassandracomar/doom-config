@@ -642,6 +642,7 @@
   (add-to-list 'consult-mode-histories '(eat-mode eat--line-input-ring eat--line-input-ring-index comint-bol))
   (add-to-list 'eat-semi-char-non-bound-keys [C-r])
   (add-to-list 'eat-message-handler-alist '("open" . +eat/nu-open))
+  (add-to-list 'eat-message-handler-alist '("git" . eshell/git))
 
   (keymap-set eat-mode-map "<insert-state> C-r" #'consult-history)
   (keymap-set eat-mode-map "<normal-state> C-r" #'consult-history)

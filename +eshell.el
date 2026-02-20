@@ -213,11 +213,9 @@
   (pcase command
     ("pr" (apply #'algernon/git-pr args))
     ("log" (apply #'algernon/git-log args))
-    ("status" (progn
-                (magit-status)
-                (eshell/echo)))
+    ("status" (progn (magit-status) nil))
     ("grep" (apply #'algernon/git-grep args))
-    (_ (apply #'eshell-external-command command args))))
+    (_  (progn (eshell-wait-for-processes (list (eshell-external-command "git" (cons command args)))) nil))))
 
 (use-package! fish-completion
   :defer t
@@ -339,11 +337,11 @@
                    branch-or-file)))
     (message branch-or-file)
     (if branch-or-file
-        (magit-log (list branch) '()
-                   (mapcar (lambda (f) (concat (eshell/pwd) "/" f))
-                           file-list))
+        (magit-log-other (list branch) '()
+                         (mapcar (lambda (f) (concat (eshell/pwd) "/" f))
+                                 file-list))
       (magit-log-head)))
-  (eshell/echo))
+  nil)
 
 (defun algernon/git-pr (pr branch)
   (eshell-do-eval
