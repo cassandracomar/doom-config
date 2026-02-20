@@ -303,9 +303,10 @@
                 front-sticky (read-only field font-lock-face)
                 rear-nonsticky (read-only field font-lock-face))
            '( field prompt
-              read-only t                         
-              front-sticky (read-only field)      
-              rear-nonsticky (read-only field)))
+              read-only t
+              font-lock-face
+              front-sticky (read-only field font-lock-face)
+              rear-nonsticky (read-only field font-lock-face)))
          prompt)
         (eshell-interactive-filter nil prompt)))
     (run-hooks 'eshell-after-prompt-hook))
