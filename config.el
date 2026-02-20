@@ -577,8 +577,8 @@
   :config
   (load! "+notmuch.el"))
 
-(add-hook! eshell-mode #'eat-eshell-mode)
-(add-hook! eshell-mode #'eat-eshell-visual-command-mode)
+;; (add-hook! eshell-mode #'eat-eshell-mode)
+;; (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
 (use-package! protobuf-mode
   :defer t
