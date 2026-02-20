@@ -304,7 +304,6 @@
                 rear-nonsticky (read-only field font-lock-face))
            '( field prompt
               read-only t
-              font-lock-face
               front-sticky (read-only field font-lock-face)
               rear-nonsticky (read-only field font-lock-face)))
          prompt)
