@@ -336,7 +336,7 @@
   :config
   (setq +vertico-company-completion-styles '(orderless))
   (setq completion-styles '(orderless basic)
-        orderless-matching-styles '(orderless-flex orderless-literal-prefix orderless-regexp)))
+        orderless-matching-styles '(orderless-literal-prefix orderless-flex orderless-regexp)))
 
 (after! evil-snipe
   (setq! evil-snipe-scope 'visible)
