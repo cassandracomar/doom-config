@@ -79,3 +79,4 @@
 (package! elisp-benchmarks)
 (package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "649cb73aa8bcc5fe06869fa09e83992639fcf07b")
 (package! notmuch-multi :recipe (:host github :repo "pivaldi/notmuch-multi") :pin "21f17f6ca65a277cd7a281a7dbe8c83ae9660dc7")
+(package! xterm-color)

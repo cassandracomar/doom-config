@@ -286,8 +286,13 @@
 (use-package! eshell-p10k
   :after eshell
   :config
+  (remove-hook! 'eshell-post-command-hook #'+eshell-protect-output-in-visual-modes-h)
+  (remove-hook! 'eshell-pre-command-hook #'+eshell-protect-input-in-visual-modes-h)
   (setq eshell-prompt-function #'eshell-p10k-default-prompt
         eshell-prompt-regexp eshell-p10k-prompt-regex))
+
+(use-package! xterm-color
+  :after eshell)
 
 (use-package! awscli-capf
   :defer t
