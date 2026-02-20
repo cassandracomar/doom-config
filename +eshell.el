@@ -285,11 +285,10 @@
 ;;   (eshell-git-prompt-use-theme 'powerline2))
 (use-package! eshell-p10k
   :after eshell
-  :custom-face
-  (eshell-prompt ((t ())))
   :config
   (setq eshell-prompt-function #'eshell-p10k-default-prompt
-        eshell-prompt-regexp eshell-p10k-prompt-regex))
+        eshell-prompt-regexp eshell-p10k-prompt-regex
+        eshell-highlight-prompt nil))
 
 (use-package! awscli-capf
   :defer t
