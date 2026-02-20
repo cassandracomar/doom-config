@@ -286,7 +286,7 @@
 (use-package! eshell-p10k
   :after eshell
   :custom-face
-  (eshell-prompt ((t '())))
+  (eshell-prompt ((t ())))
   :config
   (setq eshell-prompt-function #'eshell-p10k-default-prompt
         eshell-prompt-regexp eshell-p10k-prompt-regex))
