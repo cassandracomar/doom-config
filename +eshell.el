@@ -287,8 +287,7 @@
   :after eshell
   :config
   (setq eshell-prompt-function #'eshell-p10k-default-prompt
-        eshell-prompt-regexp eshell-p10k-prompt-regex
-        eshell-highlight-prompt nil))
+        eshell-prompt-regexp eshell-p10k-prompt-regex))
 
 (use-package! awscli-capf
   :defer t
