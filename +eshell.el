@@ -292,7 +292,14 @@
         eshell-prompt-regexp eshell-p10k-prompt-regex))
 
 (use-package! xterm-color
-  :after eshell)
+  :after eshell
+  :config
+  (add-hook 'eshell-before-prompt-hook
+            (lambda ()
+              (setq xterm-color-preserve-properties t)))
+
+  (add-to-list 'eshell-preoutput-filter-functions 'xterm-color-filter)
+  (setq eshell-output-filter-functions (remove 'eshell-handle-ansi-color eshell-output-filter-functions)))
 
 (use-package! awscli-capf
   :defer t
