@@ -292,10 +292,10 @@
 (map! :nv "g D" #'+lookup/references)
 (map! :nv "g d" #'+lookup/definition)
 (map! :nv "g i" #'+lookup/implementations)
-(map! :nv "H" #'treemacs-select-window)
-(map! :nv "L" #'eglot-hierarchy-mode)
+(map! :nv "H" #'treemacs)
+(map! :nv "L" #'eglot-show-call-hierarchy)
 (map! :n  "V" #'evil-visual-line)
-(map! :nv "g l" (lambda (l) (apply #'evil-goto-line l)))
+(map! :nv "g l" #'consult-line)
 
 ;; TRANSIENT STATES
 (use-package! hercules)
