@@ -77,14 +77,10 @@
                                                     :rename (:config (:crossModule t)
                                                              :usePrepare :json-false
                                                              :diff t)))
-                                 :yaml (:schemaStore (:enable t :url "https://schemastore.org/api/json/catalog.json")
-                                        :completion t
+                                 :yaml (:completion t
                                         :hover t
                                         :validate t
                                         :format (:enable t)
-                                        :kubernetesCRDStore (:enable t)
-                                        :schemas ((kubernetes . "{kustomizations,clusters,gitops}/**/*.{yaml,yml}")
-                                                  (https://www.schemastore.org/kustomization.json . "{kustomizations,cluster,gitops}/**/kustomization.{yaml,yml}"))
                                         :maxItemsComputed 5000)
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 
