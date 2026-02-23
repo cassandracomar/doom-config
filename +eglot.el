@@ -15,6 +15,7 @@
 (set-eglot-client! '(helm-mode :language-id "helm") '("helm_ls" "serve") "helm-ls")
 (set-eglot-client! '(nu-ts-mode) '("nu" "--lsp") "nu")
 (set-eglot-client! '(javascript-mode typescript-ts-mode tsx-ts-mode js-jsx-mode) '("deno" "lsp") "deno-ls")
+(set-eglot-client! '(yaml-mode yaml-ts-mode) '("yaml-schema-router") "yaml-language-server")
 
 (setq-default
  jsonrpc-default-request-timeout 30
