@@ -448,10 +448,7 @@
 (use-package! yaml-ts-mode
   :defer t
   :commands yaml-ts-mode
-  :mode "\\.yaml\\(\\.j2\\)?\\'"
-  :config
-  (set-company-backend! 'yaml-ts-mode 'company-capf))
-(add-hook! yaml-ts-mode (corfu-mode +1))
+  :mode "\\.yaml\\(\\.j2\\)?\\'")
 
 (define-derived-mode helm-mode yaml-mode "helm"
   "Major mode for editing kubernetes helm templates")
