@@ -354,7 +354,7 @@
   (add-to-list 'projectile-globally-ignored-directories "dist-newstyle"))
 
 (use-package! consult-projectile
-  :demand t)
+  :after vertico)
 
 ;; configure evil
 ;; make evil-search-word look for symbol rather than word boundaries
@@ -546,6 +546,15 @@
      (mu4e-drafts-folder     . "/cass@mountclare.net/Drafts")
      (mu4e-trash-folder      . "/cass@mountclare.net/Trash")
      (mu4e-refile-folder     . "/cass@mountclare.net/Archive")))
+  (set-email-account!
+   "drwholdings.com"
+   '((user-full-name . "Cassandra Comar")
+     (user-mail-address . "ccomar@drwholdings.com")
+     (mtpmail-smtp-user . "ccomar@drwholdings.com")
+     (mu4e-sent-folder       . "/ccomar@drwholdings.com/Sent")
+     (mu4e-drafts-folder     . "/ccomar@drwholdings.com/Drafts")
+     (mu4e-trash-folder      . "/ccomar@drwholdings.com/Trash")
+     (mu4e-refile-folder     . "/ccomar@drwholdings.com/Archive")))
   (setq mu4e-update-interval 60)
   :custom
   (mu4e-mu-binary (executable-find "mu"))
@@ -569,6 +578,7 @@
   (set-popup-rule! "^\\*notmuch-hello" :ignore t)
   (setq +notmuch-sync-backend 'mbsync
         +notmuch-mail-folder "~/.local/share/maildir"))
+
 (use-package! notmuch-multi
   :after notmuch
   :config

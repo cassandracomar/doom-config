@@ -1,6 +1,7 @@
 ;;; +notmuch.el --- configure notmuch -*- lexical-binding: t; -*-
 
 (after! consult-notmuch
+  (require 'embark)
   (setq consult-notmuch-export-function #'notmuch-tree)
   (add-to-list 'embark-exporters-alist '(notmuch-result . consult-notmuch-export)))
 
@@ -16,6 +17,51 @@
   (interactive)
   (let ((current (notmuch-tree-get-query)))
     (consult-notmuch-tree (when current (format "%s and " current)))))
+
+(defun +notmuch-toggle-tag-on-selection (tag mode &optional next-function)
+  (save-excursion
+    (pcase-let* ((`(,start ,end &rest _) (evil-visual-range))
+                 (next (or next-function (intern (format "notmuch-%s-next-message" mode)))))
+      (evil-exit-visual-state)
+      (with-restriction start end
+        (goto-char (point-min))
+        (while (<= (point) (point-max))
+          (evil-collection-notmuch-toggle-tag tag mode next)))))
+  (evil-visual-select start end))
+
+(defun +notmuch-tree-toggle-delete ()
+  (interactive)
+  (+notmuch-toggle-tag-on-selection "delete" "tree"))
+
+(defun +notmuch-tree-toggle-unread ()
+  (interactive)
+  (+notmuch-toggle-tag-on-selection "unread" "tree"))
+
+(defun +notmuch-tree-toggle-flagged ()
+  (interactive)
+  (+notmuch-toggle-tag-on-selection "flagged" "tree"))
+
+(defun +notmuch-search-toggle-delete ()
+  (interactive)
+  (+notmuch-toggle-tag-on-selection "delete" "search"))
+
+(defun +notmuch-search-toggle-unread ()
+  (interactive)
+  (+notmuch-toggle-tag-on-selection "unread" "search"))
+
+(defun +notmuch-search-toggle-flagged ()
+  (interactive)
+  (+notmuch-toggle-tag-on-selection "flagged" "search"))
+
+(map! :map 'notmuch-tree-mode-map
+      :mv "d" #'+notmuch-tree-toggle-delete
+      :mv "!" #'+notmuch-tree-toggle-unread
+      :mv "=" #'+notmuch-tree-toggle-flagged
+
+      :map 'notmuch-search-mode-map
+      :mv "d" #'+notmuch-search-toggle-delete
+      :mv "!" #'+notmuch-search-toggle-unread
+      :mv "=" #'+notmuch-search-toggle-flagged)
 
 (map! :map notmuch-search-mode-map
       :desc "Archive the currently selected thread or region. #pim" "A" #'notmuch-search-archive-thread
@@ -82,16 +128,17 @@
       notmuch-show-all-tags-list t
       notmuch-always-prompt-for-sender t
       notmuch-archive-tags '("-inbox" "-unread" "+archived")
+      notmuch-multi-delete-tag "trash"
       notmuch-tag-formats '(("unread" (propertize tag 'face 'notmuch-tag-unread) "✉")
                             ("flagged" (propertize tag 'face 'notmuch-tag-flagged) "🚩")
-                            ("inbox" (propertize tag 'face 'notmuch-tag-flagged) "inbox")
-                            ("delete" (notmuch-apply-face tag 'notmuch-tag-added) "delete")
-                            ("archived" (notmuch-apply-face tag 'notmuch-tag-added) "archive")
-                            ("sent" (notmuch-apply-face tag 'notmuch-tag-added) "send")
-                            ("expire" (notmuch-apply-face tag 'notmuch-tag-added) "expire")
+                            ("inbox" (propertize tag 'face 'notmuch-tag-flagged) "📬")
+                            ("delete" (notmuch-apply-face tag 'notmuch-tag-added) "❌")
+                            ("archived" (notmuch-apply-face tag 'notmuch-tag-added) "💾")
+                            ("sent" (notmuch-apply-face tag 'notmuch-tag-added) "📨")
+                            ("expire" (notmuch-apply-face tag 'notmuch-tag-added) "🖍")
                             ("attachment" (notmuch-apply-face tag 'notmuch-tag-added) "📎")
                             ("important" (propertize tag 'face 'notmuch-tag-flagged) "❗")
-                            ("passed" (propertize tag 'face 'notmuch-tag-flagged) "pass")
+                            ("passed" (propertize tag 'face 'notmuch-tag-flagged) "⚽")
                             ("replied" (propertize tag 'face 'notmuch-tag-flagged) "↵")
                             ("spam" (propertize tag 'face 'notmuch-tag-flagged) "🐟")
                             ("signed" (propertize tag 'face 'notmuch-tag-flagged) "🔒"))
@@ -103,21 +150,16 @@
                                (bottom . "└")
                                ;; (arrow . "►")
                                (arrow . "─►"))
-      pi-notmuch-saved-searches `((:name "Inbox"
-                                   :query "tag:inbox and -tag:trash"
-                                   :sort-order newest-first
-                                   :search-type tree
-                                   :key ,(kbd "i"))
-                                  (:name "Unread Inbox"
-                                   :query "tag:unread and tag:inbox and -tag:trash"
+      pi-notmuch-saved-searches `((:name "Unread Inbox"
+                                   :query "tag:unread and tag:inbox and -tag:trash and -tag:deleted and -tag:spam"
                                    :sort-order newest-first
                                    :search-type tree
                                    :key ,(kbd "u"))
-                                  (:name "Unread"
-                                   :query "tag:unread"
+                                  (:name "Inbox"
+                                   :query "tag:inbox and -tag:trash and -tag:deleted and -tag:spam"
                                    :sort-order newest-first
                                    :search-type tree
-                                   :key ,(kbd "U"))
+                                   :key ,(kbd "i"))
                                   (:name "All"
                                    :query "*"
                                    :sort-order newest-first
@@ -137,29 +179,15 @@
                                    :query "tag:flagged"
                                    :sort-order newest-first
                                    :search-type tree
-                                   :key ,(kbd "s"))))
+                                   :key ,(kbd "s")))
+      notmuch-tree-outline-enabled t)
 
 (notmuch-multi-accounts-saved-searches-set `((:account (:name "mountclare.net" :query "tag:mountclare.net" :key-prefix "m")
-                                              :searches ,(append pi-notmuch-saved-searches
-                                                                 `((:name "Unclassified"
-                                                                    :query "tag:mountclare.net AND tag:read AND NOT tag:expire"
-                                                                    :sort-order newest-first
-                                                                    :search-type tree
-                                                                    :key ,(kbd "x")))))
+                                              :searches ,pi-notmuch-saved-searches)
                                              (:account (:name "nie.rs" :query "tag:nie.rs" :key-prefix "n")
-                                              :searches ,(append pi-notmuch-saved-searches
-                                                                 `((:name "Unclassified"
-                                                                    :query "tag:nie.rs AND tag:read AND NOT tag:expire"
-                                                                    :sort-order newest-first
-                                                                    :search-type tree
-                                                                    :key ,(kbd "y")))))
+                                              :searches ,pi-notmuch-saved-searches)
                                              (:account (:name "drwholdings.com" :query "tag:drwholdings.com" :key-prefix "o")
-                                              :searches ,(append pi-notmuch-saved-searches
-                                                                 `((:name "Unclassified"
-                                                                    :query "tag:drwholdings.com AND tag:read AND NOT tag:expire"
-                                                                    :sort-order newest-first
-                                                                    :search-type tree
-                                                                    :key ,(kbd "z")))))))
+                                              :searches ,pi-notmuch-saved-searches)))
 
 (set-face-attribute 'notmuch-tag-unread nil :inherit 'warning)
 (set-face-attribute 'notmuch-search-matching-authors nil :inherit 'notmuch-tree-match-author-face)
