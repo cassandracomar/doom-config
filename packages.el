@@ -55,7 +55,6 @@
 ;; version bumps
 (package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "a7c773fac315f640526a6f35cd3c60edaa51b2b4")
 (package! eglot :pin "78bd85f1b50a7256e9c6171094544fd68f0a0b0c")
-(package! dumb-jump :pin "93b034280bbbad29d266be45455400594a2527b8")
 
 ;; new packages
 (package! fish-completion)
