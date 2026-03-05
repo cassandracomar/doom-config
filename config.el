@@ -193,7 +193,7 @@
   (setq eglot-semantic-token-modifiers (remove "documentation" (remove "defaultLibrary" eglot-semantic-token-modifiers)))
   (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
   :custom-face
-  (nobreak-space ((t ())))
+  (nobreak-space ((t (:underline undefined :foreground undefined))))
   (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
   (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
   (my-font-lock-type-parameter-face ((t (:foreground "#66d9ef"))))
