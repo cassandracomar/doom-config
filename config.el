@@ -51,7 +51,7 @@
 (setq display-line-numbers-type t)
 (menu-bar-mode -1)
 (setq confirm-kill-emacs nil)
-(setq fill-column 120)
+(setq-default fill-column 120)
 
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;
