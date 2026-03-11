@@ -723,3 +723,13 @@
 
 (use-package! elisp-benchmarks
   :defer t)
+
+(use-package! claude-code-ide
+  :defer t
+  :config
+  (setq claude-code-ide-terminal-backend 'eat
+        claude-code-ide-enable-mcp-server t
+        claude-code-ide-cli-extra-flags "--model qwen3-coder-next:80b-128k")
+  (claude-code-ide-emacs-tools-setup))
+
+;; (map! :leader :desc "Claude Code IDE commands" :n :prefix "l" #'claude-code-ide-menu)
