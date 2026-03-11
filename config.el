@@ -296,6 +296,8 @@
 (map! :nv "L" #'eglot-show-call-hierarchy)
 (map! :n  "V" #'evil-visual-line)
 (map! :nv "g l" #'consult-line)
+(map! :map transient-map
+      "<escape>" #'transient-quit-one)
 
 ;; TRANSIENT STATES
 (use-package! hercules)
