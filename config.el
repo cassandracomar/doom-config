@@ -734,4 +734,4 @@
         claude-code-ide-cli-extra-flags "--model qwen3-coder-next:80b-128k")
   (claude-code-ide-emacs-tools-setup))
 
-;; (map! :leader :desc "Claude Code IDE commands" :n :prefix "l" #'claude-code-ide-menu)
+(map! :leader :desc "Claude Code IDE commands" :n "l l" #'claude-code-ide-menu)
