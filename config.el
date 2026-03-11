@@ -729,7 +729,7 @@
 (use-package! claude-code-ide
   :defer t
   :config
-  (setq claude-code-ide-terminal-backend 'eat
+  (setq claude-code-ide-terminal-backend 'vterm
         claude-code-ide-enable-mcp-server t)
   (claude-code-ide-emacs-tools-setup))
 
