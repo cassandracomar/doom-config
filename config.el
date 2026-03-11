@@ -730,8 +730,7 @@
   :defer t
   :config
   (setq claude-code-ide-terminal-backend 'eat
-        claude-code-ide-enable-mcp-server t
-        claude-code-ide-cli-extra-flags "--model qwen3-coder-next:80b-128k")
+        claude-code-ide-enable-mcp-server t)
   (claude-code-ide-emacs-tools-setup))
 
 (map! :leader :desc "Claude Code IDE commands" :n "l l" #'claude-code-ide-menu)
