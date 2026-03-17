@@ -105,12 +105,12 @@
 (setq epa-file-encrypt-to '("cass@ndra.io"))
 (setq epa-file-select-keys nil)
 (setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
-;; (after! grip-mode
-;;   (let ((credential (auth-source-user-and-password "git.drwholdings.com")))
-;;     (setq grip-github-api-url "https://git.drwholdings.com/api/v3"
-;;           grip-github-user (car credential)
-;;           grip-github-password (cadr credential)
-;;           grip-update-after-change nil)))
+(after! grip-mode
+  (let ((credential (auth-source-user-and-password "git.drwholdings.com")))
+    (setq grip-github-api-url "https://git.drwholdings.com/api/v3"
+          grip-github-user (car credential)
+          grip-github-password (cadr credential)
+          grip-update-after-change nil)))
 (unless (display-graphic-p)
   (require 'evil-terminal-cursor-changer)
   (setq etcc-term-type-override 'xterm)
