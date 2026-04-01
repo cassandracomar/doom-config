@@ -22,6 +22,7 @@
  terraform-format-on-save t
  eglot-confirm-server-initiated-edits nil
  eglot-workspace-configuration '(:rust-analyzer (:procMacro (:enable t :attributes (:enable t))
+                                                 :check (:command "clippy")
                                                  :lens (:references (:adt (:enable t)
                                                                      :enumVariant (:enable t)
                                                                      :method (:enable t)
