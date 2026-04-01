@@ -737,8 +737,7 @@
         claude-code-ide-show-claude-window-in-ediff nil)
   (add-hook 'vterm-mode-hook
             (lambda ()
-              (evil-local-set-key 'insert (kbd "<return>") #'claude-code-ide-insert-newline)
-              (evil-local-set-key 'normal (kbd "<return>") #'claude-code-ide-send-prompt)))                                                                                                 
+              (evil-local-set-key 'insert (kbd "S-<return>") #'claude-code-ide-insert-newline)))
   (claude-code-ide-emacs-tools-setup))
 
 (setenv "EDITOR" "emacsclient")
