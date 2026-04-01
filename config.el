@@ -733,6 +733,7 @@
         claude-code-ide-enable-mcp-server t
         claude-code-ide-use-side-window nil
         claude-code-ide-window-width 100
+        claude-code-ide-window-height 100
         claude-code-ide-show-claude-window-in-ediff nil)
   (add-hook 'vterm-mode-hook
             (lambda ()
