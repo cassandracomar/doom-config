@@ -734,7 +734,10 @@
         claude-code-ide-use-side-window nil
         claude-code-ide-window-width 100
         claude-code-ide-show-claude-window-in-ediff nil)
-  (map! :i "S-RET" #'claude-code-ide-insert-newline)
+  (add-hook 'vterm-mode-hook
+            (lambda ()
+              (evil-local-set-key 'insert (kbd "<return>") #'claude-code-ide-insert-newline)
+              (evil-local-set-key 'normal (kbd "<return>") #'claude-code-ide-send-prompt)))                                                                                                 
   (claude-code-ide-emacs-tools-setup))
 
 (setenv "EDITOR" "emacsclient")
@@ -743,3 +746,16 @@
 (map! :map vterm-mode-map
       :ni "C-M-g" (lambda () (interactive)
                     (vterm-send-key "g" nil nil t)))
+
+(defun my/vterm-evil-visual-enter ()
+  (when (and (derived-mode-p 'vterm-mode)
+             (not vterm-copy-mode))
+    (vterm-copy-mode 1)))
+
+(defun my/vterm-evil-visual-exit ()
+  (when (and (derived-mode-p 'vterm-mode)
+             vterm-copy-mode)
+    (vterm-copy-mode -1)))
+
+(add-hook 'evil-visual-state-entry-hook #'my/vterm-evil-visual-enter)
+(add-hook 'evil-visual-state-exit-hook #'my/vterm-evil-visual-exit)
