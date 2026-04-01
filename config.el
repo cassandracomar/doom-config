@@ -730,7 +730,11 @@
   :defer t
   :config
   (setq claude-code-ide-terminal-backend 'vterm
-        claude-code-ide-enable-mcp-server t)
+        claude-code-ide-enable-mcp-server t
+        claude-code-ide-use-side-window nil
+        claude-code-ide-window-width 100
+        claude-code-ide-show-claude-window-in-ediff nil)
+  (map! :i "S-RET" #'claude-code-ide-insert-newline)
   (claude-code-ide-emacs-tools-setup))
 
 (map! :leader :desc "Claude Code IDE commands" :n "l l" #'claude-code-ide-menu)

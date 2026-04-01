@@ -79,4 +79,4 @@
 (package! elisp-benchmarks)
 (package! semel :recipe (:host github :repo "eshelyaron/semel") :pin "649cb73aa8bcc5fe06869fa09e83992639fcf07b")
 (package! notmuch-multi :recipe (:host github :repo "pivaldi/notmuch-multi") :pin "21f17f6ca65a277cd7a281a7dbe8c83ae9660dc7")
-(package! claude-code-ide :recipe (:host github :repo "manzaltu/claude-code-ide.el") :pin "5f12e60c6d2d1802c8c1b7944bbdf935d5db1364")
+(package! claude-code-ide :recipe (:host github :repo "manzaltu/claude-code-ide.el") :pin "e95fded6210121cb621257a38e74e19c7ec4e440")
