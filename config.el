@@ -776,21 +776,21 @@
 (defun agent-shell--track-buffer (&optional _frame-or-window)
   "Track buffer switches and update the MCP server's last-active-buffer."
   (let ((cur (current-buffer)))
+    (when (and agent-shell--prev-buf
+               (not (eq agent-shell--prev-buf cur))
+               (buffer-live-p agent-shell--prev-buf))
+      (when-let* ((file-path (buffer-file-name agent-shell--prev-buf))
+                  (expanded-path (expand-file-name file-path))
+                  ((bound-and-true-p claude-code-ide--session-ids))
+                  ((fboundp 'claude-code-ide-mcp-server--server-alive-p))
+                  ((claude-code-ide-mcp-server--server-alive-p)))
+        (maphash (lambda (project-dir session-id)
+                   (when (string-prefix-p (expand-file-name project-dir)
+                                          expanded-path)
+                     (claude-code-ide-mcp-server-update-last-active-buffer
+                      session-id agent-shell--prev-buf)))
+                 claude-code-ide--session-ids)))
     (when (buffer-file-name cur)
-      (when (and agent-shell--prev-buf
-                 (not (eq agent-shell--prev-buf cur))
-                 (buffer-live-p agent-shell--prev-buf))
-        (when-let* ((file-path (buffer-file-name agent-shell--prev-buf))
-                    (expanded-path (expand-file-name file-path))
-                    ((bound-and-true-p claude-code-ide--session-ids))
-                    ((fboundp 'claude-code-ide-mcp-server--server-alive-p))
-                    ((claude-code-ide-mcp-server--server-alive-p)))
-          (maphash (lambda (project-dir session-id)
-                     (when (string-prefix-p (expand-file-name project-dir)
-                                            expanded-path)
-                       (claude-code-ide-mcp-server-update-last-active-buffer
-                        session-id agent-shell--prev-buf)))
-                   claude-code-ide--session-ids)))
       (setq agent-shell--prev-buf cur))))
 
 (use-package! agent-shell
