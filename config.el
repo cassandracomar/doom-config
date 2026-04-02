@@ -770,7 +770,6 @@
 (use-package! acp
   :defer t)
 
-
 (use-package! agent-shell
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell
@@ -816,7 +815,7 @@
                                             session-id buf)))))
                                 (format "http://localhost:%d/mcp/%s"
                                         (claude-code-ide-mcp-server-ensure-server)
-                                        session-id)))))))
-        (map! :map agent-shell-diff-mode-map
-              :nvi "C-c C-c" #'agent-shell-diff-accept-all
-              :nvi "C-c C-k" #'agent-shell-diff-reject-all))
+                                        session-id))))))))
+  (map! :map agent-shell-diff-mode-map
+        :nvi "C-c C-c" #'agent-shell-diff-accept-all
+        :nvi "C-c C-k" #'agent-shell-diff-reject-all))
