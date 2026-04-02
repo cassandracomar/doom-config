@@ -830,6 +830,12 @@ is not file-visiting or hasn't changed."
                     (require 'claude-code-ide)
                     (require 'claude-code-ide-mcp-server)
                     (claude-code-ide-emacs-tools-setup)
+                    (require 'claude-code-ide-extras-emacs)
+                    (require 'claude-code-ide-extras-meta)
+                    (require 'claude-code-ide-extras-projectile)
+                    (claude-code-ide-extras-meta-setup)
+                    (claude-code-ide-extras-emacs-setup)
+                    (claude-code-ide-extras-projectile-setup)
                     (let* ((project-dir (agent-shell-cwd))
                            (session-id (format "agent-shell-%s-%s"
                                                (file-name-nondirectory
@@ -851,6 +857,7 @@ is not file-visiting or hasn't changed."
 (use-package! claude-code-ide-extras-emacs
   :after claude-code-ide
   :config
+  (require 'claude-code-ide-extras-emacs)
   (require 'claude-code-ide-extras-meta)
   (require 'claude-code-ide-extras-projectile)
   (claude-code-ide-extras-meta-setup)
