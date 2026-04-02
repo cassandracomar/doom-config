@@ -795,9 +795,23 @@
                            (session-id (format "agent-shell-%s-%s"
                                                (file-name-nondirectory
                                                 (directory-file-name project-dir))
-                                               (format-time-string "%Y%m%d-%H%M%S"))))
-                      (puthash session-id `(:project-dir ,project-dir)
-                               claude-code-ide-mcp-server--sessions)
+                                               (format-time-string "%Y%m%d-%H%M%S")))
+                           (buffer (current-buffer)))
+                      (claude-code-ide-mcp-server-register-session
+                       session-id project-dir buffer)
+                      (puthash project-dir session-id claude-code-ide--session-ids)
+                      (add-hook 'buffer-list-update-hook
+                                (lambda ()
+                                  (when-let* ((buf (car (buffer-list)))
+                                              (file-path (buffer-file-name buf))
+                                              ((string-prefix-p
+                                                (expand-file-name project-dir)
+                                                (expand-file-name file-path))))
+                                    (claude-code-ide-mcp-server-update-last-active-buffer
+                                     session-id buf))))
                       (format "http://localhost:%d/mcp/%s"
                               (claude-code-ide-mcp-server-ensure-server)
                               session-id))))))))
+(map! :map agent-shell-diff-mode-map
+      :nvi "C-c C-c" #'agent-shell-diff-accept-all
+      :nvi "C-c C-k" #'agent-shell-diff-reject-all)
