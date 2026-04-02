@@ -729,6 +729,7 @@
   :defer t)
 
 (use-package! claude-code-ide
+  :commands claude-code-ide-mcp-server-ensure-server claude-code-ide-mcp-server--sessions claude-code-ide-menu
   :defer t
   :init
   (setq claude-code-ide-enable-mcp-server t)
