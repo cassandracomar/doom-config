@@ -780,14 +780,16 @@
                (not (eq agent-shell--prev-buf cur))
                (buffer-live-p agent-shell--prev-buf))
       (when-let* ((file-path (buffer-file-name agent-shell--prev-buf))
-                  (project-dir (agent-shell-cwd))
-                  (session-id (gethash project-dir claude-code-ide--session-ids))
-                  ((claude-code-ide-mcp-server--server-alive-p))
-                  ((string-prefix-p
-                    (expand-file-name project-dir)
-                    (expand-file-name file-path))))
-        (claude-code-ide-mcp-server-update-last-active-buffer
-         session-id agent-shell--prev-buf)))
+                  (expanded-path (expand-file-name file-path))
+                  ((bound-and-true-p claude-code-ide--session-ids))
+                  ((fboundp 'claude-code-ide-mcp-server--server-alive-p))
+                  ((claude-code-ide-mcp-server--server-alive-p)))
+        (maphash (lambda (project-dir session-id)
+                   (when (string-prefix-p (expand-file-name project-dir)
+                                          expanded-path)
+                     (claude-code-ide-mcp-server-update-last-active-buffer
+                      session-id agent-shell--prev-buf)))
+                 claude-code-ide--session-ids)))
     (setq agent-shell--prev-buf cur)))
 
 (use-package! agent-shell
