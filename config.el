@@ -780,4 +780,5 @@
               (agent-shell-make-environment-variables
                "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
                "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
-               "CLAUDE_CODE_USE_FOUNDRY" "1"))))
+               "CLAUDE_CODE_USE_FOUNDRY" "1")
+              agent-shell-anthropic-claude-acp-command (format "%s/.npm-global/bin/claude-agent-mcp" (getenv "HOME")))))
