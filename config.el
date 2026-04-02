@@ -803,7 +803,7 @@
                       (puthash project-dir session-id claude-code-ide--session-ids)
                       (add-hook 'buffer-list-update-hook
                                 (lambda ()
-                                  (when-let* ((buf (car (buffer-list)))
+                                  (when-let* ((buf (other-buffer))
                                               (file-path (buffer-file-name buf))
                                               (project-dir (agent-shell-cwd))
                                               (session-id (format "agent-shell-%s-%s"
