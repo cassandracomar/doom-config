@@ -822,6 +822,10 @@ is not file-visiting or hasn't changed."
          "CLAUDE_CODE_USE_FOUNDRY" "1")
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
         agent-shell-anthropic-default-model-id "claude-opus-4-6[1m]"
+        agent-shell-display-action
+        '((display-buffer-in-direction)
+          (direction . right)
+          (window-width . 0.5))
         agent-shell-mcp-servers
         '(((name . "emacs")
            (type . "http")
