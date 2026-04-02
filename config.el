@@ -102,6 +102,8 @@
 
 ;; set up env vars from encrypted sources
 (setq auth-sources (list (format "%s/.authinfo.gpg" (getenv "HOME")) (format "%s/.authinfo" (getenv "HOME"))))
+(load! "auth-source-rbw")
+(auth-source-rbw-enable)
 (setq epa-file-encrypt-to '("cass@ndra.io"))
 (setq epa-file-select-keys nil)
 (setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
@@ -759,3 +761,17 @@
 
 (add-hook 'evil-visual-state-entry-hook #'my/vterm-evil-visual-enter)
 (add-hook 'evil-visual-state-exit-hook #'my/vterm-evil-visual-exit)
+
+(use-package! shell-maker
+  :defer t)
+
+(use-package! acp
+  :defer t)
+
+(use-package! agent-shell
+  :defer t
+  :commands agent-shell-anthropic-start-claude-code agent-shell
+  :config
+  (setq agent-shell-anthropic-authentication
+        (agent-shell-anthropic-make-authentication
+         :api-key (lambda () (auth-source-rbw-get 'secret "anthropic-api-key")))))
