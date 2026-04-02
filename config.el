@@ -730,9 +730,10 @@
 
 (use-package! claude-code-ide
   :defer t
+  :init
+  (setq claude-code-ide-enable-mcp-server t)
   :config
   (setq claude-code-ide-terminal-backend 'vterm
-        claude-code-ide-enable-mcp-server t
         claude-code-ide-use-side-window nil
         claude-code-ide-window-width 100
         claude-code-ide-window-height 100
