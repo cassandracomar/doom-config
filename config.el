@@ -803,19 +803,18 @@
                       (puthash project-dir session-id claude-code-ide--session-ids)
                       (add-hook 'buffer-list-update-hook
                                 (lambda ()
-                                  (when (and
-                                         (claude-code-ide-mcp-server--server-alive-p)
-                                         (when-let* ((buf (car (buffer-list)))
-                                                     (file-path (buffer-file-name buf))
-                                                     (project-dir (agent-shell-cwd))
-                                                     ((string-prefix-p
-                                                       (expand-file-name project-dir)
-                                                       (expand-file-name file-path))))
-                                           (claude-code-ide-mcp-server-update-last-active-buffer
-                                            session-id buf)))))
-                                (format "http://localhost:%d/mcp/%s"
-                                        (claude-code-ide-mcp-server-ensure-server)
-                                        session-id))))))))
+                                  (when-let* ((buf (car (buffer-list)))
+                                              (file-path (buffer-file-name buf))
+                                              (project-dir (agent-shell-cwd))
+                                              ((claude-code-ide-mcp-server--server-alive-p))
+                                              ((string-prefix-p
+                                                (expand-file-name project-dir)
+                                                (expand-file-name file-path))))
+                                    (claude-code-ide-mcp-server-update-last-active-buffer
+                                     session-id buf))))
+                      (format "http://localhost:%d/mcp/%s"
+                              (claude-code-ide-mcp-server-ensure-server)
+                              session-id)))))))
   (map! :map agent-shell-diff-mode-map
         :nvi "C-c C-c" #'agent-shell-diff-accept-all
         :nvi "C-c C-k" #'agent-shell-diff-reject-all))
