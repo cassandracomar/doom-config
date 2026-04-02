@@ -774,4 +774,10 @@
   :config
   (setq agent-shell-anthropic-authentication
         (agent-shell-anthropic-make-authentication
-         :api-key (lambda () (auth-source-rbw-get 'secret "anthropic-api-key")))))
+         :api-key (lambda () (identity "unused")))
+        agent-shell-anthropic-claude-environment
+        (setq agent-shell-anthropic-claude-environment
+              (agent-shell-make-environment-variables
+               "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
+               "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
+               "CLAUDE_CODE_USE_FOUNDRY" "1"))))
