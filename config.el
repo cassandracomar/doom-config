@@ -848,7 +848,7 @@ is not file-visiting or hasn't changed."
         :nvi "C-c C-c" #'agent-shell-diff-accept-all
         :nvi "C-c C-k" #'agent-shell-diff-reject-all))
 
-(use-package! claude-code-ide-extras
+(use-package! claude-code-ide-extras-emacs
   :after claude-code-ide
   :config
   (claude-code-ide-extras-setup))
