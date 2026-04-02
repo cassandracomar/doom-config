@@ -797,4 +797,4 @@
                                claude-code-ide-mcp-server--sessions)
                       (format "http://localhost:%d/mcp/%s"
                               (claude-code-ide-mcp-server-ensure-server)
-                              session-id)))))))))
+                              session-id))))))))
