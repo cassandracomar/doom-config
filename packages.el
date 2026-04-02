@@ -83,4 +83,4 @@
 (package! shell-maker)
 (package! acp)
 (package! agent-shell :recipe (:host github :repo "xenodium/agent-shell") :pin "1e5d17598d191386ee02998199b77d0f70866820")
-(package! claude-code-ide-extras-emacs :recipe (:host github :repo "acmorrow/claude-code-ide-extras") :pin "56ad113f7206378ce23238dd7932737513a01748")
+(package! claude-code-ide-extras :recipe (:host github :repo "acmorrow/claude-code-ide-extras") :pin "56ad113f7206378ce23238dd7932737513a01748")
