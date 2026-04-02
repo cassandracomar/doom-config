@@ -82,4 +82,4 @@
 (package! claude-code-ide :recipe (:host github :repo "manzaltu/claude-code-ide.el") :pin "e95fded6210121cb621257a38e74e19c7ec4e440")
 (package! shell-maker)
 (package! acp)
-(package! agent-shell)
+(package! agent-shell :recipe (:host github :repo "xenodium/agent-shell") :pin "1e5d17598d191386ee02998199b77d0f70866820")
