@@ -810,10 +810,7 @@
                                              (buffer-live-p prev-buf))
                                     (when-let* ((file-path (buffer-file-name prev-buf))
                                                 (project-dir (agent-shell-cwd))
-                                                (session-id (format "agent-shell-%s-%s"
-                                                                    (file-name-nondirectory
-                                                                     (directory-file-name project-dir))
-                                                                    (format-time-string "%Y%m%d-%H%M%S")))
+                                                (session-id (gethash project-dir claude-code-ide--session-ids))
                                                 ((claude-code-ide-mcp-server--server-alive-p))
                                                 ((string-prefix-p
                                                   (expand-file-name project-dir)
