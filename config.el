@@ -793,7 +793,7 @@ is not file-visiting or hasn't changed."
     (setq agent-shell--last-tracked-buf cur)))
 
 (define-advice claude-code-ide-mcp-project-info (:override ()
-                                                  agent-shell--prefer-last-active)
+                                                           agent-shell--prefer-last-active)
   "Prefer :last-active-buffer over :buffer when reporting project info."
   (let ((context (claude-code-ide-mcp-server-get-session-context)))
     (if context
@@ -847,3 +847,8 @@ is not file-visiting or hasn't changed."
   (map! :map agent-shell-diff-mode-map
         :nvi "C-c C-c" #'agent-shell-diff-accept-all
         :nvi "C-c C-k" #'agent-shell-diff-reject-all))
+
+(use-package! claude-code-ide-extras
+  :after claude-code-ide
+  :config
+  (claude-code-ide-extras-setup))
