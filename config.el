@@ -850,9 +850,10 @@ is not file-visiting or hasn't changed."
                       (format "http://localhost:%d/mcp/%s"
                               (claude-code-ide-mcp-server-ensure-server)
                               session-id)))))))
-  (map! :map agent-shell-diff-mode-map
-        :nvi "C-c C-c" #'agent-shell-diff-accept-all
-        :nvi "C-c C-k" #'agent-shell-diff-reject-all))
+  (load! "+agent-shell-ediff"))
+
+(map! :leader
+      "l l" #'agent-shell-anthropic-start-claude-code)
 
 (use-package! claude-code-ide-extras-emacs
   :after claude-code-ide
