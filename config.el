@@ -776,9 +776,25 @@
         (agent-shell-anthropic-make-authentication
          :api-key (lambda () (identity "unused")))
         agent-shell-anthropic-claude-environment
-        (setq agent-shell-anthropic-claude-environment
-              (agent-shell-make-environment-variables
-               "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
-               "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
-               "CLAUDE_CODE_USE_FOUNDRY" "1")
-              agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME"))))))
+        (agent-shell-make-environment-variables
+         "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
+         "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
+         "CLAUDE_CODE_USE_FOUNDRY" "1")
+        agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
+        agent-shell-anthropic-default-model-id "claude-opus-4-6[1m]"
+        agent-shell-mcp-servers
+        '(((name . "emacs")
+           (type . "http")
+           (headers . ())
+           (url . (lambda ()
+                    (require 'claude-code-ide-mcp-server)
+                    (let* ((project-dir (agent-shell-cwd))
+                           (session-id (format "agent-shell-%s-%s"
+                                               (file-name-nondirectory
+                                                (directory-file-name project-dir))
+                                               (format-time-string "%Y%m%d-%H%M%S"))))
+                      (puthash session-id `(:project-dir ,project-dir)
+                               claude-code-ide-mcp-server--sessions)
+                      (format "http://localhost:%d/mcp/%s"
+                              (claude-code-ide-mcp-server-ensure-server)
+                              session-id)))))))))
