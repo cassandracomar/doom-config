@@ -53,6 +53,7 @@
 (setq confirm-kill-emacs nil)
 (setq-default fill-column 120)
 (setq nobreak-char-display nil)
+(setq projectile-project-search-path (format "%s/src" (getenv "HOME")))
 
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;
@@ -784,36 +785,36 @@
          "CLAUDE_CODE_USE_FOUNDRY" "1")
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
         agent-shell-anthropic-default-model-id "claude-opus-4-6[1m]"
-        ;; agent-shell-mcp-servers
-        ;; '(((name . "emacs")
-        ;;    (type . "http")
-        ;;    (headers . ())
-        ;;    (url . (lambda ()
-        ;;             (require 'claude-code-ide)
-        ;;             (require 'claude-code-ide-mcp-server)
-        ;;             (claude-code-ide-emacs-tools-setup)
-        ;;             (let* ((project-dir (agent-shell-cwd))
-        ;;                    (session-id (format "agent-shell-%s-%s"
-        ;;                                        (file-name-nondirectory
-        ;;                                         (directory-file-name project-dir))
-        ;;                                        (format-time-string "%Y%m%d-%H%M%S")))
-        ;;                    (buffer (current-buffer)))
-        ;;               (claude-code-ide-mcp-server-register-session
-        ;;                session-id project-dir buffer)
-        ;;               (puthash project-dir session-id claude-code-ide--session-ids)
-        ;;               ;; (add-hook 'buffer-list-update-hook
-        ;;               ;;           (lambda ()
-        ;;               ;;             (when-let* ((buf (car (buffer-list)))
-        ;;               ;;                         (file-path (buffer-file-name buf))
-        ;;               ;;                         ((string-prefix-p
-        ;;               ;;                           (expand-file-name project-dir)
-        ;;               ;;                           (expand-file-name file-path))))
-        ;;               ;;               (claude-code-ide-mcp-server-update-last-active-buffer
-        ;;               ;;                session-id buf))))
-        ;;               (format "http://localhost:%d/mcp/%s"
-        ;;                       (claude-code-ide-mcp-server-ensure-server)
-        ;;                       session-id))))))
+        agent-shell-mcp-servers
+        '(((name . "emacs")
+           (type . "http")
+           (headers . ())
+           (url . (lambda ()
+                    (require 'claude-code-ide)
+                    (require 'claude-code-ide-mcp-server)
+                    (claude-code-ide-emacs-tools-setup)
+                    (let* ((project-dir (agent-shell-cwd))
+                           (session-id (format "agent-shell-%s-%s"
+                                               (file-name-nondirectory
+                                                (directory-file-name project-dir))
+                                               (format-time-string "%Y%m%d-%H%M%S")))
+                           (buffer (current-buffer)))
+                      (claude-code-ide-mcp-server-register-session
+                       session-id project-dir buffer)
+                      (puthash project-dir session-id claude-code-ide--session-ids)
+                      ;; (add-hook 'buffer-list-update-hook
+                      ;;           (lambda ()
+                      ;;             (when-let* ((buf (car (buffer-list)))
+                      ;;                         (file-path (buffer-file-name buf))
+                      ;;                         ((string-prefix-p
+                      ;;                           (expand-file-name project-dir)
+                      ;;                           (expand-file-name file-path))))
+                      ;;               (claude-code-ide-mcp-server-update-last-active-buffer
+                      ;;                session-id buf))))
+                      (format "http://localhost:%d/mcp/%s"
+                              (claude-code-ide-mcp-server-ensure-server)
+                              session-id))))))
         ))
-;; (map! :map agent-shell-diff-mode-map
-;;       :nvi "C-c C-c" #'agent-shell-diff-accept-all
-;;       :nvi "C-c C-k" #'agent-shell-diff-reject-all)
+(map! :map agent-shell-diff-mode-map
+      :nvi "C-c C-c" #'agent-shell-diff-accept-all
+      :nvi "C-c C-k" #'agent-shell-diff-reject-all)
