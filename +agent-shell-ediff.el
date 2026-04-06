@@ -7,6 +7,30 @@
 
 (defvar agent-shell-diff--on-exit)
 
+(defvar +agent-shell-ediff--bg-only-faces
+  '(ediff-current-diff-A ediff-current-diff-B
+    ediff-fine-diff-A ediff-fine-diff-B
+    ediff-even-diff-A ediff-even-diff-B
+    ediff-odd-diff-A ediff-odd-diff-B)
+  "Ediff faces to reduce to background-only in agent-shell sessions.")
+
+(defun +agent-shell-ediff--strip-overlay-fg (&rest _)
+  "Replace ediff overlay faces with background-only anonymous specs.
+This preserves font-lock syntax foreground colors while still
+showing diff-region background highlighting."
+  (dolist (buf (list ediff-buffer-A ediff-buffer-B))
+    (when (buffer-live-p buf)
+      (with-current-buffer buf
+        (dolist (ov (overlays-in (point-min) (point-max)))
+          (let ((face (overlay-get ov 'face)))
+            (when (and face (symbolp face)
+                       (memq face +agent-shell-ediff--bg-only-faces))
+              (let ((bg (face-background face nil t))
+                    (priority (overlay-get ov 'priority)))
+                (when bg
+                  (overlay-put ov 'face (list :background bg :extend t))
+                  (overlay-put ov 'priority (or priority 10)))))))))))
+
 (cl-defun +agent-shell-ediff (&key old new on-exit on-accept on-reject title file)
   "Ediff-based replacement for `agent-shell-diff'.
 Creates a side-by-side ediff session from OLD and NEW strings.
@@ -22,6 +46,25 @@ Arguments match `agent-shell-diff':
   :TITLE     - Optional title for buffer names
   :FILE      - File path (used for mode detection)"
   (let* ((name (or title (and file (file-name-nondirectory file)) "unknown"))
+         ;; Try to build full-file buffers: read file from disk for
+         ;; the old content, replace the old hunk with the new hunk
+         ;; to produce the new content.  Fall back to the raw
+         ;; old/new hunks if the file can't be read or the hunk
+         ;; can't be located.
+         (full-old (when (and file (file-readable-p file))
+                     (with-temp-buffer
+                       (insert-file-contents file)
+                       (buffer-string))))
+         (full-new (when full-old
+                     (with-temp-buffer
+                       (insert full-old)
+                       (goto-char (point-min))
+                       (if (search-forward old nil t)
+                           (progn (replace-match new t t)
+                                  (buffer-string))
+                         nil))))
+         (old-content (or full-old old))
+         (new-content (or full-new new))
          (buf-a (generate-new-buffer (format "*old: %s*" name)))
          (buf-b (generate-new-buffer (format "*new: %s*" name)))
          (mode (and file (assoc-default file auto-mode-alist #'string-match)))
@@ -30,10 +73,14 @@ Arguments match `agent-shell-diff':
          ctl-buf startup-hook-fn before-setup-hook-fn)
 
     ;; Fill buffers with content and set mode for syntax highlighting
-    (dolist (spec (list (cons buf-a old) (cons buf-b new)))
+    (dolist (spec (list (cons buf-a old-content) (cons buf-b new-content)))
       (with-current-buffer (car spec)
         (insert (cdr spec))
+        (when file
+          (setq-local buffer-file-name file))
         (when mode (ignore-errors (funcall mode)))
+        (font-lock-ensure)
+        (set-buffer-modified-p nil)
         (setq buffer-read-only t)))
 
     ;; Self-removing hooks (following claude-code-ide pattern)
@@ -55,6 +102,12 @@ Arguments match `agent-shell-diff':
               ;; Suppress janitor asking about our temp buffers
               (setq-local ediff-keep-variants t)
 
+              ;; Strip fg from ediff overlays so syntax highlighting
+              ;; foreground is preserved.  Re-apply on diff navigation.
+              (+agent-shell-ediff--strip-overlay-fg)
+              (add-hook 'ediff-select-difference-hook
+                        #'+agent-shell-ediff--strip-overlay-fg nil t)
+
               ;; Quit hook chain: prompt → kill temps → ediff cleanup → restore winconf
               (setq-local ediff-quit-hook
                           (list
@@ -71,7 +124,16 @@ Arguments match `agent-shell-diff':
                                 (lambda ()
                                   (pcase choice
                                     ('accept (when on-accept (funcall on-accept)))
-                                    ('reject (when on-reject (funcall on-reject)))
+                                    ('reject
+                                     ;; Route through on-exit which sends a proper
+                                     ;; reject_once permission response (not just
+                                     ;; :cancelled).  Suppress its y-or-n-p since
+                                     ;; we already have the user's answer.
+                                     (if on-exit
+                                         (cl-letf (((symbol-function 'y-or-n-p)
+                                                    (lambda (&rest _) nil)))
+                                           (funcall on-exit))
+                                       (when on-reject (funcall on-reject))))
                                     (_ (message "Ignored")))))))
                            ;; 2. Kill temp buffers before ediff-cleanup-mess displays them
                            (lambda ()

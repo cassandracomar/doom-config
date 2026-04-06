@@ -854,7 +854,9 @@ is not file-visiting or hasn't changed."
                       (format "http://localhost:%d/mcp/%s"
                               (claude-code-ide-mcp-server-ensure-server)
                               session-id)))))))
-  (load! "+agent-shell-ediff"))
+  (load! "+agent-shell-ediff")
+  (load! "+agent-shell-view-on-y")
+  (load! "+agent-shell-interrupt-fix"))
 
 (map! :leader
       "l l" #'agent-shell-anthropic-start-claude-code)
