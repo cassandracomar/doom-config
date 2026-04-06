@@ -746,10 +746,10 @@
 
 (setenv "EDITOR" "emacsclient")
 (setenv "VISUAL" "emacsclient")
-(map! :leader :desc "Claude Code IDE commands" :n "l" #'claude-code-ide-menu)
-(map! :map vterm-mode-map
-      :ni "C-M-g" (lambda () (interactive)
-                    (vterm-send-key "g" nil nil t)))
+;; (map! :leader :desc "Claude Code IDE commands" :n "l" #'claude-code-ide-menu)
+;; (map! :map vterm-mode-map
+;;       :ni "C-M-g" (lambda () (interactive)
+;;                     (vterm-send-key "g" nil nil t)))
 
 (defun my/vterm-evil-visual-enter ()
   (when (and (derived-mode-p 'vterm-mode)
