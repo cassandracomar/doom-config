@@ -744,6 +744,22 @@
   (claude-code-ide-extras-emacs-setup)
   (claude-code-ide-extras-projectile-setup))
 
+(defun +setup-emacs-mcp ()
+  (let* ((project-dir (agent-shell-cwd))
+         (session-id (format "agent-shell-%s-%s"
+                             (file-name-nondirectory
+                              (directory-file-name project-dir))
+                             (format-time-string "%Y%m%d-%H%M%S")))
+         (buffer (current-buffer)))
+    (claude-code-ide-mcp-server-register-session
+     session-id project-dir buffer)
+    (puthash project-dir session-id claude-code-ide--session-ids)
+    (add-hook 'post-command-hook
+              #'agent-shell--track-active-buffer)
+    (format "http://localhost:%d/mcp/%s"
+            (claude-code-ide-mcp-server-ensure-server)
+            session-id)))
+
 (setenv "EDITOR" "emacsclient")
 (setenv "VISUAL" "emacsclient")
 
@@ -794,41 +810,30 @@ is not file-visiting or hasn't changed."
 (use-package! agent-shell
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell
+  :custom
+  (agent-shell-anthropic-authentication
+   (agent-shell-anthropic-make-authentication
+    :api-key (lambda () (identity "unused"))))
+  (agent-shell-anthropic-claude-environment
+   (agent-shell-make-environment-variables
+    "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
+    "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
+    "CLAUDE_CODE_USE_FOUNDRY" "1"))
+  (agent-shell-anthropic-claude-acp-command
+   (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME"))))
+  (agent-shell-anthropic-default-model-id "claude-opus-4-6[1m]")
+  (agent-shell-display-action
+   '((display-buffer-in-direction)
+     (direction . right)
+     (window-width . 0.5)))
+  (agent-shell-mcp-servers
+   '(((name . "emacs")
+      (type . "http")
+      (headers . ())
+      (url . (lambda ()
+               (+setup-claude-code-ide)
+               (+setup-emacs-mcp))))))
   :config
-  (setq agent-shell-anthropic-authentication
-        (agent-shell-anthropic-make-authentication
-         :api-key (lambda () (identity "unused")))
-        agent-shell-anthropic-claude-environment
-        (agent-shell-make-environment-variables
-         "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
-         "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
-         "CLAUDE_CODE_USE_FOUNDRY" "1")
-        agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
-        agent-shell-anthropic-default-model-id "claude-opus-4-6[1m]"
-        agent-shell-display-action
-        '((display-buffer-in-direction)
-          (direction . right)
-          (window-width . 0.5))
-        agent-shell-mcp-servers
-        '(((name . "emacs")
-           (type . "http")
-           (headers . ())
-           (url . (lambda ()
-                    (+setup-claude-code-ide)
-                    (let* ((project-dir (agent-shell-cwd))
-                           (session-id (format "agent-shell-%s-%s"
-                                               (file-name-nondirectory
-                                                (directory-file-name project-dir))
-                                               (format-time-string "%Y%m%d-%H%M%S")))
-                           (buffer (current-buffer)))
-                      (claude-code-ide-mcp-server-register-session
-                       session-id project-dir buffer)
-                      (puthash project-dir session-id claude-code-ide--session-ids)
-                      (add-hook 'post-command-hook
-                                #'agent-shell--track-active-buffer)
-                      (format "http://localhost:%d/mcp/%s"
-                              (claude-code-ide-mcp-server-ensure-server)
-                              session-id)))))))
   (load! "+agent-shell-ediff")
   (load! "+agent-shell-view-on-y")
   (load! "+agent-shell-interrupt-fix"))
