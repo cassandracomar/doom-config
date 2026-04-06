@@ -729,40 +729,23 @@
 (use-package! elisp-benchmarks
   :defer t)
 
-(use-package! claude-code-ide
-  :defer t
-  :init
+(defun +setup-claude-code-ide ()
+  ;; setup the mcp server
+  (require 'claude-code-ide)
+  (require 'claude-code-ide-mcp-server)
   (setq claude-code-ide-enable-mcp-server t)
-  :config
-  (setq claude-code-ide-terminal-backend 'vterm
-        claude-code-ide-use-side-window nil
-        claude-code-ide-window-width 100
-        claude-code-ide-window-height 100
-        claude-code-ide-show-claude-window-in-ediff nil)
-  (add-hook 'vterm-mode-hook
-            (lambda ()
-              (evil-local-set-key 'insert (kbd "S-<return>") #'claude-code-ide-insert-newline)))
-  (claude-code-ide-emacs-tools-setup))
+  (claude-code-ide-emacs-tools-setup)
+
+  ;; setup the mcp server extensions
+  (require 'claude-code-ide-extras-emacs)
+  (require 'claude-code-ide-extras-meta)
+  (require 'claude-code-ide-extras-projectile)
+  (claude-code-ide-extras-meta-setup)
+  (claude-code-ide-extras-emacs-setup)
+  (claude-code-ide-extras-projectile-setup))
 
 (setenv "EDITOR" "emacsclient")
 (setenv "VISUAL" "emacsclient")
-;; (map! :leader :desc "Claude Code IDE commands" :n "l" #'claude-code-ide-menu)
-;; (map! :map vterm-mode-map
-;;       :ni "C-M-g" (lambda () (interactive)
-;;                     (vterm-send-key "g" nil nil t)))
-
-(defun my/vterm-evil-visual-enter ()
-  (when (and (derived-mode-p 'vterm-mode)
-             (not vterm-copy-mode))
-    (vterm-copy-mode 1)))
-
-(defun my/vterm-evil-visual-exit ()
-  (when (and (derived-mode-p 'vterm-mode)
-             vterm-copy-mode)
-    (vterm-copy-mode -1)))
-
-(add-hook 'evil-visual-state-entry-hook #'my/vterm-evil-visual-enter)
-(add-hook 'evil-visual-state-exit-hook #'my/vterm-evil-visual-exit)
 
 (use-package! shell-maker
   :defer t)
@@ -831,15 +814,7 @@ is not file-visiting or hasn't changed."
            (type . "http")
            (headers . ())
            (url . (lambda ()
-                    (require 'claude-code-ide)
-                    (require 'claude-code-ide-mcp-server)
-                    (claude-code-ide-emacs-tools-setup)
-                    (require 'claude-code-ide-extras-emacs)
-                    (require 'claude-code-ide-extras-meta)
-                    (require 'claude-code-ide-extras-projectile)
-                    (claude-code-ide-extras-meta-setup)
-                    (claude-code-ide-extras-emacs-setup)
-                    (claude-code-ide-extras-projectile-setup)
+                    (+setup-claude-code-ide)
                     (let* ((project-dir (agent-shell-cwd))
                            (session-id (format "agent-shell-%s-%s"
                                                (file-name-nondirectory
@@ -860,13 +835,3 @@ is not file-visiting or hasn't changed."
 
 (map! :leader
       "l l" #'agent-shell-anthropic-start-claude-code)
-
-(use-package! claude-code-ide-extras-emacs
-  :after claude-code-ide
-  :config
-  (require 'claude-code-ide-extras-emacs)
-  (require 'claude-code-ide-extras-meta)
-  (require 'claude-code-ide-extras-projectile)
-  (claude-code-ide-extras-meta-setup)
-  (claude-code-ide-extras-emacs-setup)
-  (claude-code-ide-extras-projectile-setup))
