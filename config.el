@@ -769,44 +769,6 @@
 (use-package! acp
   :defer t)
 
-(defvar agent-shell--last-tracked-buf nil
-  "The last file-visiting buffer tracked for MCP last-active-buffer.")
-
-(defun agent-shell--track-active-buffer ()
-  "Track the active file-visiting buffer for the MCP tools server.
-Added to `post-command-hook'; exits early if the current buffer
-is not file-visiting or hasn't changed."
-  (when-let* ((cur (current-buffer))
-              (file-path (buffer-file-name cur))
-              ((not (eq cur agent-shell--last-tracked-buf)))
-              (expanded-path (expand-file-name file-path))
-              ((bound-and-true-p claude-code-ide--session-ids))
-              ((fboundp 'claude-code-ide-mcp-server--server-alive-p))
-              ((claude-code-ide-mcp-server--server-alive-p)))
-    (maphash (lambda (project-dir session-id)
-               (when (string-prefix-p (expand-file-name project-dir)
-                                      expanded-path)
-                 (claude-code-ide-mcp-server-update-last-active-buffer
-                  session-id cur)))
-             claude-code-ide--session-ids)
-    (setq agent-shell--last-tracked-buf cur)))
-
-(define-advice claude-code-ide-mcp-project-info (:override ()
-                                                           agent-shell--prefer-last-active)
-  "Prefer :last-active-buffer over :buffer when reporting project info."
-  (let ((context (claude-code-ide-mcp-server-get-session-context)))
-    (if context
-        (let* ((project-dir (plist-get context :project-dir))
-               (last-active (plist-get context :last-active-buffer))
-               (registered (plist-get context :buffer))
-               (buffer (or (and last-active (buffer-live-p last-active) last-active)
-                           (and registered (buffer-live-p registered) registered))))
-          (format "Project: %s\nBuffer: %s\nFiles: %d"
-                  project-dir
-                  (if buffer (buffer-name buffer) "No active buffer")
-                  (length (project-files (project-current nil project-dir)))))
-      "No session context available")))
-
 (use-package! agent-shell
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell
