@@ -4,13 +4,14 @@
 ;; cancel response arrives (~1-2s).  Any input submitted during that
 ;; window is silently discarded by `shell-maker--clear-input-for-execution'.
 ;;
-;; Additionally, the first prompt sent after a cancel often gets an
-;; immediate empty response from the agent (it hasn't fully settled).
+;; Additionally, the first prompt sent after a cancel gets an immediate
+;; empty response from the agent (it hasn't fully settled).
 ;;
 ;; Fix:
 ;; 1. Queue rejected input and replay when finish-output fires.
 ;; 2. After a cancel, track submitted input.  If finish-output fires
-;;    suspiciously fast (< 3s), auto-resubmit once.
+;;    suspiciously fast (< 1s), auto-resubmit once, cleaning up the
+;;    failed prompt's visual artifact.
 
 (eval-when-compile
   (require 'cl-lib))
@@ -46,16 +47,45 @@ When in post-cancel state and input is accepted, track it for auto-resubmit."
     result))
 
 (define-advice shell-maker-finish-output
-    (:after (&rest _) replay-queued-input)
-  "After the shell becomes ready, replay queued input or auto-resubmit.
-If in post-cancel state and the agent responded too fast (< 3s),
-the prompt was likely dropped — resubmit it automatically."
-  (when (derived-mode-p 'agent-shell-mode)
-    (let ((buf (current-buffer)))
+    (:around (orig-fn &rest args) replay-queued-input)
+  "Replay queued input or auto-resubmit after post-cancel drop.
+Uses :around so we can suppress the prompt write for the dropped
+first post-cancel response (avoiding a duplicate prompt)."
+  (cond
+   ;; Post-cancel fast response — suppress prompt, auto-resubmit
+   ((and (derived-mode-p 'agent-shell-mode)
+         +agent-shell--last-submit
+         (< (- (float-time) (cdr +agent-shell--last-submit)) 1.0))
+    (let ((input (car +agent-shell--last-submit))
+          (buf (current-buffer)))
+      (setq +agent-shell--last-submit nil
+            +agent-shell--post-cancel nil)
+      ;; DON'T call orig-fn — suppress the empty response's prompt.
+      ;; Just reset busy so the resubmit can proceed.
+      (setq shell-maker--busy nil)
+      (run-with-idle-timer
+       0.2 nil
+       (lambda ()
+         (when (buffer-live-p buf)
+           (with-current-buffer buf
+             (when (and (derived-mode-p 'agent-shell-mode)
+                        (not shell-maker--busy))
+               ;; Delete the failed prompt's visual artifact
+               (let ((inhibit-read-only t))
+                 (when (and (markerp comint-last-input-start)
+                            (marker-position comint-last-input-start))
+                   (delete-region comint-last-input-start (point-max))))
+               (shell-maker-submit :input input))))))))
+
+   ;; Normal finish — call orig, then handle queued input or clear state
+   (t
+    (apply orig-fn args)
+    (when (derived-mode-p 'agent-shell-mode)
       (cond
-       ;; Queued input from busy rejection — replay it
+       ;; Queued input — replay it
        (+agent-shell--queued-input
-        (let ((input +agent-shell--queued-input))
+        (let ((input +agent-shell--queued-input)
+              (buf (current-buffer)))
           (setq +agent-shell--queued-input nil)
           (run-with-idle-timer
            0.2 nil
@@ -65,35 +95,10 @@ the prompt was likely dropped — resubmit it automatically."
                  (when (and (derived-mode-p 'agent-shell-mode)
                             (not shell-maker--busy))
                    (shell-maker-submit :input input))))))))
-       ;; Post-cancel fast response — auto-resubmit
-       ((and +agent-shell--last-submit
-             (< (- (float-time) (cdr +agent-shell--last-submit)) 1.0))
-        (let ((input (car +agent-shell--last-submit)))
-          (setq +agent-shell--last-submit nil
-                +agent-shell--post-cancel nil)
-          (run-with-idle-timer
-           0.5 nil
-           (lambda ()
-             (when (buffer-live-p buf)
-               (with-current-buffer buf
-                 (when (and (derived-mode-p 'agent-shell-mode)
-                            (not shell-maker--busy))
-                   (message "Auto-resubmitting after post-cancel drop")
-                   ;; Delete the failed prompt's visual artifact
-                   ;; (input echo + empty response + prompt)
-                   (let ((inhibit-read-only t))
-                     (when (and (markerp comint-last-input-start)
-                                (marker-position comint-last-input-start))
-                       (delete-region comint-last-input-start (point-max))))
-                   (shell-maker-submit :input input))))))))
-       ;; Post-cancel normal response (took > 3s) — clear state
+       ;; Post-cancel normal response (took >= 1s) — clear state
        (+agent-shell--last-submit
         (setq +agent-shell--post-cancel nil
-              +agent-shell--last-submit nil))
-       ;; No tracked submit — leave post-cancel state alone
-       ;; (cancel response's finish-output arrives here before
-       ;; the user has typed anything)
-       ))))
+              +agent-shell--last-submit nil)))))))
 
 (define-advice agent-shell-interrupt
     (:after (&optional _force) post-interrupt-fixup)
