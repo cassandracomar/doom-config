@@ -187,12 +187,17 @@ INTERVAL is seconds between polls (default 3)."
 
 (defun +meta-agent-shell-start (_arg &optional _buffer-name)
   "Start a new Claude agent-shell for meta-agent-shell.
-No window popup, no session prompt, acceptEdits mode.
-Permissions are rendered in the dispatcher buffer."
+No window popup, no session prompt. Copies the session mode from the
+primary (dispatcher) buffer. Permissions are rendered in the dispatcher buffer."
   (let* ((config (copy-alist (agent-shell-anthropic-make-claude-code-config)))
+         (mode-id (or (when-let* ((primary +meta-agent-shell--primary-buffer)
+                                  (pbuf (get-buffer primary)))
+                        (with-current-buffer pbuf
+                          (map-nested-elt agent-shell--state '(:session :mode-id))))
+                      "default"))
          (buf nil))
     (setf (map-elt config :default-session-mode-id)
-          (lambda () "acceptEdits"))
+          (lambda () mode-id))
     (setq buf (agent-shell--start :config config
                                   :no-focus t
                                   :new-session t
