@@ -911,4 +911,4 @@ documentation string.  GROUPS can be inline specs or a single symbol."
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
-(map! :leader "l l" :desc "Start Claude Code" #'agent-shell-anthropic-start-claude-code)
+(map! :leader :desc "Start Claude Code" "l l" #'agent-shell-anthropic-start-claude-code)
