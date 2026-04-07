@@ -827,18 +827,22 @@
     :desc "Backward block"                                        "<backtab>" #'agent-shell-ui-backward-block
     :desc "Toggle fragment"                              :n       "."         #'agent-shell-ui-toggle-fragment-at-point
     :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
+
     :block "Compose"
     :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
     :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
     :desc "Send region"                                  :n       "r"         #'agent-shell-send-region
     :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-other-file
     :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
+
     :block "Session"
     :desc "Cycle mode"                                            "<C-tab>"   #'agent-shell-cycle-session-mode
     :desc "Set mode"                                     :n       "M"         #'agent-shell-set-session-mode
     :desc "Fork session"                                 :n       "C-y"       #'agent-shell-fork
     :desc "Restart"                                      :n       "q"         #'agent-shell-restart
     :desc "Toggle shell"                                 :n       "C-o"       #'agent-shell-toggle
+
+    :row
     :block "Agents"
     :desc "Agent dispatcher"                             :n       "m m"       #'meta-agent-shell-start
     :desc "Project dispatcher"                           :n       "m d"       #'meta-agent-shell-jump-to-dispatcher
@@ -846,8 +850,10 @@
     :desc "Stop heartbeat"                               :n       "m H"       #'meta-agent-shell-heartbeat-stop
     :desc "Send heartbeat now"                           :n       "m s"       #'meta-agent-shell-heartbeat-send-now
     :desc "STOP ALL AGENTS"                              :n       "m !"       #'meta-agent-shell-big-red-button
+
     :block "Launch"
     :desc "Start Claude"                                 :n       "l"         #'agent-shell-anthropic-start-claude-code
+
     :block "Debug"
     :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
     :desc "Transcript"               :localleader        :n       "T"         #'agent-shell-open-transcript
