@@ -196,6 +196,23 @@ INTERVAL is seconds between polls (default 3)."
     (cancel-timer timer))
   (setq +meta-agent-shell--dispatch-state nil))
 
+(defun +meta-agent-shell-kill-agents ()
+  "Kill all agent-shell sessions except the current buffer.
+Returns the number of agents killed."
+  (let ((self (buffer-name))
+        (killed 0))
+    (dolist (session (meta-agent-shell-list-sessions))
+      (let ((buf-name (plist-get session :buffer)))
+        (unless (equal buf-name self)
+          (when-let* ((buf (get-buffer buf-name))
+                      (proc (get-buffer-process buf)))
+            (set-process-query-on-exit-flag proc nil)
+            (delete-process proc))
+          (when (get-buffer buf-name)
+            (kill-buffer buf-name))
+          (cl-incf killed))))
+    killed))
+
 ;; -- Start function for spawned agents --
 
 (defun +meta-agent-shell-start (_arg &optional _buffer-name)

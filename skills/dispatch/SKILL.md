@@ -118,7 +118,7 @@ Non-edit permissions from background agents render as button dialogs in your buf
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 (progn
   (+meta-agent-shell-stop-progress-polling)
-  (meta-agent-shell-big-red-button))
+  (+meta-agent-shell-kill-agents))
 ```
 
 ### If user says an agent needs help:
@@ -149,7 +149,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 4. **Clean up agents**:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(meta-agent-shell-big-red-button)
+(+meta-agent-shell-kill-agents)
 ```
 
 ## Agent Communication Reference
@@ -164,7 +164,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 | Start polling | `(+meta-agent-shell-start-progress-polling BUF AGENTS)` |
 | Stop polling | `(+meta-agent-shell-stop-progress-polling)` |
 | Interrupt one | `(meta-agent-shell-interrupt-session BUF)` |
-| Stop ALL | `(meta-agent-shell-big-red-button)` |
+| Stop ALL | `(+meta-agent-shell-kill-agents)` |
 
 ## Rules
 
