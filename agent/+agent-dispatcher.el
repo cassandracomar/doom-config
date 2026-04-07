@@ -4,7 +4,6 @@
 ;; meta-agent-shell dispatch workflows.
 
 (require 'cl-lib)
-(require 'color)
 (require 'map)
 (require 'svg)
 
@@ -66,9 +65,44 @@
          (t (goto-char (point-max))
             (insert text)))))))
 
+(defun +meta-agent-shell--make-respond-action (respond option-id agent-buf perm-id target-name)
+  "Create a permission button action that responds and cleans up."
+  (lambda ()
+    (interactive)
+    (funcall respond option-id)
+    (setq +meta-agent-shell--pending-permission-agents
+          (delete agent-buf +meta-agent-shell--pending-permission-agents))
+    (+meta-agent-shell--cleanup-permission perm-id target-name agent-buf option-id)))
+
+(defun +meta-agent-shell--make-permission-buttons (options keymap respond agent-buf perm-id target-name)
+  "Build permission button string from OPTIONS, binding keys in KEYMAP."
+  (mapconcat
+   (lambda (opt)
+     (let ((action (+meta-agent-shell--make-respond-action
+                    respond (map-elt opt :option-id) agent-buf perm-id target-name)))
+       (when-let* ((char-str (map-elt opt :char)))
+         (define-key keymap (kbd char-str) action))
+       (agent-shell--make-permission-button
+        :text (map-elt opt :label)
+        :help (map-elt opt :label)
+        :action action
+        :keymap keymap
+        :char (map-elt opt :char)
+        :option (or (map-elt opt :option) (map-elt opt :label))
+        :navigatable t)))
+   options " "))
+
+(defun +meta-agent-shell--format-permission (agent-buf title kind buttons)
+  "Format the permission dialog text."
+  (format "\n╭─\n\n    %s %s %s\n\n\n    %s\n\n\n    %s\n\n\n╰─\n"
+          (propertize "⚠" 'font-lock-face 'warning)
+          (propertize (format "Permission: %s" agent-buf) 'font-lock-face 'bold)
+          (propertize "⚠" 'font-lock-face 'warning)
+          (propertize (format "%s (%s)" title kind) 'font-lock-face 'comint-highlight-input)
+          buttons))
+
 (defun +meta-agent-shell-forward-permission (permission)
-  "Render PERMISSION from a background agent in the dispatcher buffer.
-Uses agent-shell's native button maker for full navigation compatibility."
+  "Render PERMISSION from a background agent in the dispatcher buffer."
   (when-let* ((tool-call (map-elt permission :tool-call))
               (options (map-elt permission :options))
               (respond (map-elt permission :respond))
@@ -80,47 +114,26 @@ Uses agent-shell's native button maker for full navigation compatibility."
     (cl-pushnew agent-buf +meta-agent-shell--pending-permission-agents :test #'equal)
     (let* ((perm-id (format "perm-%s-%s" agent-buf (random)))
            (keymap (make-sparse-keymap))
-           (buttons
-            (mapconcat
-             (lambda (opt)
-               (let* ((option-id (map-elt opt :option-id))
-                      (action (lambda ()
-                                (interactive)
-                                (funcall respond option-id)
-                                (setq +meta-agent-shell--pending-permission-agents
-                                      (delete agent-buf +meta-agent-shell--pending-permission-agents))
-                                (+meta-agent-shell--cleanup-permission
-                                 perm-id
-                                 (buffer-name target)
-                                 agent-buf
-                                 option-id))))
-                 (when-let* ((char-str (map-elt opt :char)))
-                   (define-key keymap (kbd char-str) action))
-                 (agent-shell--make-permission-button
-                  :text (map-elt opt :label)
-                  :help (map-elt opt :label)
-                  :action action
-                  :keymap keymap
-                  :char (map-elt opt :char)
-                  :option (or (map-elt opt :option)
-                              (map-elt opt :label))
-                  :navigatable t)))
-             options
-             " "))
-           (text (format "\n╭─\n\n    %s %s %s\n\n\n    %s\n\n\n    %s\n\n\n╰─\n"
-                         (propertize "⚠" 'font-lock-face 'warning)
-                         (propertize (format "Permission: %s" agent-buf)
-                                     'font-lock-face 'bold)
-                         (propertize "⚠" 'font-lock-face 'warning)
-                         (propertize (format "%s (%s)" title kind)
-                                     'font-lock-face 'comint-highlight-input)
-                         buttons)))
+           (buttons (+meta-agent-shell--make-permission-buttons
+                     options keymap respond agent-buf perm-id (buffer-name target)))
+           (text (+meta-agent-shell--format-permission agent-buf title kind buttons)))
       (put-text-property 0 (length text) 'keymap keymap text)
       (put-text-property 0 (length text) '+meta-agent-shell-perm-id perm-id text)
       (+meta-agent-shell--insert-before-prompt target text))
     t))
 
 ;; -- Dispatch task graph and progress rendering --
+
+(defvar +dispatch--layout
+  '(:node-h 34 :node-pad 8 :col-gap 50 :margin 10
+    :pill-w 40 :pill-h 28 :pill-rx 14
+    :node-rx 5 :node-max-w 220 :node-base-w 40 :node-char-w 7
+    :node-text-x 8 :node-text-y 22 :node-elapsed-pad 8
+    :node-font-size 12 :pill-font-size 14 :elapsed-font-size 10
+    :pill-text-y-offset 5 :name-max-len 24
+    :arrow-head-len 5 :arrow-head-hw 4.0 :arrow-cp-factor 0.4
+    :arrow-stroke-w "1.5" :bg-rx 8)
+  "Layout constants for the SVG task graph.")
 
 (defvar +dispatch--spinner-frames
   '("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
@@ -151,15 +164,6 @@ DETAIL is an optional description of current activity."
                      :started (or (plist-get existing :started) (current-time)))
                statuses))))
 
-(defun +dispatch--blend (color1 color2 alpha)
-  "Blend COLOR1 with COLOR2 by ALPHA (0-1, where 1 = all COLOR1).
-Returns a 6-digit hex color string."
-  (let ((c1 (color-name-to-rgb color1))
-        (c2 (color-name-to-rgb color2)))
-    (apply #'format "#%02x%02x%02x"
-           (cl-mapcar (lambda (a b)
-                        (round (* 255 (+ (* alpha a) (* (- 1 alpha) b)))))
-                      c1 c2))))
 
 (defvar +dispatch--theme-cache nil
   "Cached theme color scheme for SVG rendering.")
@@ -175,10 +179,24 @@ Caches the result; call `+dispatch--refresh-theme' to update."
   (interactive)
   (setq +dispatch--theme-cache (+dispatch--compute-theme-colors)))
 
+(defun +dispatch--resolve-face (face attr)
+  "Resolve FACE's ATTR respecting face-remapping-alist in the dispatcher buffer."
+  (let* ((buf (or (and +meta-agent-shell--primary-buffer
+                       (get-buffer +meta-agent-shell--primary-buffer))
+                  (current-buffer)))
+         (remap (with-current-buffer buf
+                  (alist-get face face-remapping-alist)))
+         (resolved (if (and remap (facep (car remap))) (car remap) face)))
+    (funcall (if (eq attr :background) #'face-background #'face-foreground)
+             resolved nil t)))
+
 (defun +dispatch--compute-theme-colors ()
-  "Compute SVG color scheme from current Emacs faces."
-  (let* ((bg  (face-background 'default))
-         (fg  (face-foreground 'default))
+  "Compute SVG color scheme from current Emacs faces.
+Respects face remapping (e.g. solaire-mode) in the dispatcher buffer."
+  (let* ((bg  (or (+dispatch--resolve-face 'default :background)
+                  (face-background 'default)))
+         (fg  (or (+dispatch--resolve-face 'default :foreground)
+                  (face-foreground 'default)))
          (ok  (or (face-foreground 'success nil t) "#b6e63e"))
          (wrn (or (face-foreground 'warning nil t) "#e2c770"))
          (err (or (face-foreground 'error nil t) "#e74c3c"))
@@ -191,15 +209,15 @@ Caches the result; call `+dispatch--refresh-theme' to update."
                  (or (ignore-errors
                        (symbol-name (font-get (face-attribute 'default :font) :family)))
                      "monospace"))
-          :arrow (+dispatch--blend dim bg 0.6)
-          :pill-bg (+dispatch--blend dim bg 0.25)
+          :arrow (doom-blend dim bg 0.6)
+          :pill-bg (doom-blend dim bg 0.25)
           :status
-          `((done       :bg ,(+dispatch--blend ok  bg tint) :fg ,ok  :icon "✓")
-            (working    :bg ,(+dispatch--blend wrn bg tint) :fg ,wrn :icon "⠹")
-            (permission :bg ,(+dispatch--blend err bg tint) :fg ,err :icon "🔒")
-            (waiting    :bg ,(+dispatch--blend dim bg 0.1)  :fg ,dim :icon "◦")
-            (error      :bg ,(+dispatch--blend err bg tint) :fg ,err :icon "✗")
-            (dead       :bg ,(+dispatch--blend dim bg 0.05) :fg ,dim :icon "?")))))
+          `((done       :bg ,(doom-blend ok  bg tint) :fg ,ok  :icon "✓")
+            (working    :bg ,(doom-blend wrn bg tint) :fg ,wrn :icon "⠹")
+            (permission :bg ,(doom-blend err bg tint) :fg ,err :icon "🔒")
+            (waiting    :bg ,(doom-blend dim bg 0.1)  :fg ,dim :icon "◦")
+            (error      :bg ,(doom-blend err bg tint) :fg ,err :icon "✗")
+            (dead       :bg ,(doom-blend dim bg 0.05) :fg ,dim :icon "?")))))
 
 (defun +dispatch--compute-levels (tasks-info)
   "Compute topological levels for TASKS-INFO based on :depends-on.
@@ -250,76 +268,114 @@ Returns list of (from-id . to-id) pairs, plus edges from \"start\" and to \"end\
     edges))
 
 (defun +dispatch--draw-arrow (svg x1 y1 x2 y2 color)
-  "Draw a curved arrow from (X1,Y1) to (X2,Y2) on SVG with arrowhead.
-Uses a cubic bezier curve that bows based on vertical distance."
-  (let* ((head-len 5)
+  "Draw a curved arrow from (X1,Y1) to (X2,Y2) on SVG with arrowhead."
+  (let* ((L +dispatch--layout)
+         (head-len (plist-get L :arrow-head-len))
+         (hw (plist-get L :arrow-head-hw))
          (dx (- x2 x1))
-         (cp-offset (* 0.4 (abs dx)))
-         ;; Control points: horizontal pull toward target
+         (cp-offset (* (plist-get L :arrow-cp-factor) (abs dx)))
          (cx1 (+ x1 cp-offset)) (cy1 (float y1))
          (cx2 (- x2 cp-offset)) (cy2 (float y2))
-         ;; Shorten endpoint for arrowhead
-         (ex (- (float x2) head-len)) (ey (float y2))
-         ;; Arrowhead triangle pointing right
-         (ax1 (- ex head-len)) (ay1 (- ey 4.0))
-         (ax2 (- ex head-len)) (ay2 (+ ey 4.0)))
+         (ex (- (float x2) head-len)) (ey (float y2)))
     (dom-append-child svg
-                      (dom-node 'path
-                                `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
-                                                (float x1) (float y1) cx1 cy1 cx2 cy2 ex ey))
-                                  (stroke . ,color) (stroke-width . "1.5") (fill . "none"))))
+      (dom-node 'path
+        `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
+                        (float x1) (float y1) cx1 cy1 cx2 cy2 ex ey))
+          (stroke . ,color) (stroke-width . ,(plist-get L :arrow-stroke-w))
+          (fill . "none"))))
     (dom-append-child svg
-                      (dom-node 'polygon
-                                `((points . ,(format "%f,%f %f,%f %f,%f"
-                                                     (float x2) (float y2) ax1 ay1 ax2 ay2))
-                                  (fill . ,color))))))
+      (dom-node 'polygon
+        `((points . ,(format "%f,%f %f,%f %f,%f"
+                             (float x2) (float y2)
+                             (- ex head-len) (- ey hw)
+                             (- ex head-len) (+ ey hw)))
+          (fill . ,color))))))
+
+(defun +dispatch--group-by-level (tasks)
+  "Group TASKS by :level into a hash of level → task list (preserving order)."
+  (let ((columns (make-hash-table))
+        (max-level (cl-loop for t_ in tasks maximize (plist-get t_ :level))))
+    (dolist (task tasks)
+      (push task (gethash (plist-get task :level) columns)))
+    (cl-loop for lv from 0 to max-level
+             do (puthash lv (nreverse (gethash lv columns)) columns))
+    columns))
+
+(defun +dispatch--draw-pill (svg x cy w h icon theme)
+  "Draw a pill-shaped node on SVG at X, centered at CY. Returns edge positions."
+  (let ((L +dispatch--layout))
+    (svg-rectangle svg x (- cy (/ h 2)) w h
+                   :fill (plist-get theme :pill-bg)
+                   :rx (plist-get L :pill-rx))
+    (svg-text svg icon :x (+ x (/ w 2)) :y (+ cy (plist-get L :pill-text-y-offset))
+              :fill (plist-get theme :dim)
+              :font-size (plist-get L :pill-font-size)
+              :font-family (plist-get theme :font) :text-anchor "middle")
+    (list :left-x x :right-x (+ x w) :cy cy)))
+
+(defun +dispatch--draw-task-node (svg x y w h task theme)
+  "Draw a task node on SVG. Returns edge positions."
+  (let* ((L +dispatch--layout)
+         (status (plist-get task :status))
+         (name (plist-get task :name))
+         (elapsed (or (plist-get task :elapsed) ""))
+         (sc (cdr (assq status (plist-get theme :status))))
+         (font (plist-get theme :font))
+         (max-len (plist-get L :name-max-len))
+         (label (if (> (length name) max-len)
+                    (concat (substring name 0 (- max-len 2)) "…") name))
+         (text-x (+ x (plist-get L :node-text-x)))
+         (text-y (+ y (plist-get L :node-text-y))))
+    (svg-rectangle svg x y w h :fill (plist-get sc :bg)
+                   :rx (plist-get L :node-rx))
+    (svg-text svg (format "%s %s" (plist-get sc :icon) label)
+              :x text-x :y text-y :fill (plist-get sc :fg)
+              :font-size (plist-get L :node-font-size) :font-family font)
+    (when (> (length elapsed) 0)
+      (svg-text svg elapsed
+                :x (- (+ x w) (plist-get L :node-elapsed-pad))
+                :y text-y
+                :fill (plist-get theme :dim)
+                :font-size (plist-get L :elapsed-font-size)
+                :font-family font :text-anchor "end"))
+    (list :left-x x :right-x (+ x w) :cy (+ y (/ h 2)))))
 
 (defun +dispatch--build-svg (tasks-info)
   "Build a horizontal dependency graph SVG from TASKS-INFO.
-Each entry: (:id ID :name NAME :status STATUS :elapsed STR :detail STR-OR-NIL
-             :depends-on (ID...) :level N).
-Colors are derived from the current Emacs theme."
-  (let* ((theme (+dispatch--theme-colors))
-         (status-colors (plist-get theme :status))
-         (font (plist-get theme :font))
-         (node-h 34) (node-pad 8) (col-gap 50) (margin 10)
-         (pill-w 40) (pill-h 28)
+Colors derived from Emacs theme, dimensions from `+dispatch--layout'."
+  (let* ((L +dispatch--layout)
+         (theme (+dispatch--theme-colors))
+         (node-h (plist-get L :node-h))
+         (node-pad (plist-get L :node-pad))
+         (col-gap (plist-get L :col-gap))
+         (margin (plist-get L :margin))
+         (pill-w (plist-get L :pill-w))
+         (pill-h (plist-get L :pill-h))
          (leveled (if (plist-get (car tasks-info) :level) tasks-info
                     (+dispatch--compute-levels tasks-info)))
          (max-level (cl-loop for t_ in leveled maximize (plist-get t_ :level)))
-         ;; Group by level
-         (columns (make-hash-table))
-         (_ (dolist (task leveled)
-              (push task (gethash (plist-get task :level) columns))))
-         (_ (cl-loop for lv from 0 to max-level
-                     do (puthash lv (nreverse (gethash lv columns)) columns)))
+         (columns (+dispatch--group-by-level leveled))
          (max-col-size (cl-loop for lv from 0 to max-level
                                 maximize (length (gethash lv columns))))
-         (node-w (+ 40 (* 7 (cl-loop for t_ in leveled
-                                     maximize (length (plist-get t_ :name))))))
-         (node-w (min node-w 220))
+         (node-w (min (+ (plist-get L :node-base-w)
+                         (* (plist-get L :node-char-w)
+                            (cl-loop for t_ in leveled
+                                     maximize (length (plist-get t_ :name)))))
+                      (plist-get L :node-max-w)))
          (w (+ (* 2 margin) pill-w col-gap
-               (* (1+ max-level) (+ node-w col-gap))
-               pill-w))
-         (h (+ (* 2 margin) (* max-col-size (+ node-h node-pad)) (- node-pad)))
-         (h (max h 60))
+               (* (1+ max-level) (+ node-w col-gap)) pill-w))
+         (h (max (+ (* 2 margin) (* max-col-size (+ node-h node-pad)) (- node-pad)) 60))
          (svg (svg-create w h))
          (node-edges (make-hash-table :test 'equal))
          (edges (+dispatch--transitive-reduce leveled)))
 
-    ;; Background
-    (svg-rectangle svg 0 0 w h :fill (plist-get theme :bg) :rx 8)
+    (svg-rectangle svg 0 0 w h :fill (plist-get theme :bg)
+                   :rx (plist-get L :bg-rx))
 
-    ;; Start pill
-    (let* ((sx margin) (sy (/ h 2)))
-      (svg-rectangle svg sx (- sy (/ pill-h 2))
-                     pill-w pill-h :fill (plist-get theme :pill-bg) :rx 14)
-      (svg-text svg "▶" :x (+ sx (/ pill-w 2)) :y (+ sy 5)
-                :fill (plist-get theme :dim) :font-size 14 :font-family font
-                :text-anchor "middle")
-      (puthash "start" (list :left-x sx :right-x (+ sx pill-w) :cy sy) node-edges))
+    (puthash "start"
+             (+dispatch--draw-pill svg margin (/ h 2) pill-w pill-h "▶" theme)
+             node-edges)
 
-    ;; Task nodes by level
     (cl-loop for lv from 0 to max-level
              for col-tasks = (gethash lv columns)
              for n = (length col-tasks)
@@ -329,53 +385,25 @@ Colors are derived from the current Emacs theme."
              do (cl-loop for task in col-tasks
                          for i from 0
                          for y = (+ start-y (* i (+ node-h node-pad)))
-                         for id = (plist-get task :id)
-                         for name = (plist-get task :name)
-                         for status = (plist-get task :status)
-                         for elapsed = (or (plist-get task :elapsed) "")
-                         for sc = (cdr (assq status status-colors))
-                         for bg = (plist-get sc :bg)
-                         for fg = (plist-get sc :fg)
-                         for icon = (plist-get sc :icon)
-                         do
-                         (svg-rectangle svg col-x y node-w node-h :fill bg :rx 5)
-                         (svg-text svg (format "%s %s" icon
-                                               (if (> (length name) 24)
-                                                   (concat (substring name 0 22) "…")
-                                                 name))
-                                   :x (+ col-x 8) :y (+ y 22)
-                                   :fill fg :font-size 12 :font-family font)
-                         (when (> (length elapsed) 0)
-                           (svg-text svg elapsed
-                                     :x (+ col-x node-w -8) :y (+ y 22)
-                                     :fill (plist-get theme :dim)
-                                     :font-size 10 :font-family font
-                                     :text-anchor "end"))
-                         (puthash id (list :left-x col-x
-                                           :right-x (+ col-x node-w)
-                                           :cy (+ y (/ node-h 2)))
-                                  node-edges)))
+                         do (puthash (plist-get task :id)
+                                     (+dispatch--draw-task-node
+                                      svg col-x y node-w node-h task theme)
+                                     node-edges)))
 
-    ;; End pill
-    (let* ((ex (+ margin pill-w col-gap (* (1+ max-level) (+ node-w col-gap))))
-           (ey (/ h 2)))
-      (svg-rectangle svg ex (- ey (/ pill-h 2))
-                     pill-w pill-h :fill (plist-get theme :pill-bg) :rx 14)
-      (svg-text svg "■" :x (+ ex (/ pill-w 2)) :y (+ ey 5)
-                :fill (plist-get theme :dim) :font-size 14 :font-family font
-                :text-anchor "middle")
-      (puthash "end" (list :left-x ex :right-x (+ ex pill-w) :cy ey) node-edges))
+    (puthash "end"
+             (+dispatch--draw-pill svg
+                                   (+ margin pill-w col-gap
+                                      (* (1+ max-level) (+ node-w col-gap)))
+                                   (/ h 2) pill-w pill-h "■" theme)
+             node-edges)
 
-    ;; Draw curved arrows
     (dolist (edge edges)
-      (let* ((from (gethash (car edge) node-edges))
-             (to (gethash (cdr edge) node-edges)))
-        (when (and from to)
-          (+dispatch--draw-arrow svg
-                                 (plist-get from :right-x) (plist-get from :cy)
-                                 (plist-get to :left-x) (plist-get to :cy)
-                                 (plist-get theme :arrow)))))
-
+      (when-let* ((from (gethash (car edge) node-edges))
+                  (to (gethash (cdr edge) node-edges)))
+        (+dispatch--draw-arrow svg
+                               (plist-get from :right-x) (plist-get from :cy)
+                               (plist-get to :left-x) (plist-get to :cy)
+                               (plist-get theme :arrow))))
     svg))
 
 (defun +dispatch--resolve-status (task statuses)
@@ -442,9 +470,9 @@ Combines agent-reported status with shell-maker--busy fallback."
                                    :detail detail
                                    :depends-on (plist-get task :depends-on))))
            (svg (+dispatch--build-svg render-data))
-           (img (svg-image svg :scale 1.0))
-           (body (propertize "dispatch-graph" 'display img)))
-      (let ((buf (get-buffer-create "*dispatch-progress*")))
+           (img (svg-image svg :scale 1.0)))
+      (let ((buf (get-buffer-create "*dispatch-progress*"))
+            (bg (plist-get (+dispatch--theme-colors) :bg)))
         (with-current-buffer buf
           (let ((inhibit-read-only t))
             (erase-buffer)
@@ -452,7 +480,8 @@ Combines agent-reported status with shell-maker--busy fallback."
             (setq buffer-read-only t
                   cursor-type nil
                   mode-line-format nil
-                  header-line-format nil)))
+                  header-line-format nil)
+            (face-remap-add-relative 'default :background bg)))
         ;; Ensure the window exists, attached below the dispatcher
         (unless (get-buffer-window buf)
           (when-let* ((agent-win (get-buffer-window dispatcher)))
@@ -506,19 +535,17 @@ INTERVAL is seconds between render updates (default 2)."
 Also stops dispatch polling and closes the progress window.
 Returns the number of agents killed."
   (+dispatch-stop)
-  (let ((self (buffer-name))
-        (killed 0))
-    (dolist (session (meta-agent-shell-list-sessions))
-      (let ((buf-name (plist-get session :buffer)))
-        (unless (equal buf-name self)
-          (when-let* ((buf (get-buffer buf-name))
-                      (proc (get-buffer-process buf)))
-            (set-process-query-on-exit-flag proc nil)
-            (delete-process proc))
-          (when (get-buffer buf-name)
-            (kill-buffer buf-name))
-          (cl-incf killed))))
-    killed))
+  (cl-loop with self = (buffer-name)
+           for session in (meta-agent-shell-list-sessions)
+           for buf-name = (plist-get session :buffer)
+           unless (equal buf-name self)
+             do (when-let* ((buf (get-buffer buf-name))
+                            (proc (get-buffer-process buf)))
+                  (set-process-query-on-exit-flag proc nil)
+                  (delete-process proc))
+                (when-let* ((buf (get-buffer buf-name)))
+                  (kill-buffer buf))
+             and count t))
 
 ;; -- Start function for spawned agents --
 
