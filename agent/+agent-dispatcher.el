@@ -520,25 +520,30 @@ When STACK-MAP is non-nil, bottom-of-pair levels share their top level's x-posit
   (+ (cl-loop for t_ in col sum (gethash (plist-get t_ :id) task-heights))
      (* (1- (max (length col) 1)) node-pad)))
 
-(defun +dispatch--compute-bypass-y (from-lv to-lv from-cy col-bounds h)
-  "Compute bypass Y for an arrow spanning FROM-LV to TO-LV, or nil if not needed."
+(defun +dispatch--compute-bypass-y (from-lv to-lv from-cy col-bounds h &optional stack-map)
+  "Compute bypass Y for an arrow spanning FROM-LV to TO-LV, or nil if not needed.
+When STACK-MAP is non-nil, also avoids stacked pair bounds at the destination."
   (let ((span (- to-lv from-lv)))
     (when (> span 1)
-      (let ((min-top h) (max-bot 0) (has-intermediate nil))
-        (cl-loop for lv from (1+ from-lv) below to-lv
+      (let ((min-top h) (max-bot 0) (has-intermediate nil)
+            (check-to (and stack-map (gethash to-lv stack-map)
+                           (eq (plist-get (gethash to-lv stack-map) :position) 'top))))
+        (cl-loop for lv from (1+ from-lv) to (if check-to to-lv (1- to-lv))
                  for bounds = (gethash lv col-bounds)
                  when bounds
                    do (setq has-intermediate t
                             min-top (min min-top (plist-get bounds :top))
                             max-bot (max max-bot (plist-get bounds :bot))))
         (when has-intermediate
-          (let ((pad (+ (plist-get +dispatch--layout :node-pad) 6)))
+          (let ((pad (+ (plist-get +dispatch--layout :node-pad)
+                        (if check-to 28 6))))
             (if (< from-cy (/ h 2))
                 (- min-top pad)
               (+ max-bot pad))))))))
 
-(defun +dispatch--compute-col-bounds (node-edges leveled task-heights node-h)
-  "Compute top/bottom bounds per level from NODE-EDGES."
+(defun +dispatch--compute-col-bounds (node-edges leveled task-heights node-h &optional stack-map)
+  "Compute top/bottom bounds per level from NODE-EDGES.
+When STACK-MAP is non-nil, stacked pair levels share merged bounds."
   (let ((col-bounds (make-hash-table)))
     (maphash (lambda (id edges)
                (unless (member id '("start" "end"))
@@ -553,6 +558,18 @@ When STACK-MAP is non-nil, bottom-of-pair levels share their top level's x-posit
                                        :bot (if cur (max (plist-get cur :bot) bot) bot))
                               col-bounds)))))
              node-edges)
+    (when stack-map
+      (maphash (lambda (lv info)
+                 (when (eq (plist-get info :position) 'top)
+                   (let* ((peer (plist-get info :peer-level))
+                          (top-b (gethash lv col-bounds))
+                          (bot-b (gethash peer col-bounds)))
+                     (when (and top-b bot-b)
+                       (let ((merged (list :top (min (plist-get top-b :top) (plist-get bot-b :top))
+                                           :bot (max (plist-get top-b :bot) (plist-get bot-b :bot)))))
+                         (puthash lv merged col-bounds)
+                         (puthash peer merged col-bounds))))))
+               stack-map))
     col-bounds))
 
 (defun +dispatch--draw-edges (svg edges node-edges leveled col-bounds h theme &optional stack-map)
@@ -587,7 +604,7 @@ When STACK-MAP is non-nil, skip edges between stacked pair members."
                                  (plist-get to :left-x) (plist-get to :cy)
                                  (plist-get theme :arrow)
                                  (+dispatch--compute-bypass-y
-                                  from-lv to-lv (plist-get from :cy) col-bounds h)))))))
+                                  from-lv to-lv (plist-get from :cy) col-bounds h stack-map)))))))
 
 (defun +dispatch--build-svg (tasks-info)
   "Build a horizontal dependency graph SVG from TASKS-INFO."
@@ -685,7 +702,7 @@ When STACK-MAP is non-nil, skip edges between stacked pair members."
                            (+dispatch--transitive-reduce leveled)
                            node-edges leveled
                            (+dispatch--compute-col-bounds
-                            node-edges leveled task-heights (plist-get L :node-h))
+                            node-edges leveled task-heights (plist-get L :node-h) stack-map)
                            h theme stack-map)
     svg))
 
