@@ -824,7 +824,7 @@
     :desc "Forward block"         "<tab>"     #'agent-shell-ui-forward-block
     :desc "Backward block"        "<backtab>" #'agent-shell-ui-backward-block
     :desc "Toggle fragment"    :n "/"         #'agent-shell-ui-toggle-fragment-at-point
-    :desc "Jump to permission" :n "C-b"       #'agent-shell-jump-to-latest-permission-button-row
+    :desc "Jump to permission" :n "o"         #'agent-shell-jump-to-latest-permission-button-row
     :block "Compose"
     :desc "Compose prompt"        "C-c C-e"   #'agent-shell-prompt-compose
     :desc "Search history"        "C-r"       #'agent-shell-search-history
