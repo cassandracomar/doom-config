@@ -113,88 +113,172 @@ Uses agent-shell's native button maker for full navigation compatibility."
       (+meta-agent-shell--insert-before-prompt target text))
     t))
 
-;; -- Dispatch progress polling --
+;; -- Dispatch task graph and progress rendering --
 
-(defun +meta-agent-shell--poll-progress ()
-  "Check agent statuses and update the dispatch progress fragment.
-Uses shell-maker--busy directly to detect active output."
+(defvar +dispatch--spinner-frames
+  '("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  "Braille spinner animation frames.")
+
+(defvar +dispatch--spinner-index 0
+  "Current spinner frame index.")
+
+(defun +dispatch--format-elapsed (start-time)
+  "Format elapsed time since START-TIME as a human-readable string."
+  (let ((elapsed (floor (float-time (time-subtract nil start-time)))))
+    (cond
+     ((< elapsed 60) (format "%ds" elapsed))
+     ((< elapsed 3600) (format "%dm%02ds" (/ elapsed 60) (% elapsed 60)))
+     (t (format "%dh%02dm" (/ elapsed 3600) (% (/ elapsed 60) 60))))))
+
+(defun +dispatch-report (task-id status &optional detail)
+  "Report STATUS for TASK-ID. Called by agents via MCP.
+STATUS is a string: \"working\", \"done\", \"error\".
+DETAIL is an optional description of current activity."
+  (when-let* ((state +meta-agent-shell--dispatch-state)
+              (statuses (plist-get state :statuses)))
+    (let ((existing (gethash task-id statuses)))
+      (puthash task-id
+               (list :status (intern status)
+                     :detail detail
+                     :updated (current-time)
+                     :started (or (plist-get existing :started) (current-time)))
+               statuses))))
+
+(defun +dispatch--render ()
+  "Render the dispatch task graph as a progress fragment.
+Combines agent-reported status with shell-maker--busy fallback."
   (when-let* ((state +meta-agent-shell--dispatch-state)
               (dispatcher (plist-get state :dispatcher-buffer))
-              (agents (plist-get state :agents))
+              (tasks (plist-get state :tasks))
+              (statuses (plist-get state :statuses))
               ((get-buffer dispatcher)))
-    (let ((seen-busy (plist-get state :seen-busy)))
-      (cl-loop with total = (length agents)
-               for agent in agents
-               for buf-name = (car agent)
-               for task = (cdr agent)
-               for buf = (get-buffer buf-name)
-               for alive = (and buf (get-buffer-process buf))
-               for busy = (and buf (buffer-local-value 'shell-maker--busy buf))
-               for perm = (member buf-name +meta-agent-shell--pending-permission-agents)
-               when (and alive busy)
-                 do (cl-pushnew buf-name seen-busy :test #'equal)
-                 and count t into busy-count
-                 and collect (format "  ⏳ %s — %s" task buf-name) into lines
-               else when perm
-                 count t into busy-count
-                 and collect (format "  🔒 %s — %s (permission)" task buf-name) into lines
-               else when (and alive (not busy) (member buf-name seen-busy))
-                 count t into ready-count
-                 and collect (format "  ✓ %s — %s" task buf-name) into lines
-               else when (and alive (not busy))
-                 collect (format "  ⏸ %s — %s (waiting)" task buf-name) into lines
-               else
-                 collect (format "  ✗ %s — %s (dead)" task buf-name) into lines
-               finally do
-               (plist-put state :seen-busy seen-busy)
-               (with-current-buffer dispatcher
-                 (agent-shell-ui-update-fragment
-                  (agent-shell-ui-make-fragment-model
-                   :namespace-id "dispatch-progress"
-                   :block-id "status"
-                   :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
-                   :label-right (propertize
-                                 (cond
-                                  ((= (or ready-count 0) total)
-                                   (format "[%d/%d ✓ ALL COMPLETE]" (or ready-count 0) total))
-                                  ((> (or busy-count 0) 0)
-                                   (format "[%d/%d done, %d working]"
-                                           (or ready-count 0) total (or busy-count 0)))
-                                  (t
-                                   (format "[%d/%d done]" (or ready-count 0) total)))
-                                 'font-lock-face
-                                 (if (= (or ready-count 0) total)
-                                     'success
-                                   'font-lock-comment-face))
-                   :body (string-join lines "\n"))
-                  :expanded t))))))
+    (let ((spinner (nth (% +dispatch--spinner-index
+                           (length +dispatch--spinner-frames))
+                        +dispatch--spinner-frames)))
+      (cl-incf +dispatch--spinner-index)
+      (cl-loop
+       with total = (length tasks)
+       with max-name-len = (cl-loop for task in tasks
+                                    maximize (length (plist-get task :name)))
+       for task in tasks
+       for id = (plist-get task :id)
+       for name = (plist-get task :name)
+       for agent-buf = (plist-get task :agent)
+       for buf = (get-buffer agent-buf)
+       for alive = (and buf (get-buffer-process buf))
+       for busy = (and buf (buffer-local-value 'shell-maker--busy buf))
+       for perm = (member agent-buf +meta-agent-shell--pending-permission-agents)
+       for reported = (gethash id statuses)
+       for rep-status = (plist-get reported :status)
+       for rep-detail = (plist-get reported :detail)
+       for started = (plist-get reported :started)
+       for elapsed = (if started (+dispatch--format-elapsed started) "")
+       for padded = (format (format "%%-%ds" max-name-len) name)
 
-(defun +meta-agent-shell-start-progress-polling (dispatcher-buffer agents &optional interval)
-  "Start polling agent progress.
-Deletes any stale fragment, creates a fresh one, then starts the timer.
-DISPATCHER-BUFFER is where the fragment renders.
-AGENTS is an alist of (buffer-name . task-description).
-INTERVAL is seconds between polls (default 3)."
-  (+meta-agent-shell-stop-progress-polling)
+       ;; Determine effective status: agent report > busy poll > fallback
+       for effective = (cond
+                        ((eq rep-status 'done) 'done)
+                        ((eq rep-status 'error) 'error)
+                        (perm 'permission)
+                        ((and alive busy) 'working)
+                        ((eq rep-status 'working) 'working)
+                        ((and alive (not busy) started) 'done)
+                        (alive 'waiting)
+                        (t 'dead))
+
+       ;; Record start time on first working state
+       when (and (eq effective 'working) (not started))
+         do (puthash id (list :status 'working :detail rep-detail
+                              :updated (current-time) :started (current-time))
+                    statuses)
+         and do (setq elapsed "0s")
+
+       ;; Count
+       when (eq effective 'done) count t into ready-count
+       when (memq effective '(working permission)) count t into busy-count
+
+       ;; Render line
+       collect
+       (let ((status-icon
+              (pcase effective
+                ('working  (propertize (format " %s " spinner) 'font-lock-face 'warning))
+                ('permission (propertize " 🔒 " 'font-lock-face 'error))
+                ('done     (propertize " ✓ " 'font-lock-face 'success))
+                ('waiting  (propertize " ◦ " 'font-lock-face 'font-lock-comment-face))
+                ('error    (propertize " ✗ " 'font-lock-face 'error))
+                (_         (propertize " ? " 'font-lock-face 'font-lock-comment-face))))
+             (name-str
+              (propertize padded 'font-lock-face
+                          (if (eq effective 'dead) '(:strike-through t)
+                            'font-lock-function-name-face)))
+             (time-str
+              (if (member effective '(working permission done error))
+                  (propertize (format " %5s" elapsed) 'font-lock-face 'font-lock-comment-face)
+                ""))
+             (detail-str
+              (if (and rep-detail (memq effective '(working permission)))
+                  (concat "\n"
+                          (propertize (format "     └ %s" rep-detail)
+                                     'font-lock-face 'font-lock-doc-face))
+                "")))
+         (concat " " status-icon name-str time-str detail-str))
+       into lines
+
+       finally do
+       (with-current-buffer dispatcher
+         (agent-shell-ui-update-fragment
+          (agent-shell-ui-make-fragment-model
+           :namespace-id "dispatch-progress"
+           :block-id "status"
+           :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
+           :label-right (propertize
+                         (let ((r (or ready-count 0)) (b (or busy-count 0)))
+                           (cond
+                            ((= r total) (format "[%d/%d ✓ complete]" r total))
+                            ((> b 0) (format "[%d/%d done, %d active]" r total b))
+                            (t (format "[%d/%d done]" r total))))
+                         'font-lock-face
+                         (if (= (or ready-count 0) total) 'success 'font-lock-comment-face))
+           :body (string-join lines "\n"))
+          :expanded t))))))
+
+(defun +dispatch-start (dispatcher-buffer tasks &optional interval)
+  "Start the dispatch task graph.
+DISPATCHER-BUFFER is the dispatcher's agent-shell buffer name.
+TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...).
+INTERVAL is seconds between render updates (default 2)."
+  (+dispatch-stop)
   (setq +meta-agent-shell--pending-permission-agents nil)
   (with-current-buffer dispatcher-buffer
     (ignore-errors
       (agent-shell-ui-delete-fragment
        :namespace-id "dispatch-progress"
        :block-id "status")))
-  (let ((interval (or interval 3)))
+  (let ((interval (or interval 2)))
     (setq +meta-agent-shell--dispatch-state
           (list :dispatcher-buffer dispatcher-buffer
-                :agents agents
-                :seen-busy nil
-                :timer (run-with-timer 1 interval #'+meta-agent-shell--poll-progress)))))
+                :tasks tasks
+                :statuses (make-hash-table :test 'equal)
+                :timer (run-with-timer 1 interval #'+dispatch--render)))))
 
-(defun +meta-agent-shell-stop-progress-polling ()
-  "Stop polling and clean up the timer."
+(defun +dispatch-stop ()
+  "Stop the dispatch render timer."
   (when-let* ((state +meta-agent-shell--dispatch-state)
               (timer (plist-get state :timer)))
     (cancel-timer timer))
   (setq +meta-agent-shell--dispatch-state nil))
+
+;; Backward-compat aliases for old skill API
+(defun +meta-agent-shell-start-progress-polling (dispatcher-buffer agents &optional interval)
+  "Backward-compat wrapper. Converts alist to task plist format."
+  (+dispatch-start dispatcher-buffer
+                   (cl-loop for agent in agents
+                            for i from 1
+                            collect (list :id (format "task-%d" i)
+                                         :name (cdr agent)
+                                         :agent (car agent)))
+                   interval))
+(defalias '+meta-agent-shell-stop-progress-polling #'+dispatch-stop)
 
 (defun +meta-agent-shell-kill-agents ()
   "Kill all agent-shell sessions except the current buffer.

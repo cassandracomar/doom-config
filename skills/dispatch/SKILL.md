@@ -51,22 +51,26 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 
 Note exact buffer names.
 
-## Step 3: Assign Tasks and Start Progress Polling
+## Step 3: Assign Tasks and Start Task Graph
 
-Send each agent its task. Include full description — do NOT include reporting instructions (the progress system handles monitoring automatically).
+Send each agent its task. Include the task ID and status reporting instructions so agents can report progress directly to elisp.
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 (meta-agent-shell-send-to-session
  "EXACT-BUFFER-NAME"
- "## Your Task: TASK_NAME
+ "## Your Task: TASK_NAME (id: TASK_ID)
 
 TASK_DESCRIPTION
 
 ## Instructions
 - Work in the project directory
-- Implement the task
-- Commit with a descriptive message
+- Report progress via Emacs MCP eval_elisp:
+  (+dispatch-report \"TASK_ID\" \"working\" \"description of what you're doing\")
+- When finished:
+  (+dispatch-report \"TASK_ID\" \"done\")
+- If you hit an error:
+  (+dispatch-report \"TASK_ID\" \"error\" \"what went wrong\")
 
 ## Acceptance Criteria
 CRITERIA"
@@ -87,17 +91,17 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
  :expanded t)
 ```
 
-Then start the progress polling timer. Pass an alist of `(buffer-name . task-description)`:
+Then start the task graph renderer. Pass a list of task plists:
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+meta-agent-shell-start-progress-polling
+(+dispatch-start
  (buffer-name)
- '(("Claude Agent @ doom-config<N>" . "Task 1 description")
-   ("Claude Agent @ doom-config<M>" . "Task 2 description")))
+ '((:id "impl-1" :name "Task 1 description" :agent "Claude Agent @ doom-config<N>")
+   (:id "impl-2" :name "Task 2 description" :agent "Claude Agent @ doom-config<M>")))
 ```
 
-The timer updates the fragment in-place every 3 seconds. You do NOT need to poll or check statuses.
+The renderer updates the fragment every 2 seconds with spinners, elapsed times, and agent-reported details. You do NOT need to poll or check statuses.
 
 ## Step 4: Wait for User
 
@@ -117,7 +121,7 @@ Non-edit permissions from background agents render as button dialogs in your buf
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 (progn
-  (+meta-agent-shell-stop-progress-polling)
+  (+dispatch-stop)
   (+meta-agent-shell-kill-agents))
 ```
 
@@ -135,7 +139,7 @@ When the user tells you all tasks are complete:
 1. **Stop progress polling**:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+meta-agent-shell-stop-progress-polling)
+(+dispatch-stop)
 ```
 
 2. **Gather results**:
@@ -161,8 +165,9 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 | Ask question | `(meta-agent-shell-ask-session BUF QUESTION FROM)` |
 | List agents | `(meta-agent-shell-list-sessions)` |
 | View output | `(meta-agent-shell-view-session BUF LINES)` |
-| Start polling | `(+meta-agent-shell-start-progress-polling BUF AGENTS)` |
-| Stop polling | `(+meta-agent-shell-stop-progress-polling)` |
+| Start task graph | `(+dispatch-start BUF TASKS)` |
+| Report status | `(+dispatch-report TASK-ID STATUS DETAIL)` |
+| Stop task graph | `(+dispatch-stop)` |
 | Interrupt one | `(meta-agent-shell-interrupt-session BUF)` |
 | Stop ALL | `(+meta-agent-shell-kill-agents)` |
 
