@@ -1,6 +1,6 @@
 ---
 name: tasks
-description: 'Render a visual SVG task graph for your work. Break your plan into steps with dependencies, track progress with a live dependency graph.'
+description: 'Render a visual SVG task graph for your work. Break your plan into steps with dependencies, track progress with a live dependency graph. Use when working on a set of steps towards a goal. Triggers on producing a task list.'
 ---
 
 # Task Graph for Structured Work
