@@ -544,24 +544,39 @@ When STACK-MAP is non-nil, bottom-of-pair levels share their top level's x-posit
              node-edges)
     col-bounds))
 
-(defun +dispatch--draw-edges (svg edges node-edges leveled col-bounds h theme)
-  "Draw arrows for EDGES with bypass routing around intermediate columns."
-  (let ((id-to-level (make-hash-table :test 'equal)))
+(defun +dispatch--draw-edges (svg edges node-edges leveled col-bounds h theme &optional stack-map)
+  "Draw arrows for EDGES with bypass routing around intermediate columns.
+When STACK-MAP is non-nil, skip edges between stacked pair members."
+  (let ((id-to-level (make-hash-table :test 'equal))
+        (id-to-stack (when stack-map
+                       (let ((m (make-hash-table :test 'equal)))
+                         (dolist (task leveled)
+                           (when-let* ((si (gethash (plist-get task :level) stack-map)))
+                             (puthash (plist-get task :id) si m)))
+                         m))))
     (puthash "start" -1 id-to-level)
     (puthash "end" (1+ (cl-loop for t_ in leveled maximize (plist-get t_ :level))) id-to-level)
     (dolist (task leveled)
       (puthash (plist-get task :id) (plist-get task :level) id-to-level))
     (dolist (edge edges)
-      (when-let* ((from (gethash (car edge) node-edges))
-                  (to (gethash (cdr edge) node-edges))
-                  (from-lv (gethash (car edge) id-to-level))
-                  (to-lv (gethash (cdr edge) id-to-level)))
-        (+dispatch--draw-arrow svg
-                               (plist-get from :right-x) (plist-get from :cy)
-                               (plist-get to :left-x) (plist-get to :cy)
-                               (plist-get theme :arrow)
-                               (+dispatch--compute-bypass-y
-                                from-lv to-lv (plist-get from :cy) col-bounds h))))))
+      ;; Skip edges between stacked pair members
+      (unless (and id-to-stack
+                   (when-let* ((from-si (gethash (car edge) id-to-stack))
+                               (to-si (gethash (cdr edge) id-to-stack)))
+                     (and (eq (plist-get from-si :position) 'top)
+                          (eq (plist-get to-si :position) 'bottom)
+                          (= (plist-get from-si :peer-level)
+                             (gethash (cdr edge) id-to-level)))))
+        (when-let* ((from (gethash (car edge) node-edges))
+                    (to (gethash (cdr edge) node-edges))
+                    (from-lv (gethash (car edge) id-to-level))
+                    (to-lv (gethash (cdr edge) id-to-level)))
+          (+dispatch--draw-arrow svg
+                                 (plist-get from :right-x) (plist-get from :cy)
+                                 (plist-get to :left-x) (plist-get to :cy)
+                                 (plist-get theme :arrow)
+                                 (+dispatch--compute-bypass-y
+                                  from-lv to-lv (plist-get from :cy) col-bounds h)))))))
 
 (defun +dispatch--build-svg (tasks-info)
   "Build a horizontal dependency graph SVG from TASKS-INFO."
@@ -576,14 +591,27 @@ When STACK-MAP is non-nil, bottom-of-pair levels share their top level's x-posit
                     (+dispatch--compute-levels tasks-info)))
          (max-level (cl-loop for t_ in leveled maximize (plist-get t_ :level)))
          (columns (+dispatch--group-by-level leveled))
-         (col-widths (+dispatch--compute-col-widths columns max-level))
-         (col-xs (+dispatch--compute-col-x-positions max-level col-widths))
+         (stack-map (+dispatch--compute-stacks columns max-level))
+         (col-widths (+dispatch--compute-col-widths columns max-level stack-map))
+         (col-xs (+dispatch--compute-col-x-positions max-level col-widths stack-map))
          (task-heights (+dispatch--compute-task-heights leveled col-widths))
          (max-col-h (cl-loop for lv from 0 to max-level
-                             maximize (+dispatch--col-height
-                                       (gethash lv columns) task-heights node-pad)))
-         (w (+ (gethash max-level col-xs) (gethash max-level col-widths)
-               col-gap pill-w margin))
+                             for stack-info = (and stack-map (gethash lv stack-map))
+                             unless (and stack-info (eq (plist-get stack-info :position) 'bottom))
+                             maximize (if (and stack-info (eq (plist-get stack-info :position) 'top))
+                                          (let* ((bot-lv (plist-get stack-info :peer-level))
+                                                 (top-task (car (gethash lv columns)))
+                                                 (bot-task (car (gethash bot-lv columns)))
+                                                 (top-h (gethash (plist-get top-task :id) task-heights))
+                                                 (bot-h (gethash (plist-get bot-task :id) task-heights)))
+                                            (+ top-h (plist-get L :stack-vgap) bot-h))
+                                        (+dispatch--col-height
+                                         (gethash lv columns) task-heights node-pad))))
+         (last-col-right (cl-loop for lv from 0 to max-level
+                                  for si = (and stack-map (gethash lv stack-map))
+                                  unless (and si (eq (plist-get si :position) 'bottom))
+                                  maximize (+ (gethash lv col-xs) (gethash lv col-widths))))
+         (w (+ last-col-right col-gap pill-w margin))
          (h (max (+ (* 2 margin) max-col-h) 60))
          (svg (svg-create w h))
          (node-edges (make-hash-table :test 'equal)))
@@ -596,25 +624,48 @@ When STACK-MAP is non-nil, bottom-of-pair levels share their top level's x-posit
              (+dispatch--draw-pill svg margin (/ h 2) pill-w pill-h "▶" theme)
              node-edges)
 
-    ;; Task nodes by column
+    ;; Task nodes by column (with stacking support)
     (cl-loop for lv from 0 to max-level
-             for col-tasks = (gethash lv columns)
-             for col-x = (gethash lv col-xs)
-             for cw = (gethash lv col-widths)
-             for col-h = (+dispatch--col-height col-tasks task-heights node-pad)
-             for cur-y = (/ (- h col-h) 2)
-             do (cl-loop for task in col-tasks
-                         for th = (gethash (plist-get task :id) task-heights)
-                         do (puthash (plist-get task :id)
-                                     (+dispatch--draw-task-node svg col-x cur-y cw th task theme)
-                                     node-edges)
-                            (cl-incf cur-y (+ th node-pad))))
+             for stack-info = (and stack-map (gethash lv stack-map))
+             ;; Skip bottom-of-pair levels — drawn by their top
+             unless (and stack-info (eq (plist-get stack-info :position) 'bottom))
+             do (let* ((col-tasks (gethash lv columns))
+                       (col-x (gethash lv col-xs))
+                       (cw (gethash lv col-widths)))
+                  (if (and stack-info (eq (plist-get stack-info :position) 'top))
+                      ;; Stacked pair: draw top + bottom + internal arrow
+                      (let* ((bot-lv (plist-get stack-info :peer-level))
+                             (top-task (car col-tasks))
+                             (bot-task (car (gethash bot-lv columns)))
+                             (top-h (gethash (plist-get top-task :id) task-heights))
+                             (bot-h (gethash (plist-get bot-task :id) task-heights))
+                             (stack-vgap (plist-get L :stack-vgap))
+                             (pair-h (+ top-h stack-vgap bot-h))
+                             (top-y (/ (- h pair-h) 2))
+                             (bot-y (+ top-y top-h stack-vgap))
+                             (top-edges (+dispatch--draw-task-node
+                                         svg col-x top-y cw top-h top-task theme))
+                             (bot-edges (+dispatch--draw-task-node
+                                         svg col-x bot-y cw bot-h bot-task theme)))
+                        (puthash (plist-get top-task :id) top-edges node-edges)
+                        (puthash (plist-get bot-task :id) bot-edges node-edges)
+                        ;; Internal stack arrow
+                        (+dispatch--draw-stack-arrow
+                         svg top-edges col-x bot-y cw (plist-get theme :arrow)))
+                    ;; Normal column (unstacked)
+                    (let* ((col-h (+dispatch--col-height col-tasks task-heights node-pad))
+                           (cur-y (/ (- h col-h) 2)))
+                      (cl-loop for task in col-tasks
+                               for th = (gethash (plist-get task :id) task-heights)
+                               do (puthash (plist-get task :id)
+                                           (+dispatch--draw-task-node
+                                            svg col-x cur-y cw th task theme)
+                                           node-edges)
+                                  (cl-incf cur-y (+ th node-pad)))))))
 
     ;; End pill
     (puthash "end"
-             (+dispatch--draw-pill svg
-                                   (+ (gethash max-level col-xs)
-                                      (gethash max-level col-widths) col-gap)
+             (+dispatch--draw-pill svg (+ last-col-right col-gap)
                                    (/ h 2) pill-w pill-h "■" theme)
              node-edges)
 
@@ -624,7 +675,7 @@ When STACK-MAP is non-nil, bottom-of-pair levels share their top level's x-posit
                            node-edges leveled
                            (+dispatch--compute-col-bounds
                             node-edges leveled task-heights (plist-get L :node-h))
-                           h theme)
+                           h theme stack-map)
     svg))
 
 (defun +dispatch--resolve-status (task statuses)
@@ -674,8 +725,9 @@ Centers on the first non-done task, showing one completed level to its left."
                       (+dispatch--compute-levels render-data)))
            (max-level (cl-loop for t_ in leveled maximize (plist-get t_ :level)))
            (columns (+dispatch--group-by-level leveled))
-           (col-widths (+dispatch--compute-col-widths columns max-level))
-           (col-xs (+dispatch--compute-col-x-positions max-level col-widths))
+           (stack-map (+dispatch--compute-stacks columns max-level))
+           (col-widths (+dispatch--compute-col-widths columns max-level stack-map))
+           (col-xs (+dispatch--compute-col-x-positions max-level col-widths stack-map))
            (target-level (or (cl-loop for task in leveled
                                       unless (eq (plist-get task :status) 'done)
                                       minimize (plist-get task :level))
