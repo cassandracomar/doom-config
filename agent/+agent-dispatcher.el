@@ -437,9 +437,6 @@ Colors derived from Emacs theme, dimensions from `+dispatch--layout'."
          (node-edges (make-hash-table :test 'equal))
          (edges (+dispatch--transitive-reduce leveled)))
 
-    (svg-rectangle svg 0 0 w h :fill (plist-get theme :bg)
-                   :rx (plist-get L :bg-rx))
-
     (puthash "start"
              (+dispatch--draw-pill svg margin (/ h 2) pill-w pill-h "▶" theme)
              node-edges)
@@ -553,48 +550,12 @@ Returns (STATUS ELAPSED DETAIL STARTED) list."
           (and rep-detail (memq effective '(working permission)) rep-detail)
           started)))
 
-(defun +dispatch--scroll-right ()
-  "Scroll the dispatch progress window right."
-  (interactive)
-  (scroll-left 8))
 
-(defun +dispatch--scroll-left ()
-  "Scroll the dispatch progress window left."
-  (interactive)
-  (scroll-right 8))
-
-(defun +dispatch--auto-scroll (win render-data)
-  "Scroll WIN so the first non-done task is one node from the left edge."
-  (let* ((L +dispatch--layout)
-         (margin (plist-get L :margin))
-         (pill-w (plist-get L :pill-w))
-         (col-gap (plist-get L :col-gap))
-         (node-w (min (+ (plist-get L :node-base-w)
-                         (* (plist-get L :node-char-w)
-                            (cl-loop for t_ in render-data
-                                     maximize (length (plist-get t_ :name)))))
-                      (plist-get L :node-max-w)))
-         (leveled (if (plist-get (car render-data) :level) render-data
-                    (+dispatch--compute-levels render-data)))
-         ;; Find level of first non-done task
-         (target-level (or (cl-loop for task in leveled
-                                    unless (eq (plist-get task :status) 'done)
-                                    minimize (plist-get task :level))
-                           0))
-         ;; Show one completed level to the left of target
-         (show-level (max 0 (1- target-level)))
-         ;; Compute pixel offset for that level
-         (scroll-px (max 0 (- (+ margin pill-w col-gap
-                                 (* show-level (+ node-w col-gap)))
-                              margin)))
-         ;; Convert pixels to columns (approximate)
-         (char-w (frame-char-width))
-         (scroll-cols (/ scroll-px char-w)))
-    (set-window-hscroll win scroll-cols)))
+(defvar +dispatch--current-graph-svg nil
+  "The latest task graph SVG data string, or nil when dispatch is inactive.")
 
 (defun +dispatch--render ()
-  "Render the dispatch task graph as an SVG in a progress window.
-Combines agent-reported status with shell-maker--busy fallback."
+  "Update the task graph SVG data. The header advice handles display."
   (when-let* ((state +meta-agent-shell--dispatch-state)
               (dispatcher (plist-get state :dispatcher-buffer))
               (tasks (plist-get state :tasks))
@@ -604,76 +565,70 @@ Combines agent-reported status with shell-maker--busy fallback."
     (cl-incf +dispatch--spinner-index)
     (let ((spinner (nth (% +dispatch--spinner-index (length +dispatch--spinner-frames))
                         +dispatch--spinner-frames)))
-      ;; Update spinner icon in theme color scheme
       (plist-put (cdr (assq 'working (plist-get (+dispatch--theme-colors) :status)))
                  :icon spinner))
     ;; Resolve statuses and build render data
-    (let* ((total (length tasks))
-           (ready-count 0) (busy-count 0)
-           (render-data
+    (let* ((render-data
             (cl-loop for task in tasks
                      for (effective elapsed detail _started)
                      = (+dispatch--resolve-status task statuses)
-                     when (eq effective 'done) do (cl-incf ready-count)
-                     when (memq effective '(working permission)) do (cl-incf busy-count)
                      collect (list :id (plist-get task :id)
                                    :name (plist-get task :name)
                                    :status effective
                                    :elapsed elapsed
                                    :detail detail
                                    :depends-on (plist-get task :depends-on))))
-           (svg (+dispatch--build-svg render-data))
-           (img (svg-image svg :scale 1.0)))
-      (let ((buf (get-buffer-create "*dispatch-progress*"))
-            (bg (plist-get (+dispatch--theme-colors) :bg)))
-        (with-current-buffer buf
-          (let ((inhibit-read-only t))
-            (erase-buffer)
-            (insert (propertize " " 'display img))
-            (setq buffer-read-only t
-                  cursor-type nil
-                  mode-line-format nil
-                  header-line-format nil
-                  truncate-lines t)
-            (face-remap-add-relative 'default :background bg)
-            ;; Mouse horizontal scrolling
-            (unless (local-variable-p '+dispatch--scroll-keys-set)
-              (local-set-key [wheel-right] #'+dispatch--scroll-right)
-              (local-set-key [wheel-left] #'+dispatch--scroll-left)
-              (local-set-key [S-wheel-down] #'+dispatch--scroll-right)
-              (local-set-key [S-wheel-up] #'+dispatch--scroll-left)
-              (setq-local +dispatch--scroll-keys-set t))))
-        ;; Ensure the window exists
-        (unless (get-buffer-window buf)
-          (let* ((svg-w (dom-attr svg 'width))
-                 (agent-win (get-buffer-window dispatcher))
-                 (agent-pw (and agent-win (window-body-width agent-win t))))
-            (if (and agent-pw svg-w (> svg-w agent-pw))
-                ;; Wide graph: use full-frame side window
-                (display-buffer-in-side-window buf
-                  '((side . bottom)
-                    (window-height . fit-window-to-buffer)
-                    (dedicated . t)))
-              ;; Fits: split below agent-shell
-              (when (and agent-win (> (window-height agent-win) 10))
-                (let ((win (split-window agent-win -6 'below)))
-                  (set-window-buffer win buf)
-                  (set-window-dedicated-p win t)
-                  (set-window-parameter win 'no-other-window t)
-                  (set-window-parameter win 'no-delete-other-windows t))))))
-        (when-let* ((win (get-buffer-window buf)))
-          (set-window-parameter win 'no-other-window t)
-          (set-window-parameter win 'no-delete-other-windows t)
-          (ignore-errors (fit-window-to-buffer win))
-          ;; Only auto-scroll when graph is wider than window
-          (let* ((svg-w (dom-attr svg 'width))
-                 (win-pw (window-body-width win t)))
-            (if (and svg-w win-pw (> svg-w win-pw))
-                (+dispatch--auto-scroll win render-data)
-              (set-window-hscroll win 0))))))))
+           (svg (+dispatch--build-svg render-data)))
+      ;; Stash the SVG data for the header advice
+      (setq +dispatch--current-graph-svg (with-temp-buffer
+                                           (svg-print svg)
+                                           (buffer-string)))
+      ;; Invalidate agent-shell header cache to force rebuild
+      (with-current-buffer dispatcher
+        (when (boundp 'agent-shell--header-cache)
+          (setq agent-shell--header-cache nil))
+        (when (fboundp 'agent-shell--update-header-and-mode-line)
+          (ignore-errors (agent-shell--update-header-and-mode-line)))))))
+
+(defun +dispatch--extend-header (&rest _)
+  "Append task graph SVG below agent-shell's header SVG."
+  (when (and +dispatch--current-graph-svg
+             +meta-agent-shell--dispatch-state
+             (stringp header-line-format))
+    (when-let* ((disp (get-text-property 1 'display header-line-format))
+                (orig-data (plist-get (cdr disp) :data))
+                ((string-match "width=\"\\([0-9]+\\)\"" orig-data))
+                (orig-w (string-to-number (match-string 1 orig-data)))
+                ((string-match "height=\"\\([0-9]+\\)\"" orig-data))
+                (orig-h (string-to-number (match-string 1 orig-data)))
+                ((string-match "width=\"\\([0-9]+\\)\"" +dispatch--current-graph-svg))
+                (graph-w (string-to-number (match-string 1 +dispatch--current-graph-svg)))
+                ((string-match "height=\"\\([0-9]+\\)\"" +dispatch--current-graph-svg))
+                (graph-h (string-to-number (match-string 1 +dispatch--current-graph-svg))))
+      (let* ((gap-above -12)
+             (gap-below 10)
+             (total-w (max orig-w graph-w))
+             (total-h (+ orig-h gap-above graph-h gap-below))
+             (combined (format "<svg width=\"%d\" height=\"%d\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">
+<svg y=\"0\">%s</svg>
+<svg y=\"%d\">%s</svg>
+</svg>"
+                               total-w total-h
+                               ;; Strip outer <svg> wrapper from original
+                               (replace-regexp-in-string
+                                "\\`<svg[^>]*>" ""
+                                (replace-regexp-in-string "</svg>\\'" "" orig-data))
+                               (+ orig-h gap-above)
+                               ;; Strip outer <svg> wrapper from graph
+                               (replace-regexp-in-string
+                                "\\`<svg[^>]*>" ""
+                                (replace-regexp-in-string "</svg>\\'" "" +dispatch--current-graph-svg))))
+             (img (list 'image :type 'svg :data combined :scale 'default)))
+        (setq header-line-format
+              (format " %s" (propertize " " 'display img)))))))
 
 (defun +dispatch-start (dispatcher-buffer tasks &optional interval)
-  "Start the dispatch task graph in a window below the dispatcher.
+  "Start the dispatch task graph in the agent-shell header.
 DISPATCHER-BUFFER is the dispatcher's agent-shell buffer name.
 TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...).
 INTERVAL is seconds between render updates (default 2)."
@@ -690,18 +645,27 @@ INTERVAL is seconds between render updates (default 2)."
           (list :dispatcher-buffer dispatcher-buffer
                 :tasks normalized
                 :statuses (make-hash-table :test 'equal)
-                :timer (run-with-timer 1 interval #'+dispatch--render)))))
+                :timer (run-with-timer 1 interval #'+dispatch--render)))
+    ;; Install header advice
+    (advice-add 'agent-shell--update-header-and-mode-line
+                :after #'+dispatch--extend-header)))
 
 (defun +dispatch-stop ()
-  "Stop the dispatch render timer and close the progress window."
-  (when-let* ((state +meta-agent-shell--dispatch-state)
-              (timer (plist-get state :timer)))
-    (cancel-timer timer))
-  (when-let* ((win (get-buffer-window "*dispatch-progress*")))
-    (delete-window win))
-  (when (get-buffer "*dispatch-progress*")
-    (kill-buffer "*dispatch-progress*"))
-  (setq +meta-agent-shell--dispatch-state nil))
+  "Stop the dispatch render timer and remove header graph."
+  (let ((dispatcher (and +meta-agent-shell--dispatch-state
+                         (plist-get +meta-agent-shell--dispatch-state :dispatcher-buffer))))
+    (when-let* ((state +meta-agent-shell--dispatch-state)
+                (timer (plist-get state :timer)))
+      (cancel-timer timer))
+    (setq +dispatch--current-graph-svg nil
+          +meta-agent-shell--dispatch-state nil)
+    ;; Remove header advice and force header rebuild
+    (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch--extend-header)
+    (when-let* ((buf (and dispatcher (get-buffer dispatcher))))
+      (with-current-buffer buf
+        (when (boundp 'agent-shell--header-cache)
+          (setq agent-shell--header-cache nil))
+        (ignore-errors (agent-shell--update-header-and-mode-line))))))
 
 ;; Backward-compat aliases for old skill API
 (defun +meta-agent-shell-start-progress-polling (dispatcher-buffer agents &optional interval)
