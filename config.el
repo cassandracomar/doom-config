@@ -804,7 +804,7 @@
                     (+setup-claude-code-ide)
                     (+setup-emacs-mcp))))))
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
-    "Agent shell commands."
+                              "Agent shell commands."
     :block "Navigate"
     :desc "Next item"        "C-j"       #'agent-shell-next-item
     :desc "Previous item"    "C-k"       #'agent-shell-previous-item
@@ -841,3 +841,7 @@
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
 (map! :leader :desc "Start Claude Code" "l l" #'agent-shell-anthropic-start-claude-code)
+
+(use-package! let-completion
+  :defer t
+  :hook '((emacs-lisp-mode . let-completion-mode)))
