@@ -444,36 +444,54 @@ or nil if stacking is not needed."
     (let ((rx (plist-get L :node-rx)))
       (list :left-x (+ x rx) :right-x (- (+ x w) rx) :cy cy))))
 
-(defun +dispatch--compute-col-widths (columns max-level)
-  "Compute per-column widths from COLUMNS hash (level → tasks), up to MAX-LEVEL."
+(defun +dispatch--compute-col-widths (columns max-level &optional stack-map)
+  "Compute per-column widths from COLUMNS hash (level → tasks), up to MAX-LEVEL.
+When STACK-MAP is non-nil, bottom-of-pair levels share width with their top level."
   (let ((L +dispatch--layout)
         (max-name-len (plist-get +dispatch--layout :name-max-len))
         (char-w (plist-get (+dispatch--theme-colors) :char-w))
         (widths (make-hash-table)))
     (cl-loop for lv from 0 to max-level
-             for col = (gethash lv columns)
-             for max-line-len = (cl-loop for t_ in col
-                                         for lines = (+dispatch--wrap-text
-                                                      (plist-get t_ :name) max-name-len)
-                                         maximize (cl-loop for line in lines
-                                                           maximize (length line)))
-             do (puthash lv (min (+ (* 2 (plist-get L :node-pad-x))
-                                    (plist-get L :node-icon-w)
-                                    (* char-w max-line-len))
-                                 (plist-get L :node-max-w))
-                         widths))
+             for stack-info = (and stack-map (gethash lv stack-map))
+             ;; Skip bottom-of-pair levels — their width is merged into the top
+             unless (and stack-info (eq (plist-get stack-info :position) 'bottom))
+             do (let* ((levels-to-measure
+                        (if (and stack-info (eq (plist-get stack-info :position) 'top))
+                            (list lv (plist-get stack-info :peer-level))
+                          (list lv)))
+                       (max-line-len
+                        (cl-loop for mlv in levels-to-measure
+                                 for col = (gethash mlv columns)
+                                 maximize (cl-loop for t_ in col
+                                                   for lines = (+dispatch--wrap-text
+                                                                (plist-get t_ :name) max-name-len)
+                                                   maximize (cl-loop for line in lines
+                                                                     maximize (length line)))))
+                       (w (min (+ (* 2 (plist-get L :node-pad-x))
+                                  (plist-get L :node-icon-w)
+                                  (* char-w max-line-len))
+                               (plist-get L :node-max-w))))
+                  (puthash lv w widths)
+                  ;; Also store for bottom level so task-heights can look it up
+                  (when (and stack-info (eq (plist-get stack-info :position) 'top))
+                    (puthash (plist-get stack-info :peer-level) w widths))))
     widths))
 
-(defun +dispatch--compute-col-x-positions (max-level col-widths)
-  "Compute cumulative x-positions for each column level."
+(defun +dispatch--compute-col-x-positions (max-level col-widths &optional stack-map)
+  "Compute cumulative x-positions for each column level.
+When STACK-MAP is non-nil, bottom-of-pair levels share their top level's x-position."
   (let ((positions (make-hash-table))
         (x (+ (plist-get +dispatch--layout :margin)
               (plist-get +dispatch--layout :pill-w)
               (plist-get +dispatch--layout :col-gap))))
     (cl-loop for lv from 0 to max-level
-             do (puthash lv x positions)
-                (cl-incf x (+ (gethash lv col-widths)
-                              (plist-get +dispatch--layout :col-gap))))
+             for stack-info = (and stack-map (gethash lv stack-map))
+             do (if (and stack-info (eq (plist-get stack-info :position) 'bottom))
+                    ;; Bottom shares top's x-position
+                    (puthash lv (gethash (plist-get stack-info :peer-level) positions) positions)
+                  (puthash lv x positions)
+                  (cl-incf x (+ (gethash lv col-widths)
+                                (plist-get +dispatch--layout :col-gap)))))
     positions))
 
 (defun +dispatch--compute-task-heights (leveled col-widths)
