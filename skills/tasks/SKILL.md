@@ -25,14 +25,14 @@ Call via Emacs MCP. Each task is a plist with `:id`, `:name`, `:agent` (your buf
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 (+dispatch-start
  (buffer-name)
- '((:id "step-1" :name "Read codebase" :agent (buffer-name))
-   (:id "step-2" :name "Write tests" :agent (buffer-name) :depends-on ("step-1"))
-   (:id "step-3" :name "Implement feature" :agent (buffer-name) :depends-on ("step-1"))
-   (:id "step-4" :name "Run tests" :agent (buffer-name) :depends-on ("step-2" "step-3"))
-   (:id "step-5" :name "Commit" :agent (buffer-name) :depends-on ("step-4"))))
+ '((:id "step-1" :name "Read codebase")
+   (:id "step-2" :name "Write tests" :depends-on ("step-1"))
+   (:id "step-3" :name "Implement feature" :depends-on ("step-1"))
+   (:id "step-4" :name "Run tests" :depends-on ("step-2" "step-3"))
+   (:id "step-5" :name "Commit" :depends-on ("step-4"))))
 ```
 
-Tasks with no `:depends-on` depend on Start. Tasks nothing depends on connect to End. The graph renders horizontally: Start → tasks by dependency level → End.
+The `:agent` field is optional for single-agent work — it defaults to the dispatcher buffer. Tasks with no `:depends-on` depend on Start. Tasks nothing depends on connect to End. The graph renders horizontally: Start → tasks by dependency level → End.
 
 ## Step 3: Report Progress
 

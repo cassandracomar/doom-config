@@ -679,10 +679,16 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...).
 INTERVAL is seconds between render updates (default 2)."
   (+dispatch-stop)
   (setq +meta-agent-shell--pending-permission-agents nil)
-  (let ((interval (or interval 2)))
+  ;; Normalize :agent — default to dispatcher buffer if missing or not a string
+  (let ((normalized (mapcar (lambda (task)
+                              (let ((agent (plist-get task :agent)))
+                                (if (stringp agent) task
+                                  (plist-put (copy-sequence task) :agent dispatcher-buffer))))
+                            tasks))
+        (interval (or interval 2)))
     (setq +meta-agent-shell--dispatch-state
           (list :dispatcher-buffer dispatcher-buffer
-                :tasks tasks
+                :tasks normalized
                 :statuses (make-hash-table :test 'equal)
                 :timer (run-with-timer 1 interval #'+dispatch--render)))))
 
