@@ -804,7 +804,8 @@
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
         agent-shell-anthropic-default-model-id "claude-opus-4-6[1m]"
         agent-shell-display-action
-        '((display-buffer-in-direction)
+        '((display-buffer-reuse-mode-window display-buffer-in-direction)
+          (mode . agent-shell-mode)
           (direction . right)
           (window-width . 0.5))
         agent-shell-mcp-servers
