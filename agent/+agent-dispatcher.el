@@ -46,19 +46,43 @@
                        'font-lock-face 'font-lock-comment-face
                        'read-only t)))))))))
 
+(defun +meta-agent-shell--find-dispatch-fragment ()
+  "Find the start position of the dispatch-progress fragment in current buffer."
+  (save-excursion
+    (goto-char (point-max))
+    (cl-block nil
+      (while (let ((match (text-property-search-backward
+                           'agent-shell-ui-section nil nil)))
+               (when match
+                 (let ((help (get-text-property (prop-match-beginning match) 'help-echo)))
+                   (when (and help (stringp help) (string-match-p "dispatch-progress" help))
+                     (cl-return (prop-match-beginning match))))
+                 t))))))
+
 (defun +meta-agent-shell--insert-before-prompt (buf text)
-  "Insert TEXT into BUF before the prompt, or at point-max if busy."
+  "Insert TEXT into BUF above the dispatch fragment, or before the prompt."
   (with-current-buffer buf
     (save-excursion
       (let ((inhibit-read-only t))
-        (if shell-maker--busy
-            (progn (goto-char (point-max)) (insert text))
-          (if-let* ((proc (get-buffer-process (current-buffer))))
-              (progn
-                (goto-char (process-mark proc))
-                (forward-line 0)
-                (insert text "\n"))
-            (goto-char (point-max))
+        (cond
+         ;; If dispatch fragment exists, insert just above it
+         ((when-let* ((frag-pos (+meta-agent-shell--find-dispatch-fragment)))
+            (goto-char frag-pos)
+            (forward-line 0)
+            (insert text "\n")
+            t))
+         ;; If busy, append at point-max
+         (shell-maker--busy
+          (goto-char (point-max))
+          (insert text))
+         ;; Idle: insert before prompt
+         ((when-let* ((proc (get-buffer-process (current-buffer))))
+            (goto-char (process-mark proc))
+            (forward-line 0)
+            (insert text "\n")
+            t))
+         ;; Fallback
+         (t (goto-char (point-max))
             (insert text)))))))
 
 (defun +meta-agent-shell-forward-permission (permission)
