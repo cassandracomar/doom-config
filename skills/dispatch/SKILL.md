@@ -28,7 +28,7 @@ First, register your buffer as the dispatcher so permission requests render here
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(setq +meta-agent-shell--primary-buffer (buffer-name))
+(setq +dispatch--primary-buffer (buffer-name))
 ```
 
 Then spawn agents. They run in the background (no popup, no prompts, acceptEdits mode). Non-edit permissions (bash, etc.) render as button dialogs in YOUR buffer — the user handles them directly. You do NOT handle permissions.
@@ -108,7 +108,7 @@ Non-edit permissions from background agents render as button dialogs in your buf
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 (progn
   (+dispatch-stop)
-  (+meta-agent-shell-kill-agents))
+  (+dispatch-kill-agents))
 ```
 
 ### If user says an agent needs help:
@@ -139,7 +139,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 4. **Clean up agents**:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+meta-agent-shell-kill-agents)
+(+dispatch-kill-agents)
 ```
 
 ## Agent Communication Reference
@@ -155,7 +155,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 | Report status | `(+dispatch-report TASK-ID STATUS DETAIL)` |
 | Stop task graph | `(+dispatch-stop)` |
 | Interrupt one | `(meta-agent-shell-interrupt-session BUF)` |
-| Stop ALL | `(+meta-agent-shell-kill-agents)` |
+| Stop ALL | `(+dispatch-kill-agents)` |
 
 ## Rules
 

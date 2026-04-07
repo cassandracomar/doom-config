@@ -1,0 +1,925 @@
+;;; +dispatch-render.el --- Pure SVG task-graph renderer -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
+;; Pure SVG task-graph renderer for dispatch workflows.
+;; No knowledge of agent buffers, processes, permissions, or dispatch lifecycle.
+;; Receives fully-resolved task data and produces SVGs.
+
+;;; Code:
+
+(require 'cl-lib)
+(require 'color)
+(require 'svg)
+
+(defvar +dispatch--primary-buffer)
+
+;; ── Color blending (replaces doom-blend) ────────────────────────────
+
+(defun +dispatch-render--blend-colors (color1 color2 alpha)
+  "Blend COLOR1 and COLOR2 (color names or hex strings) by ALPHA (0-1).
+ALPHA=1.0 returns COLOR1, ALPHA=0.0 returns COLOR2."
+  (let ((c1 (color-name-to-rgb color1))
+        (c2 (color-name-to-rgb color2)))
+    (apply #'color-rgb-to-hex
+           (append (cl-mapcar (lambda (a b) (+ (* a alpha) (* b (- 1.0 alpha))))
+                              c1 c2)
+                   '(2)))))
+
+;; ── Structs ─────────────────────────────────────────────────────────
+
+(cl-defstruct (+dispatch-render-status-style
+               (:constructor +dispatch-render-status-style-make)
+               (:copier nil))
+  "Visual style for one task status."
+  bg fg icon)
+
+(cl-defstruct (+dispatch-render-theme
+               (:constructor +dispatch-render-theme-make)
+               (:copier nil))
+  "Resolved color scheme from current Emacs theme."
+  bg fg name-fg dim arrow pill-bg font char-w
+  status) ;; alist of (symbol . +dispatch-render-status-style)
+
+(cl-defstruct (+dispatch-render-task
+               (:constructor +dispatch-render-task-make)
+               (:copier nil))
+  "Static task definition — interface type from dispatcher to renderer."
+  id name depends-on)
+
+(cl-defstruct (+dispatch-render-task-status
+               (:constructor +dispatch-render-task-status-make)
+               (:copier nil))
+  "Dynamic per-frame status for one task."
+  status elapsed detail)
+
+(cl-defstruct (+dispatch-render-stack-info
+               (:constructor +dispatch-render-stack-info-make)
+               (:copier nil))
+  "Stacking metadata for one level in a vertically-paired column."
+  peer-level position)
+
+(cl-defstruct (+dispatch-render-topology
+               (:constructor +dispatch-render-topology-make)
+               (:copier nil))
+  "Pure graph structure computed from task definitions."
+  leveled max-level columns edges stack-map)
+
+(cl-defstruct (+dispatch-render-geometry
+               (:constructor +dispatch-render-geometry-make)
+               (:copier nil))
+  "Computed spatial layout."
+  col-widths col-xs task-heights max-col-h last-col-right)
+
+(cl-defstruct (+dispatch-render-col-extent
+               (:constructor +dispatch-render-col-extent-make)
+               (:copier nil))
+  "Vertical pixel bounds of a column."
+  top bot)
+
+(cl-defstruct (+dispatch-render-routing
+               (:constructor +dispatch-render-routing-make)
+               (:copier nil))
+  "Bypass arrow routing context."
+  col-bounds canvas-h)
+
+(cl-defstruct (+dispatch-render-node-edges
+               (:constructor +dispatch-render-node-edges-make)
+               (:copier nil))
+  "Connection points for a drawn node."
+  left-x right-x cy)
+
+(cl-defstruct (+dispatch-render-node-pos
+               (:constructor +dispatch-render-node-pos-make)
+               (:copier nil))
+  "Pre-computed position for a node."
+  x y w h)
+
+(cl-defstruct (+dispatch-render-arrow-spec
+               (:constructor +dispatch-render-arrow-spec-make)
+               (:copier nil))
+  "Pre-computed arrow specification."
+  x1 y1 x2 y2 bypass-y)
+
+(cl-defstruct (+dispatch-render-dimensions
+               (:constructor +dispatch-render-dimensions-make)
+               (:copier nil))
+  "SVG width and height."
+  w h)
+
+(cl-defstruct (+dispatch-render-ctx
+               (:constructor +dispatch-render-ctx-make)
+               (:copier nil))
+  "Top-level rendering context. Cached across frames."
+  theme topo geom
+  node-positions  ;; hash: id -> +dispatch-render-node-pos
+  node-edges      ;; hash: id -> +dispatch-render-node-edges
+  arrow-specs     ;; list of +dispatch-render-arrow-spec
+  stack-arrows    ;; list of (top-node-edges bot-node-pos) for stacked pair arrows
+  routing         ;; +dispatch-render-routing
+  canvas          ;; +dispatch-render-dimensions
+  has-bypass)     ;; bool — whether any arrows skip levels
+
+;; ── Layout constants ─────────────────────────────────────────────────
+
+(defconst +dispatch-render--layout
+  '(:node-h 34 :node-pad 8 :col-gap 50 :margin 10
+    :pill-w 40 :pill-h 28 :pill-rx 14
+    :node-rx 5 :node-max-w 220
+    :node-pad-x 4 :node-icon-w 14 :node-text-y 22
+    :node-font-size 12 :pill-font-size 14
+    :pill-text-y-offset 5 :name-max-len 24
+    :arrow-head-len 5 :arrow-head-hw 4.0 :arrow-cp-factor 0.4
+    :arrow-stroke-w "1.5" :bg-rx 8
+    :stack-vgap 30 :stack-threshold 5 :stack-arrow-overshoot 40)
+  "Layout constants for the SVG task graph.")
+
+;; ── Spinner ─────────────────────────────────────────────────────────
+
+(defvar +dispatch-render--spinner-frames
+  '("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  "Braille spinner animation frames.")
+
+(defvar +dispatch-render--spinner-index 0
+  "Current spinner frame index.")
+
+;; ── Theme ───────────────────────────────────────────────────────────
+
+(defvar +dispatch-render--theme-cache nil
+  "Cached theme color scheme for SVG rendering.")
+
+(defun +dispatch-render--theme-colors ()
+  "Derive SVG color scheme from current Emacs theme.
+Caches the result; call `+dispatch-render-refresh-theme' to update."
+  (or +dispatch-render--theme-cache
+      (setq +dispatch-render--theme-cache (+dispatch-render--compute-theme-colors))))
+
+(defun +dispatch-render-refresh-theme ()
+  "Recompute cached theme colors."
+  (interactive)
+  (setq +dispatch-render--theme-cache (+dispatch-render--compute-theme-colors)))
+
+(defun +dispatch-render--resolve-face (face attr)
+  "Resolve FACE's ATTR respecting face-remapping-alist in the dispatcher buffer."
+  (let* ((buf (or (and +dispatch--primary-buffer
+                       (get-buffer +dispatch--primary-buffer))
+                  (current-buffer)))
+         (remap (with-current-buffer buf
+                  (alist-get face face-remapping-alist)))
+         (resolved (if (and remap (facep (car remap))) (car remap) face)))
+    (funcall (if (eq attr :background) #'face-background #'face-foreground)
+             resolved nil t)))
+
+(defun +dispatch-render--compute-theme-colors ()
+  "Compute SVG color scheme from current Emacs faces.
+Respects face remapping (e.g. solaire-mode) in the dispatcher buffer."
+  (let* ((bg  (or (+dispatch-render--resolve-face 'header-line :background)
+                  (face-background 'header-line nil t)
+                  (face-background 'default)))
+         (fg  (or (+dispatch-render--resolve-face 'default :foreground)
+                  (face-foreground 'default)))
+         (ok  (or (face-foreground 'success nil t) "#b6e63e"))
+         (wrn (or (face-foreground 'warning nil t) "#e2c770"))
+         (err (or (face-foreground 'error nil t) "#e74c3c"))
+         (dim (or (face-foreground 'font-lock-comment-face nil t) "#75715e"))
+         (fnc (or (face-foreground 'font-lock-function-name-face nil t) fg))
+         (tint 0.2))
+    (let* ((svg-font-size (plist-get +dispatch-render--layout :node-font-size))
+           (font-family (or (ignore-errors
+                              (symbol-name (font-get (face-attribute 'default :font) :family)))
+                            "monospace"))
+           (sample (propertize "MMMMMMMMMM" 'face
+                               `(:family ,(replace-regexp-in-string "\\\\" "" font-family)
+                                 :height ,(* svg-font-size 10))))
+           (char-w (* 0.85 (/ (float (string-pixel-width sample)) 10.0))))
+      (+dispatch-render-theme-make
+       :bg bg :fg fg :name-fg fnc :dim dim
+       :char-w char-w
+       :font (replace-regexp-in-string "\\\\" "" font-family)
+       :arrow (+dispatch-render--blend-colors dim bg 0.6)
+       :pill-bg (+dispatch-render--blend-colors dim bg 0.25)
+       :status
+       (list (cons 'done       (+dispatch-render-status-style-make
+                                :bg (+dispatch-render--blend-colors ok  bg tint) :fg ok  :icon "✓"))
+             (cons 'working    (+dispatch-render-status-style-make
+                                :bg (+dispatch-render--blend-colors wrn bg tint) :fg wrn :icon "⠹"))
+             (cons 'permission (+dispatch-render-status-style-make
+                                :bg (+dispatch-render--blend-colors err bg tint) :fg err :icon "🔒"))
+             (cons 'waiting    (+dispatch-render-status-style-make
+                                :bg (+dispatch-render--blend-colors dim bg 0.1)  :fg dim :icon "◦"))
+             (cons 'error      (+dispatch-render-status-style-make
+                                :bg (+dispatch-render--blend-colors err bg tint) :fg err :icon "✗"))
+             (cons 'dead       (+dispatch-render-status-style-make
+                                :bg (+dispatch-render--blend-colors dim bg 0.05) :fg dim :icon "?")))))))
+
+;; ── Topology ────────────────────────────────────────────────────────
+
+(defun +dispatch-render--compute-levels (tasks-info)
+  "Compute topological levels for TASKS-INFO based on :depends-on.
+Returns tasks-info with :level added to each entry."
+  (let ((id-to-task (make-hash-table :test 'equal))
+        (id-to-level (make-hash-table :test 'equal)))
+    (dolist (task tasks-info)
+      (puthash (plist-get task :id) task id-to-task))
+    (cl-labels ((compute (id)
+                  (or (gethash id id-to-level)
+                      (let* ((task (gethash id id-to-task))
+                             (deps (plist-get task :depends-on))
+                             (level (if deps
+                                        (1+ (cl-loop for d in deps maximize (compute d)))
+                                      0)))
+                        (puthash id level id-to-level)
+                        level))))
+      (dolist (task tasks-info) (compute (plist-get task :id))))
+    (mapcar (lambda (task)
+              (append task (list :level (gethash (plist-get task :id) id-to-level))))
+            tasks-info)))
+
+(defun +dispatch-render--transitive-reduce (tasks-info)
+  "Compute edges for TASKS-INFO.
+Returns list of (from-id . to-id) pairs, including start/end connections."
+  (let ((depended-on (make-hash-table :test 'equal))
+        (edges nil))
+    (dolist (task tasks-info)
+      (dolist (d (plist-get task :depends-on))
+        (puthash d t depended-on)))
+    (dolist (task tasks-info)
+      (let ((id (plist-get task :id))
+            (deps (plist-get task :depends-on)))
+        (if deps
+            (dolist (d deps) (push (cons d id) edges))
+          (push (cons "start" id) edges))
+        (unless (gethash id depended-on)
+          (push (cons id "end") edges))))
+    edges))
+
+(defun +dispatch-render--group-by-level (tasks)
+  "Group TASKS by :level into a hash of level → task list (preserving order)."
+  (let ((columns (make-hash-table))
+        (max-level (cl-loop for t_ in tasks maximize (plist-get t_ :level))))
+    (dolist (task tasks)
+      (push task (gethash (plist-get task :level) columns)))
+    (cl-loop for lv from 0 to max-level
+             do (puthash lv (nreverse (gethash lv columns)) columns))
+    columns))
+
+(defun +dispatch-render--compute-stacks (columns max-level)
+  "Identify levels to stack vertically as pairs.
+Only activates when there are more than :stack-threshold task columns.
+Returns a hash of level -> +dispatch-render-stack-info,
+or nil if stacking is not needed."
+  (when (>= (1+ max-level) (plist-get +dispatch-render--layout :stack-threshold))
+    (let ((stack-map (make-hash-table))
+          (lv 0))
+      (while (<= lv max-level)
+        (if (and (<= (1+ lv) max-level)
+                 (= 1 (length (gethash lv columns)))
+                 (= 1 (length (gethash (1+ lv) columns))))
+            (progn
+              (puthash lv (+dispatch-render-stack-info-make :peer-level (1+ lv) :position 'top) stack-map)
+              (puthash (1+ lv) (+dispatch-render-stack-info-make :peer-level lv :position 'bottom) stack-map)
+              (cl-incf lv 2))
+          (cl-incf lv)))
+      (when (> (hash-table-count stack-map) 0)
+        stack-map))))
+
+;; ── Geometry ────────────────────────────────────────────────────────
+
+(defun +dispatch-render--wrap-text (text max-chars)
+  "Wrap TEXT into lines of at most MAX-CHARS, breaking at word boundaries."
+  (if (<= (length text) max-chars)
+      (list text)
+    (let ((words (split-string text " ")) lines current-line)
+      (dolist (word words)
+        (if (and current-line
+                 (> (+ (length current-line) 1 (length word)) max-chars))
+            (progn (push current-line lines)
+                   (setq current-line word))
+          (setq current-line (if current-line
+                                 (concat current-line " " word)
+                               word))))
+      (when current-line (push current-line lines))
+      (nreverse lines))))
+
+(defun +dispatch-render--node-wrap-lines (name node-w)
+  "Wrap NAME to fit within NODE-W pixels. Returns list of lines."
+  (let* ((L +dispatch-render--layout)
+         (char-w (+dispatch-render-theme-char-w (+dispatch-render--theme-colors)))
+         (text-start (+ (plist-get L :node-pad-x) (plist-get L :node-icon-w)))
+         (avail-chars (max 10 (/ (- node-w text-start (plist-get L :node-pad-x))
+                                 (max 1 char-w)))))
+    (+dispatch-render--wrap-text name avail-chars)))
+
+(defun +dispatch-render--task-node-height (task node-w)
+  "Compute the height needed for TASK given NODE-W."
+  (let* ((L +dispatch-render--layout)
+         (lines (+dispatch-render--node-wrap-lines (plist-get task :name) node-w))
+         (base-h (plist-get L :node-h)))
+    (if (> (length lines) 1)
+        (+ base-h (* (1- (length lines)) (+ (plist-get L :node-font-size) 2)))
+      base-h)))
+
+(defun +dispatch-render--compute-col-widths (columns max-level &optional stack-map)
+  "Compute per-column widths from COLUMNS hash.
+MAX-LEVEL is the highest level index.
+When STACK-MAP is non-nil, paired levels share width."
+  (let ((L +dispatch-render--layout)
+        (max-name-len (plist-get +dispatch-render--layout :name-max-len))
+        (char-w (+dispatch-render-theme-char-w (+dispatch-render--theme-colors)))
+        (widths (make-hash-table)))
+    (cl-loop for lv from 0 to max-level
+             for stack-info = (and stack-map (gethash lv stack-map))
+             unless (and stack-info (eq (+dispatch-render-stack-info-position stack-info) 'bottom))
+             do (let* ((levels-to-measure
+                        (if (and stack-info (eq (+dispatch-render-stack-info-position stack-info) 'top))
+                            (list lv (+dispatch-render-stack-info-peer-level stack-info))
+                          (list lv)))
+                       (max-line-len
+                        (cl-loop for mlv in levels-to-measure
+                                 for col = (gethash mlv columns)
+                                 maximize (cl-loop for t_ in col
+                                                   for lines = (+dispatch-render--wrap-text
+                                                                (plist-get t_ :name) max-name-len)
+                                                   maximize (cl-loop for line in lines
+                                                                     maximize (length line)))))
+                       (w (min (+ (* 2 (plist-get L :node-pad-x))
+                                  (plist-get L :node-icon-w)
+                                  (* char-w max-line-len))
+                               (plist-get L :node-max-w))))
+                  (puthash lv w widths)
+                  (when (and stack-info (eq (+dispatch-render-stack-info-position stack-info) 'top))
+                    (puthash (+dispatch-render-stack-info-peer-level stack-info) w widths))))
+    widths))
+
+(defun +dispatch-render--compute-col-x-positions (max-level col-widths &optional stack-map)
+  "Compute cumulative x-positions for each column level.
+When STACK-MAP is non-nil, paired levels share x-position."
+  (let ((positions (make-hash-table))
+        (x (+ (plist-get +dispatch-render--layout :margin)
+              (plist-get +dispatch-render--layout :pill-w)
+              (plist-get +dispatch-render--layout :col-gap))))
+    (cl-loop for lv from 0 to max-level
+             for stack-info = (and stack-map (gethash lv stack-map))
+             do (if (and stack-info (eq (+dispatch-render-stack-info-position stack-info) 'bottom))
+                    (puthash lv (gethash (+dispatch-render-stack-info-peer-level stack-info) positions) positions)
+                  (puthash lv x positions)
+                  (cl-incf x (+ (gethash lv col-widths)
+                                (plist-get +dispatch-render--layout :col-gap)))))
+    positions))
+
+(defun +dispatch-render--compute-task-heights (leveled col-widths)
+  "Compute per-task heights based on text wrapping within column widths."
+  (let ((heights (make-hash-table :test 'equal)))
+    (dolist (task leveled)
+      (puthash (plist-get task :id)
+               (+dispatch-render--task-node-height
+                task (gethash (plist-get task :level) col-widths))
+               heights))
+    heights))
+
+(defun +dispatch-render--col-height (col task-heights node-pad)
+  "Compute total height of column COL given TASK-HEIGHTS and NODE-PAD."
+  (+ (cl-loop for t_ in col sum (gethash (plist-get t_ :id) task-heights))
+     (* (1- (max (length col) 1)) node-pad)))
+
+;; ── Drawing primitives ───────────────────────────────────────────────
+
+(defun +dispatch-render--draw-arrow (svg x1 y1 x2 y2 color &optional bypass-y)
+  "Draw a curved arrow from (X1,Y1) to (X2,Y2) on SVG with arrowhead.
+If BYPASS-Y is non-nil, route the arrow through that Y coordinate
+to avoid crossing intermediate boxes."
+  (let* ((L +dispatch-render--layout)
+         (head-len (plist-get L :arrow-head-len))
+         (hw (plist-get L :arrow-head-hw))
+         (ex (- (float x2) head-len)) (ey (float y2))
+         (sw (plist-get L :arrow-stroke-w)))
+    ;; Path
+    (dom-append-child svg
+      (dom-node 'path
+        `((d . ,(if bypass-y
+                    (let* ((by (float bypass-y))
+                           (span (- ex (float x1)))
+                           (rise (min (float (plist-get L :col-gap))
+                                      (/ span 3.0)))
+                           (jx1 (+ (float x1) rise))
+                           (jx2 (- ex rise))
+                           (cp (* 0.55 rise)))
+                      (format "M%f,%f C%f,%f %f,%f %f,%f L%f,%f C%f,%f %f,%f %f,%f"
+                              (float x1) (float y1)
+                              (+ (float x1) cp) (float y1)
+                              (- jx1 cp) by
+                              jx1 by
+                              jx2 by
+                              (+ jx2 cp) by
+                              (- ex cp) ey
+                              ex ey))
+                  (let ((cp (* (plist-get L :arrow-cp-factor) (abs (- x2 x1)))))
+                    (format "M%f,%f C%f,%f %f,%f %f,%f"
+                            (float x1) (float y1)
+                            (+ x1 cp) (float y1)
+                            (- x2 cp) (float y2)
+                            ex ey))))
+          (stroke . ,color) (stroke-width . ,sw) (fill . "none"))))
+    ;; Arrowhead
+    (dom-append-child svg
+      (dom-node 'polygon
+        `((points . ,(format "%f,%f %f,%f %f,%f"
+                             (float x2) (float y2)
+                             (- ex head-len) (- ey hw)
+                             (- ex head-len) (+ ey hw)))
+          (fill . ,color))))))
+
+(defun +dispatch-render--draw-stack-arrow (svg top-edges bot-x bot-y bot-w color)
+  "Draw internal pair arrow from top node's right edge to bottom node's top center.
+TOP-EDGES is a +dispatch-render-node-edges struct.
+BOT-X, BOT-Y are the top-left corner of the bottom node. BOT-W is its width."
+  (let* ((L +dispatch-render--layout)
+         (x1 (+dispatch-render-node-edges-right-x top-edges))
+         (y1 (+dispatch-render-node-edges-cy top-edges))
+         (x2 (+ bot-x (/ bot-w 2)))
+         (y2 (float bot-y))
+         (ey (+ y2 5))
+         (overshoot (plist-get L :stack-arrow-overshoot))
+         (cp1-x (+ x1 overshoot))
+         (cp1-y (float bot-y))
+         (cp2-x (float x2))
+         (cp2-y (- y2 20.0))
+         (hw (plist-get L :arrow-head-hw))
+         (sw (plist-get L :arrow-stroke-w)))
+    ;; Path
+    (dom-append-child svg
+      (dom-node 'path
+        `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
+                        (float x1) (float y1)
+                        cp1-x cp1-y
+                        cp2-x cp2-y
+                        (float x2) ey))
+          (stroke . ,color) (stroke-width . ,sw) (fill . "none"))))
+    ;; Downward arrowhead
+    (dom-append-child svg
+      (dom-node 'polygon
+        `((points . ,(format "%f,%f %f,%f %f,%f"
+                             (float x2) y2
+                             (- x2 hw) (- y2 (plist-get L :arrow-head-len))
+                             (+ x2 hw) (- y2 (plist-get L :arrow-head-len))))
+          (fill . ,color))))))
+
+(defun +dispatch-render--draw-pill (svg x cy w h icon theme)
+  "Draw a pill-shaped node on SVG at X, centered at CY. Returns edge positions."
+  (let ((L +dispatch-render--layout))
+    (svg-rectangle svg x (- cy (/ h 2)) w h
+                   :fill (+dispatch-render-theme-pill-bg theme)
+                   :rx (plist-get L :pill-rx))
+    (svg-text svg icon :x (+ x (/ w 2)) :y (+ cy (plist-get L :pill-text-y-offset))
+              :fill (+dispatch-render-theme-dim theme)
+              :font-size (plist-get L :pill-font-size)
+              :font-family (+dispatch-render-theme-font theme) :text-anchor "middle")
+    (let ((rx (plist-get L :pill-rx)))
+      (+dispatch-render-node-edges-make :left-x (+ x rx) :right-x (- (+ x w) rx) :cy cy))))
+
+(defun +dispatch-render--draw-task-node (svg x y w h task theme)
+  "Draw a task node on SVG. H is the pre-computed height. Returns edge positions."
+  (let* ((L +dispatch-render--layout)
+         (sc (cdr (assq (plist-get task :status) (+dispatch-render-theme-status theme))))
+         (font (+dispatch-render-theme-font theme))
+         (pad (plist-get L :node-pad-x))
+         (lines (+dispatch-render--node-wrap-lines (plist-get task :name) w))
+         (font-size (plist-get L :node-font-size))
+         (line-h (+ font-size 2))
+         (text-x (+ x pad (plist-get L :node-icon-w)))
+         (text-y (+ y (plist-get L :node-text-y)))
+         (cy (+ y (/ h 2))))
+    (svg-rectangle svg x y w h :fill (+dispatch-render-status-style-bg sc)
+                   :rx (plist-get L :node-rx))
+    ;; Icon — vertically centered
+    (svg-text svg (+dispatch-render-status-style-icon sc) :x (+ x pad) :y (+ cy 4)
+              :fill (+dispatch-render-status-style-fg sc)
+              :font-size font-size :font-family font)
+    ;; Text lines
+    (cl-loop for line in lines
+             for i from 0
+             do (svg-text svg line
+                          :x text-x :y (+ text-y (* i line-h))
+                          :fill (+dispatch-render-status-style-fg sc)
+                          :font-size font-size :font-family font))
+    (let ((rx (plist-get L :node-rx)))
+      (+dispatch-render-node-edges-make :left-x (+ x rx) :right-x (- (+ x w) rx) :cy cy))))
+
+;; ── Edge routing ────────────────────────────────────────────────────
+
+(defun +dispatch-render--compute-col-bounds (node-edges leveled task-heights node-h &optional stack-map)
+  "Compute top/bottom bounds per level from NODE-EDGES.
+When STACK-MAP is non-nil, stacked pair levels share merged bounds."
+  (let ((col-bounds (make-hash-table)))
+    (maphash (lambda (id edges)
+               (unless (member id '("start" "end"))
+                 (when-let* ((task (cl-find-if (lambda (t_) (equal (plist-get t_ :id) id)) leveled))
+                             (lv (plist-get task :level))
+                             (cy (+dispatch-render-node-edges-cy edges))
+                             (th (or (gethash id task-heights) node-h)))
+                   (let* ((top (- cy (/ th 2)))
+                          (bot (+ cy (/ th 2)))
+                          (cur (gethash lv col-bounds)))
+                     (puthash lv (+dispatch-render-col-extent-make
+                                  :top (if cur (min (+dispatch-render-col-extent-top cur) top) top)
+                                  :bot (if cur (max (+dispatch-render-col-extent-bot cur) bot) bot))
+                              col-bounds)))))
+             node-edges)
+    (when stack-map
+      (maphash (lambda (lv info)
+                 (when (eq (+dispatch-render-stack-info-position info) 'top)
+                   (let* ((peer (+dispatch-render-stack-info-peer-level info))
+                          (top-b (gethash lv col-bounds))
+                          (bot-b (gethash peer col-bounds)))
+                     (when (and top-b bot-b)
+                       (let ((merged (+dispatch-render-col-extent-make
+                                      :top (min (+dispatch-render-col-extent-top top-b)
+                                                (+dispatch-render-col-extent-top bot-b))
+                                      :bot (max (+dispatch-render-col-extent-bot top-b)
+                                                (+dispatch-render-col-extent-bot bot-b)))))
+                         (puthash lv merged col-bounds)
+                         (puthash peer merged col-bounds))))))
+               stack-map))
+    col-bounds))
+
+(defun +dispatch-render--compute-bypass-y (from-lv to-lv from-cy col-bounds h &optional stack-map)
+  "Compute bypass Y for an arrow spanning FROM-LV to TO-LV, or nil if not needed.
+When STACK-MAP is non-nil, also avoids stacked pair bounds at the destination."
+  (let ((span (- to-lv from-lv)))
+    (when (> span 1)
+      (let ((min-top h) (max-bot 0) (has-intermediate nil)
+            (check-to (and stack-map (gethash to-lv stack-map)
+                           (eq (+dispatch-render-stack-info-position (gethash to-lv stack-map)) 'top))))
+        (cl-loop for lv from (1+ from-lv) to (if check-to to-lv (1- to-lv))
+                 for bounds = (gethash lv col-bounds)
+                 when bounds
+                   do (setq has-intermediate t
+                            min-top (min min-top (+dispatch-render-col-extent-top bounds))
+                            max-bot (max max-bot (+dispatch-render-col-extent-bot bounds))))
+        (when has-intermediate
+          (let ((pad (+ (plist-get +dispatch-render--layout :node-pad) 6)))
+            (if (< from-cy (/ h 2))
+                (- min-top pad)
+              (+ max-bot pad))))))))
+
+;; ── SVG utilities ───────────────────────────────────────────────────
+
+(defun +dispatch-render--svg-dimensions (svg-str)
+  "Extract dimensions from SVG-STR, or nil."
+  (when (string-match "width=\"\\([0-9]+\\)\"" svg-str)
+    (let ((w (string-to-number (match-string 1 svg-str))))
+      (when (string-match "height=\"\\([0-9]+\\)\"" svg-str)
+        (+dispatch-render-dimensions-make :w w :h (string-to-number (match-string 1 svg-str)))))))
+
+(defun +dispatch-render--strip-svg-wrapper (svg-str)
+  "Remove the outer <svg>...</svg> tags from SVG-STR."
+  (replace-regexp-in-string
+   "\\`<svg[^>]*>" ""
+   (replace-regexp-in-string "</svg>\\'" "" svg-str)))
+
+(defun +dispatch-render-combine-svgs (top-svg bottom-svg gap-above gap-below)
+  "Stack TOP-SVG and BOTTOM-SVG vertically with GAP-ABOVE and GAP-BELOW."
+  (when-let* ((top-dims (+dispatch-render--svg-dimensions top-svg))
+              (bot-dims (+dispatch-render--svg-dimensions bottom-svg)))
+    (let* ((w (max (+dispatch-render-dimensions-w top-dims) (+dispatch-render-dimensions-w bot-dims)))
+           (h (+ (+dispatch-render-dimensions-h top-dims) gap-above
+                 (+dispatch-render-dimensions-h bot-dims) gap-below)))
+      (format "<svg width=\"%d\" height=\"%d\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">
+<svg y=\"0\">%s</svg>
+<svg y=\"%d\">%s</svg>
+</svg>"
+              w h
+              (+dispatch-render--strip-svg-wrapper top-svg)
+              (+ (+dispatch-render-dimensions-h top-dims) gap-above)
+              (+dispatch-render--strip-svg-wrapper bottom-svg)))))
+
+;; ── Prepare/Draw split ───────────────────────────────────────────────
+
+(defun +dispatch-render--compute-max-col-h (columns max-level stack-map task-heights layout)
+  "Compute the maximum column height across all levels."
+  (let ((node-pad (plist-get layout :node-pad)))
+    (cl-loop for lv from 0 to max-level
+             for si = (and stack-map (gethash lv stack-map))
+             unless (and si (eq (+dispatch-render-stack-info-position si) 'bottom))
+             maximize (if (and si (eq (+dispatch-render-stack-info-position si) 'top))
+                          (let* ((bot-lv (+dispatch-render-stack-info-peer-level si))
+                                 (top-task (car (gethash lv columns)))
+                                 (bot-task (car (gethash bot-lv columns)))
+                                 (top-h (gethash (plist-get top-task :id) task-heights))
+                                 (bot-h (gethash (plist-get bot-task :id) task-heights)))
+                            (+ top-h (plist-get layout :stack-vgap) bot-h))
+                        (+dispatch-render--col-height
+                         (gethash lv columns) task-heights node-pad)))))
+
+(defun +dispatch-render-prepare (task-defs)
+  "Compute topology, geometry, and node positions.
+TASK-DEFS is a list of `+dispatch-render-task' structs.
+Returns a `+dispatch-render-ctx' for `+dispatch-render-draw'."
+  (let* ((L +dispatch-render--layout)
+         (theme (+dispatch-render--theme-colors))
+         (node-pad (plist-get L :node-pad))
+         (col-gap (plist-get L :col-gap))
+         (margin (plist-get L :margin))
+         (pill-w (plist-get L :pill-w))
+         (pill-h (plist-get L :pill-h))
+         ;; Convert task structs to internal plists for topology functions
+         (tasks-info (mapcar (lambda (td)
+                               (list :id (+dispatch-render-task-id td)
+                                     :name (+dispatch-render-task-name td)
+                                     :depends-on (+dispatch-render-task-depends-on td)))
+                             task-defs))
+         ;; Topology
+         (leveled (+dispatch-render--compute-levels tasks-info))
+         (max-level (cl-loop for t_ in leveled maximize (plist-get t_ :level)))
+         (columns (+dispatch-render--group-by-level leveled))
+         (stack-map (+dispatch-render--compute-stacks columns max-level))
+         (edges (+dispatch-render--transitive-reduce leveled))
+         (topo (+dispatch-render-topology-make
+                :leveled leveled :max-level max-level
+                :columns columns :edges edges :stack-map stack-map))
+         ;; Geometry
+         (col-widths (+dispatch-render--compute-col-widths columns max-level stack-map))
+         (col-xs (+dispatch-render--compute-col-x-positions max-level col-widths stack-map))
+         (task-heights (+dispatch-render--compute-task-heights leveled col-widths))
+         (max-col-h (+dispatch-render--compute-max-col-h
+                     columns max-level stack-map task-heights L))
+         (last-col-right (cl-loop for lv from 0 to max-level
+                                  for si = (and stack-map (gethash lv stack-map))
+                                  unless (and si (eq (+dispatch-render-stack-info-position si) 'bottom))
+                                  maximize (+ (gethash lv col-xs) (gethash lv col-widths))))
+         (geom (+dispatch-render-geometry-make
+                :col-widths col-widths :col-xs col-xs
+                :task-heights task-heights :max-col-h max-col-h
+                :last-col-right last-col-right))
+         ;; Canvas dimensions
+         (has-bypass (let ((id-lv (make-hash-table :test 'equal)))
+                       (puthash "start" -1 id-lv)
+                       (puthash "end" (1+ max-level) id-lv)
+                       (dolist (t_ leveled) (puthash (plist-get t_ :id) (plist-get t_ :level) id-lv))
+                       (cl-loop for (from . to) in edges
+                                thereis (> (- (gethash to id-lv) (gethash from id-lv)) 1))))
+         (bypass-pad (if has-bypass (+ node-pad 6 5) 0))
+         (w (+ last-col-right col-gap pill-w margin))
+         (h (max (+ (* 2 (+ margin bypass-pad)) max-col-h) 60))
+         (canvas (+dispatch-render-dimensions-make :w w :h h))
+         ;; Pre-compute node positions and edges
+         (node-positions (make-hash-table :test 'equal))
+         (node-edges-map (make-hash-table :test 'equal))
+         (stack-arrows nil))
+
+    ;; Start pill position
+    (let* ((pill-x margin)
+           (pill-cy (/ h 2))
+           (rx (plist-get L :pill-rx)))
+      (puthash "start" (+dispatch-render-node-pos-make
+                        :x pill-x :y (- pill-cy (/ pill-h 2))
+                        :w pill-w :h pill-h)
+               node-positions)
+      (puthash "start" (+dispatch-render-node-edges-make
+                        :left-x (+ pill-x rx)
+                        :right-x (- (+ pill-x pill-w) rx)
+                        :cy pill-cy)
+               node-edges-map))
+
+    ;; Task node positions by column
+    (cl-loop
+     for lv from 0 to max-level
+     for si = (and stack-map (gethash lv stack-map))
+     unless (and si (eq (+dispatch-render-stack-info-position si) 'bottom))
+     do (let* ((col-tasks (gethash lv columns))
+               (col-x (gethash lv col-xs))
+               (cw (gethash lv col-widths))
+               (rx (plist-get L :node-rx)))
+          (if (and si (eq (+dispatch-render-stack-info-position si) 'top))
+              ;; Stacked pair
+              (let* ((bot-lv (+dispatch-render-stack-info-peer-level si))
+                     (top-task (car col-tasks))
+                     (bot-task (car (gethash bot-lv columns)))
+                     (top-h (gethash (plist-get top-task :id) task-heights))
+                     (bot-h (gethash (plist-get bot-task :id) task-heights))
+                     (stack-vgap (plist-get L :stack-vgap))
+                     (pair-h (+ top-h stack-vgap bot-h))
+                     (top-y (/ (- h pair-h) 2))
+                     (bot-y (+ top-y top-h stack-vgap))
+                     (top-cy (+ top-y (/ top-h 2)))
+                     (bot-cy (+ bot-y (/ bot-h 2))))
+                ;; Top node
+                (puthash (plist-get top-task :id)
+                         (+dispatch-render-node-pos-make :x col-x :y top-y :w cw :h top-h)
+                         node-positions)
+                (puthash (plist-get top-task :id)
+                         (+dispatch-render-node-edges-make
+                          :left-x (+ col-x rx) :right-x (- (+ col-x cw) rx) :cy top-cy)
+                         node-edges-map)
+                ;; Bottom node
+                (puthash (plist-get bot-task :id)
+                         (+dispatch-render-node-pos-make :x col-x :y bot-y :w cw :h bot-h)
+                         node-positions)
+                (puthash (plist-get bot-task :id)
+                         (+dispatch-render-node-edges-make
+                          :left-x (+ col-x rx) :right-x (- (+ col-x cw) rx) :cy bot-cy)
+                         node-edges-map)
+                ;; Record stack arrow
+                (push (list (gethash (plist-get top-task :id) node-edges-map)
+                            (+dispatch-render-node-pos-make :x col-x :y bot-y :w cw :h bot-h))
+                      stack-arrows))
+            ;; Normal column
+            (let* ((col-h (+dispatch-render--col-height col-tasks task-heights node-pad))
+                   (cur-y (/ (- h col-h) 2)))
+              (cl-loop
+               for task in col-tasks
+               for th = (gethash (plist-get task :id) task-heights)
+               for cy = (+ cur-y (/ th 2))
+               do (puthash (plist-get task :id)
+                           (+dispatch-render-node-pos-make :x col-x :y cur-y :w cw :h th)
+                           node-positions)
+                  (puthash (plist-get task :id)
+                           (+dispatch-render-node-edges-make
+                            :left-x (+ col-x rx) :right-x (- (+ col-x cw) rx) :cy cy)
+                           node-edges-map)
+                  (cl-incf cur-y (+ th node-pad)))))))
+
+    ;; End pill position
+    (let* ((pill-x (+ last-col-right col-gap))
+           (pill-cy (/ h 2))
+           (rx (plist-get L :pill-rx)))
+      (puthash "end" (+dispatch-render-node-pos-make
+                      :x pill-x :y (- pill-cy (/ pill-h 2))
+                      :w pill-w :h pill-h)
+               node-positions)
+      (puthash "end" (+dispatch-render-node-edges-make
+                      :left-x (+ pill-x rx)
+                      :right-x (- (+ pill-x pill-w) rx)
+                      :cy pill-cy)
+               node-edges-map))
+
+    ;; Pre-compute col-bounds and arrow specs
+    (let* ((col-bounds (+dispatch-render--compute-col-bounds
+                        node-edges-map leveled task-heights (plist-get L :node-h) stack-map))
+           (routing (+dispatch-render-routing-make :col-bounds col-bounds :canvas-h h))
+           (id-to-level (make-hash-table :test 'equal))
+           (id-to-stack (when stack-map
+                          (let ((m (make-hash-table :test 'equal)))
+                            (dolist (task leveled)
+                              (when-let* ((si (gethash (plist-get task :level) stack-map)))
+                                (puthash (plist-get task :id) si m)))
+                            m)))
+           (arrow-specs nil))
+      (puthash "start" -1 id-to-level)
+      (puthash "end" (1+ max-level) id-to-level)
+      (dolist (task leveled) (puthash (plist-get task :id) (plist-get task :level) id-to-level))
+      (dolist (edge edges)
+        (unless (and id-to-stack
+                     (when-let* ((from-si (gethash (car edge) id-to-stack))
+                                 (to-si (gethash (cdr edge) id-to-stack)))
+                       (and (eq (+dispatch-render-stack-info-position from-si) 'top)
+                            (eq (+dispatch-render-stack-info-position to-si) 'bottom)
+                            (= (+dispatch-render-stack-info-peer-level from-si)
+                               (gethash (cdr edge) id-to-level)))))
+          (when-let* ((from (gethash (car edge) node-edges-map))
+                      (to (gethash (cdr edge) node-edges-map))
+                      (from-lv (gethash (car edge) id-to-level))
+                      (to-lv (gethash (cdr edge) id-to-level)))
+            (push (+dispatch-render-arrow-spec-make
+                   :x1 (+dispatch-render-node-edges-right-x from)
+                   :y1 (+dispatch-render-node-edges-cy from)
+                   :x2 (+dispatch-render-node-edges-left-x to)
+                   :y2 (+dispatch-render-node-edges-cy to)
+                   :bypass-y (+dispatch-render--compute-bypass-y
+                              from-lv to-lv
+                              (+dispatch-render-node-edges-cy from)
+                              col-bounds h stack-map))
+                  arrow-specs))))
+
+      (+dispatch-render-ctx-make
+       :theme theme :topo topo :geom geom
+       :node-positions node-positions
+       :node-edges node-edges-map
+       :arrow-specs (nreverse arrow-specs)
+       :stack-arrows (nreverse stack-arrows)
+       :routing routing
+       :canvas canvas
+       :has-bypass has-bypass))))
+
+(defun +dispatch-render-draw (ctx status-map)
+  "Draw SVG from cached CTX with current STATUS-MAP.
+CTX is a +dispatch-render-ctx from `+dispatch-render-prepare'.
+STATUS-MAP is a hash of task-id -> +dispatch-render-task-status."
+  (let* ((L +dispatch-render--layout)
+         (theme (+dispatch-render-ctx-theme ctx))
+         (topo (+dispatch-render-ctx-topo ctx))
+         (canvas (+dispatch-render-ctx-canvas ctx))
+         (w (+dispatch-render-dimensions-w canvas))
+         (h (+dispatch-render-dimensions-h canvas))
+         (node-positions (+dispatch-render-ctx-node-positions ctx))
+         (leveled (+dispatch-render-topology-leveled topo))
+         (svg (svg-create w h)))
+
+    ;; Background
+    (svg-rectangle svg 0 0 w h
+                   :fill (+dispatch-render-theme-bg theme)
+                   :rx (plist-get L :bg-rx))
+
+    ;; Start pill
+    (let ((pos (gethash "start" node-positions)))
+      (+dispatch-render--draw-pill
+       svg
+       (+dispatch-render-node-pos-x pos)
+       (+ (+dispatch-render-node-pos-y pos)
+          (/ (+dispatch-render-node-pos-h pos) 2))
+       (+dispatch-render-node-pos-w pos)
+       (+dispatch-render-node-pos-h pos)
+       "▶" theme))
+
+    ;; Task nodes — inject current status into task plists for draw-task-node
+    (dolist (task leveled)
+      (let* ((id (plist-get task :id))
+             (pos (gethash id node-positions))
+             (ts (gethash id status-map))
+             (task-with-status (list :id id
+                                     :name (plist-get task :name)
+                                     :status (if ts (+dispatch-render-task-status-status ts)
+                                                'waiting))))
+        (+dispatch-render--draw-task-node
+         svg
+         (+dispatch-render-node-pos-x pos)
+         (+dispatch-render-node-pos-y pos)
+         (+dispatch-render-node-pos-w pos)
+         (+dispatch-render-node-pos-h pos)
+         task-with-status theme)))
+
+    ;; End pill
+    (let ((pos (gethash "end" node-positions)))
+      (+dispatch-render--draw-pill
+       svg
+       (+dispatch-render-node-pos-x pos)
+       (+ (+dispatch-render-node-pos-y pos)
+          (/ (+dispatch-render-node-pos-h pos) 2))
+       (+dispatch-render-node-pos-w pos)
+       (+dispatch-render-node-pos-h pos)
+       "■" theme))
+
+    ;; Arrows from pre-computed specs
+    (let ((arrow-color (+dispatch-render-theme-arrow theme)))
+      (dolist (spec (+dispatch-render-ctx-arrow-specs ctx))
+        (+dispatch-render--draw-arrow
+         svg
+         (+dispatch-render-arrow-spec-x1 spec)
+         (+dispatch-render-arrow-spec-y1 spec)
+         (+dispatch-render-arrow-spec-x2 spec)
+         (+dispatch-render-arrow-spec-y2 spec)
+         arrow-color
+         (+dispatch-render-arrow-spec-bypass-y spec)))
+      ;; Stack arrows
+      (dolist (sa (+dispatch-render-ctx-stack-arrows ctx))
+        (let ((top-edges (car sa))
+              (bot-pos (cadr sa)))
+          (+dispatch-render--draw-stack-arrow
+           svg top-edges
+           (+dispatch-render-node-pos-x bot-pos)
+           (+dispatch-render-node-pos-y bot-pos)
+           (+dispatch-render-node-pos-w bot-pos)
+           arrow-color))))
+
+    svg))
+
+(defun +dispatch-render-apply-viewport (svg-str ctx status-map dispatcher-buf)
+  "Apply viewBox panning to SVG-STR if wider than window.
+CTX is the cached +dispatch-render-ctx. STATUS-MAP is the per-frame status hash.
+DISPATCHER-BUF is the buffer name."
+  (when-let* ((dims (+dispatch-render--svg-dimensions svg-str))
+              (svg-w (+dispatch-render-dimensions-w dims))
+              (svg-h (+dispatch-render-dimensions-h dims))
+              (win (get-buffer-window dispatcher-buf))
+              (win-pw (window-body-width win t))
+              ((> svg-w win-pw)))
+    (let* ((topo (+dispatch-render-ctx-topo ctx))
+           (leveled (+dispatch-render-topology-leveled topo))
+           (geom (+dispatch-render-ctx-geom ctx))
+           (col-xs (+dispatch-render-geometry-col-xs geom))
+           (target-level (or (cl-loop for task in leveled
+                                      for id = (plist-get task :id)
+                                      for ts = (gethash id status-map)
+                                      unless (and ts (eq (+dispatch-render-task-status-status ts) 'done))
+                                      minimize (plist-get task :level))
+                             0))
+           (show-level (max 0 (1- target-level)))
+           (view-x (max 0 (- (gethash show-level col-xs)
+                              (plist-get +dispatch-render--layout :margin)))))
+      (setq svg-str (replace-regexp-in-string
+                     (format "width=\"%d\" height=\"%d\"" svg-w svg-h)
+                     (format "width=\"%d\" height=\"%d\" viewBox=\"%d 0 %d %d\""
+                             win-pw svg-h view-x win-pw svg-h)
+                     svg-str t t))))
+  svg-str)
+
+(defun +dispatch-render-cycle-spinner ()
+  "Advance the spinner frame and update the working icon."
+  (cl-incf +dispatch-render--spinner-index)
+  (setf (+dispatch-render-status-style-icon
+         (cdr (assq 'working (+dispatch-render-theme-status (+dispatch-render--theme-colors)))))
+        (nth (% +dispatch-render--spinner-index (length +dispatch-render--spinner-frames))
+             +dispatch-render--spinner-frames)))
+
+(provide '+dispatch-render)
+;;; +dispatch-render.el ends here
