@@ -1,17 +1,21 @@
 ---
 name: tasks
-description: 'Render a visual SVG task graph for your work. Break your plan into steps with dependencies, track progress with a live dependency graph. Use when working on a set of steps towards a goal. Triggers on producing a task list.'
+description: 'ALWAYS use when planning multi-step work. Replaces TodoWrite for visual progress tracking. Use whenever you would create a task list, break work into steps, plan an approach, or outline sequential/parallel steps. Renders a live SVG dependency graph in the agent-shell header showing task status, elapsed time, and dependencies.'
 ---
 
 # Task Graph for Structured Work
 
-When you have a multi-step task, render a live SVG dependency graph that tracks your progress. The graph appears in a dedicated window below the agent-shell buffer, showing Start/End nodes, task boxes with status colors, and curved arrows for dependencies.
+Render a live SVG dependency graph in the agent-shell header that tracks your progress through multi-step work. Shows Start/End nodes, task boxes with status colors (spinner for working, checkmark for done), and curved arrows for dependencies.
+
+**This replaces TodoWrite for visual progress tracking.** Use this instead of TodoWrite whenever you're planning and executing steps.
 
 ## When to Use
 
+- You are about to break work into steps or create a task list
 - You have 3+ steps to complete
 - The user asks you to plan and execute a multi-step task
-- You want to show clear progress through a workflow
+- You would otherwise use TodoWrite to track progress
+- You want to show clear, visual progress through a workflow
 
 ## Step 1: Plan Your Tasks
 

@@ -528,7 +528,6 @@
 
 (defun shell-new ()
   (interactive)
-
   (let ((currentbuf (get-buffer-window (current-buffer)))
         (newbuf     (generate-new-buffer-name "*shell*")))
     (generate-new-buffer newbuf)
