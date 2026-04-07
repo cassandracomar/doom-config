@@ -46,31 +46,12 @@
                        'font-lock-face 'font-lock-comment-face
                        'read-only t)))))))))
 
-(defun +meta-agent-shell--find-dispatch-fragment ()
-  "Find the start position of the dispatch-progress fragment in current buffer."
-  (save-excursion
-    (goto-char (point-max))
-    (cl-block nil
-      (while (let ((match (text-property-search-backward
-                           'agent-shell-ui-section nil nil)))
-               (when match
-                 (let ((help (get-text-property (prop-match-beginning match) 'help-echo)))
-                   (when (and help (stringp help) (string-match-p "dispatch-progress" help))
-                     (cl-return (prop-match-beginning match))))
-                 t))))))
-
 (defun +meta-agent-shell--insert-before-prompt (buf text)
-  "Insert TEXT into BUF above the dispatch fragment, or before the prompt."
+  "Insert TEXT into BUF before the prompt, or at point-max if busy."
   (with-current-buffer buf
     (save-excursion
       (let ((inhibit-read-only t))
         (cond
-         ;; If dispatch fragment exists, insert just above it
-         ((when-let* ((frag-pos (+meta-agent-shell--find-dispatch-fragment)))
-            (goto-char frag-pos)
-            (forward-line 0)
-            (insert text "\n")
-            t))
          ;; If busy, append at point-max
          (shell-maker--busy
           (goto-char (point-max))
@@ -522,7 +503,9 @@ INTERVAL is seconds between render updates (default 2)."
 
 (defun +meta-agent-shell-kill-agents ()
   "Kill all agent-shell sessions except the current buffer.
+Also stops dispatch polling and closes the progress window.
 Returns the number of agents killed."
+  (+dispatch-stop)
   (let ((self (buffer-name))
         (killed 0))
     (dolist (session (meta-agent-shell-list-sessions))
