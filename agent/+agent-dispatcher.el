@@ -129,7 +129,8 @@
     :node-font-size 12 :pill-font-size 14
     :pill-text-y-offset 5 :name-max-len 24
     :arrow-head-len 5 :arrow-head-hw 4.0 :arrow-cp-factor 0.4
-    :arrow-stroke-w "1.5" :bg-rx 8)
+    :arrow-stroke-w "1.5" :bg-rx 8
+    :stack-vgap 30 :stack-threshold 5 :stack-arrow-overshoot 40)
   "Layout constants for the SVG task graph.")
 
 (defvar +dispatch--spinner-frames
@@ -310,6 +311,28 @@ to avoid crossing intermediate boxes."
     (cl-loop for lv from 0 to max-level
              do (puthash lv (nreverse (gethash lv columns)) columns))
     columns))
+
+(defun +dispatch--compute-stacks (columns max-level)
+  "Identify levels to stack vertically as pairs.
+Only activates when there are more than :stack-threshold task columns.
+Returns a hash of level -> (:peer-level N :position top|bottom),
+or nil if stacking is not needed."
+  (when (>= (1+ max-level) (plist-get +dispatch--layout :stack-threshold))
+    (let ((stack-map (make-hash-table))
+          (lv 0))
+      ;; Scan for runs of consecutive single-node levels
+      (while (<= lv max-level)
+        (if (and (<= (1+ lv) max-level)
+                 (= 1 (length (gethash lv columns)))
+                 (= 1 (length (gethash (1+ lv) columns))))
+            ;; Pair lv (top) with lv+1 (bottom)
+            (progn
+              (puthash lv (list :peer-level (1+ lv) :position 'top) stack-map)
+              (puthash (1+ lv) (list :peer-level lv :position 'bottom) stack-map)
+              (cl-incf lv 2))
+          (cl-incf lv)))
+      (when (> (hash-table-count stack-map) 0)
+        stack-map))))
 
 (defun +dispatch--draw-pill (svg x cy w h icon theme)
   "Draw a pill-shaped node on SVG at X, centered at CY. Returns edge positions."
