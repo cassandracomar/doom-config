@@ -535,7 +535,6 @@
     (set-window-buffer currentbuf newbuf)
     (shell newbuf)))
 
-;;
 ;; mu4e settings
 (use-package! mu4e
   :defer t
@@ -690,8 +689,7 @@
   :commands nu-ts-mode
   :defer t
   :mode "\\.nu\\'"
-  :hook '((nu-ts-mode . lsp!))
-  )
+  :hook '((nu-ts-mode . lsp!)))
 (add-hook! nu-ts-mode (+format-with-lsp-mode -1))
 
 (use-package! semel
@@ -832,7 +830,7 @@
     :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
     :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
     :desc "Send region"                                  :n       "r"         #'agent-shell-send-region
-    :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-other-file
+    :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
     :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
 
     :block "Session"
