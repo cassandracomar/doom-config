@@ -834,7 +834,7 @@
     :desc "Fork session"      :n  "y"         #'agent-shell-fork
     :desc "Restart"           :n  "q"         #'agent-shell-restart
     :desc "Toggle shell"      :n  "o"         #'agent-shell-toggle
-    :block "Meta"
+    :block "Agents"
     :desc "Agent dispatcher"  :n  "m m"       #'meta-agent-shell-start
     :desc "Project dispatcher"    "m d"       #'meta-agent-shell-jump-to-dispatcher
     :desc "Start heartbeat"       "m h"       #'meta-agent-shell-heartbeat-start
