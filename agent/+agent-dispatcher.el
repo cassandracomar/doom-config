@@ -439,8 +439,47 @@ Returns (STATUS ELAPSED DETAIL STARTED) list."
           (and rep-detail (memq effective '(working permission)) rep-detail)
           started)))
 
+(defun +dispatch--scroll-right ()
+  "Scroll the dispatch progress window right."
+  (interactive)
+  (scroll-left 8))
+
+(defun +dispatch--scroll-left ()
+  "Scroll the dispatch progress window left."
+  (interactive)
+  (scroll-right 8))
+
+(defun +dispatch--auto-scroll (win render-data)
+  "Scroll WIN so the first non-done task is one node from the left edge."
+  (let* ((L +dispatch--layout)
+         (margin (plist-get L :margin))
+         (pill-w (plist-get L :pill-w))
+         (col-gap (plist-get L :col-gap))
+         (node-w (min (+ (plist-get L :node-base-w)
+                         (* (plist-get L :node-char-w)
+                            (cl-loop for t_ in render-data
+                                     maximize (length (plist-get t_ :name)))))
+                      (plist-get L :node-max-w)))
+         (leveled (if (plist-get (car render-data) :level) render-data
+                    (+dispatch--compute-levels render-data)))
+         ;; Find level of first non-done task
+         (target-level (or (cl-loop for task in leveled
+                                    unless (eq (plist-get task :status) 'done)
+                                    minimize (plist-get task :level))
+                           0))
+         ;; Show one completed level to the left of target
+         (show-level (max 0 (1- target-level)))
+         ;; Compute pixel offset for that level
+         (scroll-px (max 0 (- (+ margin pill-w col-gap
+                                 (* show-level (+ node-w col-gap)))
+                              margin)))
+         ;; Convert pixels to columns (approximate)
+         (char-w (frame-char-width))
+         (scroll-cols (/ scroll-px char-w)))
+    (set-window-hscroll win scroll-cols)))
+
 (defun +dispatch--render ()
-  "Render the dispatch task graph as an SVG in a progress fragment.
+  "Render the dispatch task graph as an SVG in a progress window.
 Combines agent-reported status with shell-maker--busy fallback."
   (when-let* ((state +meta-agent-shell--dispatch-state)
               (dispatcher (plist-get state :dispatcher-buffer))
@@ -480,18 +519,44 @@ Combines agent-reported status with shell-maker--busy fallback."
             (setq buffer-read-only t
                   cursor-type nil
                   mode-line-format nil
-                  header-line-format nil)
-            (face-remap-add-relative 'default :background bg)))
-        ;; Ensure the window exists, attached below the dispatcher
+                  header-line-format nil
+                  truncate-lines t)
+            (face-remap-add-relative 'default :background bg)
+            ;; Mouse horizontal scrolling
+            (unless (local-variable-p '+dispatch--scroll-keys-set)
+              (local-set-key [wheel-right] #'+dispatch--scroll-right)
+              (local-set-key [wheel-left] #'+dispatch--scroll-left)
+              (local-set-key [S-wheel-down] #'+dispatch--scroll-right)
+              (local-set-key [S-wheel-up] #'+dispatch--scroll-left)
+              (setq-local +dispatch--scroll-keys-set t))))
+        ;; Ensure the window exists
         (unless (get-buffer-window buf)
-          (when-let* ((agent-win (get-buffer-window dispatcher)))
-            (let ((win (split-window agent-win -6 'below)))
-              (set-window-buffer win buf)
-              (set-window-dedicated-p win t)
-              (set-window-parameter win 'no-other-window t)
-              (set-window-parameter win 'no-delete-other-windows t))))
+          (let* ((svg-w (dom-attr svg 'width))
+                 (agent-win (get-buffer-window dispatcher))
+                 (agent-pw (and agent-win (window-body-width agent-win t))))
+            (if (and agent-pw svg-w (> svg-w agent-pw))
+                ;; Wide graph: use full-frame side window
+                (display-buffer-in-side-window buf
+                  '((side . bottom)
+                    (window-height . fit-window-to-buffer)
+                    (dedicated . t)))
+              ;; Fits: split below agent-shell
+              (when agent-win
+                (let ((win (split-window agent-win -6 'below)))
+                  (set-window-buffer win buf)
+                  (set-window-dedicated-p win t)
+                  (set-window-parameter win 'no-other-window t)
+                  (set-window-parameter win 'no-delete-other-windows t))))))
         (when-let* ((win (get-buffer-window buf)))
-          (fit-window-to-buffer win))))))
+          (set-window-parameter win 'no-other-window t)
+          (set-window-parameter win 'no-delete-other-windows t)
+          (fit-window-to-buffer win)
+          ;; Only auto-scroll when graph is wider than window
+          (let* ((svg-w (dom-attr svg 'width))
+                 (win-pw (window-body-width win t)))
+            (if (and svg-w win-pw (> svg-w win-pw))
+                (+dispatch--auto-scroll win render-data)
+              (set-window-hscroll win 0))))))))
 
 (defun +dispatch-start (dispatcher-buffer tasks &optional interval)
   "Start the dispatch task graph in a window below the dispatcher.
@@ -529,6 +594,23 @@ INTERVAL is seconds between render updates (default 2)."
                                           :agent (car agent)))
                    interval))
 (defalias '+meta-agent-shell-stop-progress-polling #'+dispatch-stop)
+
+(defun +dispatch-start-linear (buffer-name task-names &optional interval)
+  "Start a linear task graph for single-agent sequential work.
+BUFFER-NAME is the agent-shell buffer.
+TASK-NAMES is a list of strings, chained as a sequential dependency graph.
+The agent should call (+dispatch-report ID STATUS DETAIL) as it works."
+  (let ((prev nil))
+    (+dispatch-start buffer-name
+                     (cl-loop for name in task-names
+                              for i from 1
+                              for id = (format "step-%d" i)
+                              for deps = (when prev (list prev))
+                              do (setq prev id)
+                              collect (list :id id :name name
+                                           :agent buffer-name
+                                           :depends-on deps))
+                     interval)))
 
 (defun +meta-agent-shell-kill-agents ()
   "Kill all agent-shell sessions except the current buffer.
