@@ -104,18 +104,21 @@
 Each element of GROUPS is:
 
   (\"Group Name\"
-   (KEY DESCRIPTION COMMAND &optional :normal t)
+   (KEY DESCRIPTION COMMAND &optional :states (STATE ...))
    ...)
 
 KEY is a `kbd'-compatible string.  COMMAND is the interactive function.
-When :normal t is present, the binding is only active in Evil normal
-state.  Without it, the binding is active in all states.
+When :states is present, the binding is active in those Evil states
+\(e.g. :states (normal), :states (normal insert visual)).
+Without :states, the binding is active in all states via `define-key'.
 DESCRIPTION is ignored (used by `define-transient!' on the same spec)."
   `(progn
      ,@(cl-loop for group in groups
                 nconc (cl-loop for b in (cdr group)
-                               if (plist-get (nthcdr 3 b) :normal)
-                               collect `(evil-define-key 'normal ,keymap (kbd ,(nth 0 b)) #',(nth 2 b))
+                               for states = (plist-get (nthcdr 3 b) :states)
+                               if states
+                               nconc (cl-loop for state in states
+                                              collect `(evil-define-key ',state ,keymap (kbd ,(nth 0 b)) #',(nth 2 b)))
                                else collect `(define-key ,keymap (kbd ,(nth 0 b)) #',(nth 2 b))))))
 
 (defmacro define-transient! (transient-name docstring &rest groups)
@@ -129,7 +132,7 @@ Each element of GROUPS is:
    ...)
 
 KEY and DESCRIPTION are shown in the transient menu.
-Extra properties (like :normal t) are ignored."
+Extra properties (like :states (normal)) are ignored."
   `(transient-define-prefix ,transient-name ()
      ,docstring
      [,@(cl-loop for group in groups
@@ -863,27 +866,27 @@ documentation string."
    ("C-k" "Previous item" agent-shell-previous-item)
    ("<tab>" "Forward block" agent-shell-ui-forward-block)
    ("<backtab>" "Backward block" agent-shell-ui-backward-block)
-   ("/" "Toggle fragment" agent-shell-ui-toggle-fragment-at-point :normal t)
-   ("b" "Jump to permission" agent-shell-jump-to-latest-permission-button-row :normal t))
+   ("/" "Toggle fragment" agent-shell-ui-toggle-fragment-at-point :states (normal))
+   ("b" "Jump to permission" agent-shell-jump-to-latest-permission-button-row :states (normal)))
   ("Compose"
    ("C-c C-e" "Compose prompt" agent-shell-prompt-compose)
    ("C-r" "Search history" agent-shell-search-history)
-   ("r" "Send region" agent-shell-send-region :normal t)
-   ("f" "Send file" agent-shell-send-other-file :normal t)
-   ("i" "Paste image" agent-shell-send-clipboard-image :normal t))
+   ("r" "Send region" agent-shell-send-region :states (normal))
+   ("f" "Send file" agent-shell-send-other-file :states (normal))
+   ("i" "Paste image" agent-shell-send-clipboard-image :states (normal)))
   ("Session"
    ("<C-tab>" "Cycle mode" agent-shell-cycle-session-mode)
-   ("m" "Set model" agent-shell-set-session-model :normal t)
-   ("M" "Set mode" agent-shell-set-session-mode :normal t)
-   ("y" "Fork session" agent-shell-fork :normal t)
-   ("q" "Restart" agent-shell-restart :normal t)
-   ("o" "Toggle shell" agent-shell-toggle :normal t))
+   ("m" "Set model" agent-shell-set-session-model :states (normal))
+   ("M" "Set mode" agent-shell-set-session-mode :states (normal))
+   ("y" "Fork session" agent-shell-fork :states (normal))
+   ("q" "Restart" agent-shell-restart :states (normal))
+   ("o" "Toggle shell" agent-shell-toggle :states (normal)))
   ("Launch"
-   ("l" "Start Claude Code" agent-shell-anthropic-start-claude-code :normal t))
+   ("l" "Start Claude Code" agent-shell-anthropic-start-claude-code :states (normal)))
   ("Debug"
-   ("t" "Traffic" agent-shell-view-traffic :normal t)
-   ("T" "Transcript" agent-shell-open-transcript :normal t)
-   ("u" "Usage" agent-shell-show-usage :normal t)))
+   ("t" "Traffic" agent-shell-view-traffic :states (normal))
+   ("T" "Transcript" agent-shell-open-transcript :states (normal))
+   ("u" "Usage" agent-shell-show-usage :states (normal))))
 
 (evil-define-key 'normal agent-shell-mode-map (kbd "?") #'+agent-shell-menu)
 
