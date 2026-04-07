@@ -95,6 +95,37 @@
 (setenv "PAGER" "bat -f -pp")
 (setenv "DOOMPAGER" "bat -f -pp")
 
+;; MACROS
+(eval-when-compile (require 'cl-lib))
+
+(defmacro define-keys-with-transient! (keymap transient-name docstring &rest groups)
+  "Define keybindings in KEYMAP and generate a transient prefix TRANSIENT-NAME.
+DOCSTRING is the transient's documentation string.
+
+Each element of GROUPS is:
+
+  (\"Group Name\"
+   (KEY DESCRIPTION COMMAND &optional :normal t)
+   ...)
+
+KEY is a `kbd'-compatible string.  DESCRIPTION is shown in the transient.
+COMMAND is the interactive function to bind.
+
+When :normal t is present, the binding is only active in Evil normal
+state.  Without it, the binding is active in all states."
+  `(progn
+     ,@(cl-loop for group in groups
+                nconc (cl-loop for b in (cdr group)
+                               if (plist-get (nthcdr 3 b) :normal)
+                               collect `(evil-define-key 'normal ,keymap (kbd ,(nth 0 b)) #',(nth 2 b))
+                               else collect `(define-key ,keymap (kbd ,(nth 0 b)) #',(nth 2 b))))
+     (transient-define-prefix ,transient-name ()
+       ,docstring
+       [,@(cl-loop for group in groups
+                   collect (apply #'vector (car group)
+                                  (cl-loop for b in (cdr group)
+                                           collect (list (nth 0 b) (nth 1 b) (nth 2 b)))))])))
+
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
 (setq enable-local-eval t)
@@ -195,38 +226,50 @@
   (add-to-list 'eglot-semantic-token-types "generic")
   (add-to-list 'eglot-semantic-token-types "constant")
   (setq eglot-semantic-token-modifiers (remove "documentation" (remove "defaultLibrary" eglot-semantic-token-modifiers)))
-  (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right)
-  :custom-face
-  (my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
-  (my-font-lock-type-face ((t (:foreground "#5c9cff"))))
-  (my-font-lock-type-parameter-face ((t (:foreground "#66d9ef"))))
-  (my-font-lock-constant-face ((t (:inherit font-lock-property-use-face))))
-  (eglot-semantic-namespace ((t (:foreground "#fb3d81"))))
-  (eglot-semantic-type ((t (:inherit my-font-lock-type-face))))
-  (eglot-semantic-class ((t (:inherit elisp-symbol-role))))
-  (eglot-semantic-enum ((t (:inherit elisp-major-mode-name))))
-  (eglot-semantic-enumMember ((t (:inherit my-font-lock-constant-face :slant italic))))
-  (eglot-semantic-interface ((t (:inherit elisp-symbol-role))))
-  (eglot-semantic-struct ((t (:inherit elisp-major-mode-name))))
-  (eglot-semantic-typeParameter ((t (:inherit my-font-lock-type-parameter-face :slant italic))))
-  (eglot-semantic-lifetime ((t (:inherit font-lock-preprocessor-face :slant italic))))
-  (eglot-semantic-parameter ((t (:inherit my-font-lock-variable-use-face :slant italic))))
-  (eglot-semantic-variable ((t (:inherit font-lock-variable-name-face :slant italic))))
-  (eglot-semantic-property ((t (:inherit font-lock-property-use-face :slant italic))))
-  (eglot-semantic-event ((t (:inherit my-font-lock-type-parameter-face))))
-  (eglot-semantic-function ((t (:inherit font-lock-function-name-face :slant italic))))
-  (eglot-semantic-method ((t (:inherit font-lock-function-name-face :slant italic))))
-  (eglot-semantic-macro ((t (:inherit font-lock-preprocessor-face :slant italic))))
-  (eglot-semantic-generic ((t (:inherit font-lock-variable-name-face :slant italic))))
-  (eglot-semantic-number ((t (:inherit my-font-lock-constant-face))))
-  (eglot-semantic-regexp ((t (:inherit font-lock-preprocessor-face))))
-  (eglot-semantic-operator ((t (:inherit font-lock-keyword-face))))
-  (eglot-semantic-const ((t (:inherit my-font-lock-constant-face))))
-  (eglot-semantic-constant ((t (:inherit my-font-lock-constant-face))))
-  (eglot-semantic-declaration ((t (:underline t :slant normal))))
-  (eglot-semantic-definition ((t (:underline t :slant normal))))
-  (eglot-semantic-static ((t (:overline t :slant normal))))
-  (eglot-semantic-modification ((t (:underline t :slant normal)))))
+  (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right))
+
+;; Face customizations (consolidated from use-package :custom-face blocks
+;; to avoid byte-compiler false positives)
+(custom-set-faces!
+  ;; eglot semantic tokens
+  '(my-font-lock-variable-use-face ((t (:foreground "#fda135"))))
+  '(my-font-lock-type-face ((t (:foreground "#5c9cff"))))
+  '(my-font-lock-type-parameter-face ((t (:foreground "#66d9ef"))))
+  '(my-font-lock-constant-face ((t (:inherit font-lock-property-use-face))))
+  '(eglot-semantic-namespace ((t (:foreground "#fb3d81"))))
+  '(eglot-semantic-type ((t (:inherit my-font-lock-type-face))))
+  '(eglot-semantic-class ((t (:inherit elisp-symbol-role))))
+  '(eglot-semantic-enum ((t (:inherit elisp-major-mode-name))))
+  '(eglot-semantic-enumMember ((t (:inherit my-font-lock-constant-face :slant italic))))
+  '(eglot-semantic-interface ((t (:inherit elisp-symbol-role))))
+  '(eglot-semantic-struct ((t (:inherit elisp-major-mode-name))))
+  '(eglot-semantic-typeParameter ((t (:inherit my-font-lock-type-parameter-face :slant italic))))
+  '(eglot-semantic-lifetime ((t (:inherit font-lock-preprocessor-face :slant italic))))
+  '(eglot-semantic-parameter ((t (:inherit my-font-lock-variable-use-face :slant italic))))
+  '(eglot-semantic-variable ((t (:inherit font-lock-variable-name-face :slant italic))))
+  '(eglot-semantic-property ((t (:inherit font-lock-property-use-face :slant italic))))
+  '(eglot-semantic-event ((t (:inherit my-font-lock-type-parameter-face))))
+  '(eglot-semantic-function ((t (:inherit font-lock-function-name-face :slant italic))))
+  '(eglot-semantic-method ((t (:inherit font-lock-function-name-face :slant italic))))
+  '(eglot-semantic-macro ((t (:inherit font-lock-preprocessor-face :slant italic))))
+  '(eglot-semantic-generic ((t (:inherit font-lock-variable-name-face :slant italic))))
+  '(eglot-semantic-number ((t (:inherit my-font-lock-constant-face))))
+  '(eglot-semantic-regexp ((t (:inherit font-lock-preprocessor-face))))
+  '(eglot-semantic-operator ((t (:inherit font-lock-keyword-face))))
+  '(eglot-semantic-const ((t (:inherit my-font-lock-constant-face))))
+  '(eglot-semantic-constant ((t (:inherit my-font-lock-constant-face))))
+  '(eglot-semantic-declaration ((t (:underline t :slant normal))))
+  '(eglot-semantic-definition ((t (:underline t :slant normal))))
+  '(eglot-semantic-static ((t (:overline t :slant normal))))
+  '(eglot-semantic-modification ((t (:underline t :slant normal))))
+  ;; rustic
+  '(rust-ampersand-face ((t (:inherit font-lock-keyword-face))))
+  '(rust-builtin-formatting-macro ((t (:inherit font-lock-preprocessor-face))))
+  ;; haskell
+  '(haskell-operator-face ((t (:inherit haskell-keyword-face))))
+  '(haskell-definition-face ((t (:inherit haskell-keyword-face))))
+  ;; nu-ts-mode
+  '(font-lock-punctuation-face ((t (:inherit font-lock-keyword-face)))))
 
 (set-popup-rule! ".*doom eval.*" :action '(display-buffer-no-window))
 
@@ -395,9 +438,7 @@
   :defer t
   :config
   (setq rustic-format-on-save t)
-  :custom-face
-  (rust-ampersand-face ((t (:inherit font-lock-keyword-face))))
-  (rust-builtin-formatting-macro ((t (:inherit font-lock-preprocessor-face)))))
+  )
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
@@ -425,9 +466,7 @@
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
   (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
-  :custom-face
-  (haskell-operator-face ((t (:inherit haskell-keyword-face))))
-  (haskell-definition-face ((t (:inherit haskell-keyword-face)))))
+  )
 
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
@@ -685,8 +724,7 @@
   :defer t
   :mode "\\.nu\\'"
   :hook '((nu-ts-mode . lsp!))
-  :custom-face
-  (font-lock-punctuation-face ((t (:inherit font-lock-keyword-face)))))
+  )
 (add-hook! nu-ts-mode (+format-with-lsp-mode -1))
 
 (use-package! semel
@@ -798,5 +836,35 @@
   (load! "+agent-shell-view-on-y")
   (load! "+agent-shell-interrupt-fix"))
 
-(map! :leader
-      "l l" #'agent-shell-anthropic-start-claude-code)
+(define-keys-with-transient! agent-shell-mode-map +agent-shell-menu
+                             "Agent shell commands."
+                             ("Navigate"
+                              ("C-j" "Next item" agent-shell-next-item)
+                              ("C-k" "Previous item" agent-shell-previous-item)
+                              ("<tab>" "Forward block" agent-shell-ui-forward-block)
+                              ("<backtab>" "Backward block" agent-shell-ui-backward-block)
+                              ("/" "Toggle fragment" agent-shell-ui-toggle-fragment-at-point :normal t)
+                              ("b" "Jump to permission" agent-shell-jump-to-latest-permission-button-row :normal t))
+                             ("Compose"
+                              ("C-c C-e" "Compose prompt" agent-shell-prompt-compose)
+                              ("C-r" "Search history" agent-shell-search-history)
+                              ("r" "Send region" agent-shell-send-region :normal t)
+                              ("f" "Send file" agent-shell-send-other-file :normal t)
+                              ("i" "Paste image" agent-shell-send-clipboard-image :normal t))
+                             ("Session"
+                              ("<C-tab>" "Cycle mode" agent-shell-cycle-session-mode)
+                              ("m" "Set model" agent-shell-set-session-model :normal t)
+                              ("M" "Set mode" agent-shell-set-session-mode :normal t)
+                              ("y" "Fork session" agent-shell-fork :normal t)
+                              ("q" "Restart" agent-shell-restart :normal t)
+                              ("o" "Toggle shell" agent-shell-toggle :normal t))
+                             ("Launch"
+                              ("l" "Start Claude Code" agent-shell-anthropic-start-claude-code :normal t))
+                             ("Debug"
+                              ("t" "Traffic" agent-shell-view-traffic :normal t)
+                              ("T" "Transcript" agent-shell-open-transcript :normal t)
+                              ("u" "Usage" agent-shell-show-usage :normal t)))
+(evil-define-key 'normal agent-shell-mode-map (kbd "?") #'+agent-shell-menu)
+
+;; SPC l opens the transient menu
+(map! :leader "l" #'+agent-shell-menu)

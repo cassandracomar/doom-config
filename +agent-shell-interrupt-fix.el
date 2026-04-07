@@ -13,8 +13,18 @@
 ;;    suspiciously fast (< 1s), auto-resubmit once, cleaning up the
 ;;    failed prompt's visual artifact.
 
+;;; Commentary:
+;;; Code:
+
 (eval-when-compile
   (require 'cl-lib))
+
+(defvar shell-maker--busy)
+(defvar shell-maker--config)
+(defvar comint-last-input-start)
+(declare-function shell-maker-submit "shell-maker")
+(declare-function shell-maker-finish-output "shell-maker")
+(declare-function agent-shell--send-request "agent-shell")
 
 (defvar-local +agent-shell--queued-input nil
   "Input that was submitted while shell-maker was busy.
