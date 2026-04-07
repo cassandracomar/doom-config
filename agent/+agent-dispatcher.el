@@ -302,6 +302,41 @@ to avoid crossing intermediate boxes."
                              (- ex head-len) (+ ey hw)))
           (fill . ,color))))))
 
+(defun +dispatch--draw-stack-arrow (svg top-edges bot-x bot-y bot-w color)
+  "Draw internal pair arrow from top node's right edge to bottom node's top center.
+TOP-EDGES is the plist returned by draw-task-node for the top node.
+BOT-X, BOT-Y are the top-left corner of the bottom node. BOT-W is its width."
+  (let* ((L +dispatch--layout)
+         (x1 (plist-get top-edges :right-x))
+         (y1 (plist-get top-edges :cy))
+         (x2 (+ bot-x (/ bot-w 2)))
+         (y2 (float bot-y))
+         (ey (+ y2 5))
+         (overshoot (plist-get L :stack-arrow-overshoot))
+         (cp1-x (+ x1 overshoot))
+         (cp1-y (float bot-y))
+         (cp2-x (float x2))
+         (cp2-y (- y2 20.0))
+         (hw (plist-get L :arrow-head-hw))
+         (sw (plist-get L :arrow-stroke-w)))
+    ;; Path
+    (dom-append-child svg
+      (dom-node 'path
+        `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
+                        (float x1) (float y1)
+                        cp1-x cp1-y
+                        cp2-x cp2-y
+                        (float x2) ey))
+          (stroke . ,color) (stroke-width . ,sw) (fill . "none"))))
+    ;; Downward arrowhead
+    (dom-append-child svg
+      (dom-node 'polygon
+        `((points . ,(format "%f,%f %f,%f %f,%f"
+                             (float x2) y2
+                             (- x2 hw) (- y2 (plist-get L :arrow-head-len))
+                             (+ x2 hw) (- y2 (plist-get L :arrow-head-len))))
+          (fill . ,color))))))
+
 (defun +dispatch--group-by-level (tasks)
   "Group TASKS by :level into a hash of level → task list (preserving order)."
   (let ((columns (make-hash-table))
