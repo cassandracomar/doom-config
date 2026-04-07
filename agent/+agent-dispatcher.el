@@ -264,15 +264,15 @@ Uses a cubic bezier curve that bows based on vertical distance."
          (ax1 (- ex head-len)) (ay1 (- ey 4.0))
          (ax2 (- ex head-len)) (ay2 (+ ey 4.0)))
     (dom-append-child svg
-      (dom-node 'path
-        `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
-                        (float x1) (float y1) cx1 cy1 cx2 cy2 ex ey))
-          (stroke . ,color) (stroke-width . "1.5") (fill . "none"))))
+                      (dom-node 'path
+                                `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
+                                                (float x1) (float y1) cx1 cy1 cx2 cy2 ex ey))
+                                  (stroke . ,color) (stroke-width . "1.5") (fill . "none"))))
     (dom-append-child svg
-      (dom-node 'polygon
-        `((points . ,(format "%f,%f %f,%f %f,%f"
-                             (float x2) (float y2) ax1 ay1 ax2 ay2))
-          (fill . ,color))))))
+                      (dom-node 'polygon
+                                `((points . ,(format "%f,%f %f,%f %f,%f"
+                                                     (float x2) (float y2) ax1 ay1 ax2 ay2))
+                                  (fill . ,color))))))
 
 (defun +dispatch--build-svg (tasks-info)
   "Build a horizontal dependency graph SVG from TASKS-INFO.
@@ -296,7 +296,7 @@ Colors are derived from the current Emacs theme."
          (max-col-size (cl-loop for lv from 0 to max-level
                                 maximize (length (gethash lv columns))))
          (node-w (+ 40 (* 7 (cl-loop for t_ in leveled
-                                      maximize (length (plist-get t_ :name))))))
+                                     maximize (length (plist-get t_ :name))))))
          (node-w (min node-w 220))
          (w (+ (* 2 margin) pill-w col-gap
                (* (1+ max-level) (+ node-w col-gap))
@@ -340,9 +340,9 @@ Colors are derived from the current Emacs theme."
                          do
                          (svg-rectangle svg col-x y node-w node-h :fill bg :rx 5)
                          (svg-text svg (format "%s %s" icon
-                                              (if (> (length name) 24)
-                                                  (concat (substring name 0 22) "…")
-                                                name))
+                                               (if (> (length name) 24)
+                                                   (concat (substring name 0 22) "…")
+                                                 name))
                                    :x (+ col-x 8) :y (+ y 22)
                                    :fill fg :font-size 12 :font-family font)
                          (when (> (length elapsed) 0)
@@ -432,7 +432,7 @@ Combines agent-reported status with shell-maker--busy fallback."
            (render-data
             (cl-loop for task in tasks
                      for (effective elapsed detail _started)
-                       = (+dispatch--resolve-status task statuses)
+                     = (+dispatch--resolve-status task statuses)
                      when (eq effective 'done) do (cl-incf ready-count)
                      when (memq effective '(working permission)) do (cl-incf busy-count)
                      collect (list :id (plist-get task :id)
@@ -496,8 +496,8 @@ INTERVAL is seconds between render updates (default 2)."
                    (cl-loop for agent in agents
                             for i from 1
                             collect (list :id (format "task-%d" i)
-                                         :name (cdr agent)
-                                         :agent (car agent)))
+                                          :name (cdr agent)
+                                          :agent (car agent)))
                    interval))
 (defalias '+meta-agent-shell-stop-progress-polling #'+dispatch-stop)
 
@@ -522,20 +522,25 @@ Returns the number of agents killed."
 
 ;; -- Start function for spawned agents --
 
-(defun +meta-agent-shell-start (_arg &optional _buffer-name)
+(defun +meta-agent-shell-start (config _arg &optional buffer-name)
   "Start a new Claude agent-shell for meta-agent-shell.
 No window popup, no session prompt. Copies the session mode from the
-primary (dispatcher) buffer. Permissions are rendered in the dispatcher buffer."
-  (let* ((config (copy-alist (agent-shell-anthropic-make-claude-code-config)))
+primary (dispatcher) buffer. Permissions are rendered in the dispatcher buffer.
+BUFFER-NAME, if provided, is incorporated into the buffer label."
+  (let* ((cfg (copy-alist config))
          (mode-id (or (when-let* ((primary +meta-agent-shell--primary-buffer)
                                   (pbuf (get-buffer primary)))
                         (with-current-buffer pbuf
                           (map-nested-elt agent-shell--state '(:session :mode-id))))
                       "default"))
          (buf nil))
-    (setf (map-elt config :default-session-mode-id)
+    (setf (map-elt cfg :default-session-mode-id)
           (lambda () mode-id))
-    (setq buf (agent-shell--start :config config
+    (setf (map-elt cfg :buffer-name)
+          (if buffer-name
+              (format "[agent:%s]" buffer-name)
+            "[agent]"))
+    (setq buf (agent-shell--start :config cfg
                                   :no-focus t
                                   :new-session t
                                   :session-strategy 'new))

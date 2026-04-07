@@ -779,7 +779,7 @@
   :after agent-shell
   :config
   (load! "agent/+agent-dispatcher")
-  (setq meta-agent-shell-start-function #'+meta-agent-shell-start))
+  (setq meta-agent-shell-start-function (-partial #'+meta-agent-shell-start (agent-shell-anthropic-make-claude-code-config))))
 
 (use-package! agent-shell
   :defer t
