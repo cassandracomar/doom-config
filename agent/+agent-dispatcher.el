@@ -3,10 +3,28 @@
 ;; Permission forwarding, progress polling, and agent spawning for
 ;; meta-agent-shell dispatch workflows.
 
+(require 'cl-lib)
+(require 'map)
+
+(declare-function agent-shell--make-permission-button "agent-shell")
+(declare-function agent-shell--start "agent-shell")
+(declare-function agent-shell-anthropic-make-claude-code-config "agent-shell")
+(declare-function agent-shell-ui-delete-fragment "agent-shell")
+(declare-function agent-shell-ui-make-fragment-model "agent-shell")
+(declare-function agent-shell-ui-update-fragment "agent-shell")
+(defvar agent-shell--state)
+(defvar shell-maker--busy)
+
 ;; -- Permission forwarding from background agents to dispatcher buffer --
 
 (defvar +meta-agent-shell--primary-buffer nil
   "Buffer name of the primary (dispatcher) shell for permission rendering.")
+
+(defvar +meta-agent-shell--pending-permission-agents nil
+  "List of agent buffer names with unresolved permission dialogs.")
+
+(defvar +meta-agent-shell--dispatch-state nil
+  "State for the dispatch progress polling timer.")
 
 (defun +meta-agent-shell--cleanup-permission (perm-id target-buf agent-buf option-id)
   "Remove the permission dialog identified by PERM-ID from TARGET-BUF."
@@ -97,12 +115,6 @@ Uses agent-shell's native button maker for full navigation compatibility."
 
 ;; -- Dispatch progress polling --
 
-(defvar +meta-agent-shell--dispatch-state nil
-  "State for the dispatch progress polling timer.")
-
-(defvar +meta-agent-shell--pending-permission-agents nil
-  "List of agent buffer names with unresolved permission dialogs.")
-
 (defun +meta-agent-shell--poll-progress ()
   "Check agent statuses and update the dispatch progress fragment.
 Uses shell-maker--busy directly to detect active output."
@@ -110,51 +122,52 @@ Uses shell-maker--busy directly to detect active output."
               (dispatcher (plist-get state :dispatcher-buffer))
               (agents (plist-get state :agents))
               ((get-buffer dispatcher)))
-    (let* ((seen-busy (plist-get state :seen-busy))
-           (body-lines nil) (busy-count 0) (ready-count 0)
-           (total (length agents)))
-      (dolist (agent agents)
-        (let* ((buf-name (car agent)) (task (cdr agent))
-               (buf (get-buffer buf-name))
-               (alive (and buf (get-buffer-process buf)))
-               (busy (and buf (buffer-local-value 'shell-maker--busy buf)))
-               (has-pending-perm (member buf-name +meta-agent-shell--pending-permission-agents)))
-          (cond
-           ((and alive busy)
-            (cl-incf busy-count)
-            (unless (member buf-name seen-busy) (push buf-name seen-busy))
-            (push (format "  ⏳ %s — %s" task buf-name) body-lines))
-           (has-pending-perm
-            (cl-incf busy-count)
-            (push (format "  🔒 %s — %s (permission)" task buf-name) body-lines))
-           ((and alive (not busy) (member buf-name seen-busy))
-            (cl-incf ready-count)
-            (push (format "  ✓ %s — %s" task buf-name) body-lines))
-           ((and alive (not busy))
-            (push (format "  ⏸ %s — %s (waiting)" task buf-name) body-lines))
-           (t
-            (push (format "  ✗ %s — %s (dead)" task buf-name) body-lines)))))
-      (plist-put state :seen-busy seen-busy)
-      (with-current-buffer dispatcher
-        (agent-shell-ui-update-fragment
-         (agent-shell-ui-make-fragment-model
-          :namespace-id "dispatch-progress"
-          :block-id "status"
-          :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
-          :label-right (propertize
-                        (cond
-                         ((= ready-count total)
-                          (format "[%d/%d ✓ ALL COMPLETE]" ready-count total))
-                         ((> busy-count 0)
-                          (format "[%d/%d done, %d working]" ready-count total busy-count))
-                         (t
-                          (format "[%d/%d done]" ready-count total)))
-                        'font-lock-face
-                        (if (= ready-count total)
-                            'success
-                          'font-lock-comment-face))
-          :body (string-join (nreverse body-lines) "\n"))
-         :expanded t)))))
+    (let ((seen-busy (plist-get state :seen-busy)))
+      (cl-loop with total = (length agents)
+               for agent in agents
+               for buf-name = (car agent)
+               for task = (cdr agent)
+               for buf = (get-buffer buf-name)
+               for alive = (and buf (get-buffer-process buf))
+               for busy = (and buf (buffer-local-value 'shell-maker--busy buf))
+               for perm = (member buf-name +meta-agent-shell--pending-permission-agents)
+               when (and alive busy)
+                 do (cl-pushnew buf-name seen-busy :test #'equal)
+                 and count t into busy-count
+                 and collect (format "  ⏳ %s — %s" task buf-name) into lines
+               else when perm
+                 count t into busy-count
+                 and collect (format "  🔒 %s — %s (permission)" task buf-name) into lines
+               else when (and alive (not busy) (member buf-name seen-busy))
+                 count t into ready-count
+                 and collect (format "  ✓ %s — %s" task buf-name) into lines
+               else when (and alive (not busy))
+                 collect (format "  ⏸ %s — %s (waiting)" task buf-name) into lines
+               else
+                 collect (format "  ✗ %s — %s (dead)" task buf-name) into lines
+               finally do
+               (plist-put state :seen-busy seen-busy)
+               (with-current-buffer dispatcher
+                 (agent-shell-ui-update-fragment
+                  (agent-shell-ui-make-fragment-model
+                   :namespace-id "dispatch-progress"
+                   :block-id "status"
+                   :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
+                   :label-right (propertize
+                                 (cond
+                                  ((= (or ready-count 0) total)
+                                   (format "[%d/%d ✓ ALL COMPLETE]" (or ready-count 0) total))
+                                  ((> (or busy-count 0) 0)
+                                   (format "[%d/%d done, %d working]"
+                                           (or ready-count 0) total (or busy-count 0)))
+                                  (t
+                                   (format "[%d/%d done]" (or ready-count 0) total)))
+                                 'font-lock-face
+                                 (if (= (or ready-count 0) total)
+                                     'success
+                                   'font-lock-comment-face))
+                   :body (string-join lines "\n"))
+                  :expanded t))))))
 
 (defun +meta-agent-shell-start-progress-polling (dispatcher-buffer agents &optional interval)
   "Start polling agent progress.
