@@ -133,6 +133,17 @@
     :stack-vgap 30 :stack-threshold 5 :stack-arrow-overshoot 40)
   "Layout constants for the SVG task graph.")
 
+(defvar +dispatch--heartbeat-timer nil
+  "Timer that forces header updates while dispatch is active and dispatcher is idle.")
+
+(defun +dispatch--heartbeat ()
+  "Force a header update in the dispatcher buffer."
+  (when-let* ((state +meta-agent-shell--dispatch-state)
+              (buf-name (plist-get state :dispatcher-buffer))
+              (buf (get-buffer buf-name)))
+    (with-current-buffer buf
+      (ignore-errors (agent-shell--update-header-and-mode-line)))))
+
 (defvar +dispatch--spinner-frames
   '("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
   "Braille spinner animation frames.")
@@ -828,10 +839,16 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
                 :statuses (make-hash-table :test 'equal)))
     ;; Install header advice — graph rebuilds on every header update
     (advice-add 'agent-shell--update-header-and-mode-line
-                :after #'+dispatch--extend-header)))
+                :after #'+dispatch--extend-header)
+    ;; Start heartbeat timer for when dispatcher is idle
+    (setq +dispatch--heartbeat-timer
+          (run-with-timer 2 2 #'+dispatch--heartbeat))))
 
 (defun +dispatch-stop ()
   "Remove the dispatch task graph from the header."
+  (when (timerp +dispatch--heartbeat-timer)
+    (cancel-timer +dispatch--heartbeat-timer)
+    (setq +dispatch--heartbeat-timer nil))
   (let ((dispatcher (and +meta-agent-shell--dispatch-state
                          (plist-get +meta-agent-shell--dispatch-state :dispatcher-buffer))))
     (setq +meta-agent-shell--dispatch-state nil)
