@@ -408,8 +408,7 @@
 (use-package! rustic
   :defer t
   :config
-  (setq rustic-format-on-save t)
-  )
+  (setq rustic-format-on-save t))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
@@ -436,8 +435,7 @@
   :defer t
   :config
   (add-hook 'haskell-mode-hook #'lsp!)
-  (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server")
-  )
+  (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server"))
 
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
@@ -821,7 +819,7 @@
                    ((name . "GRAFANA_ORG_ID") (value . "7")))))))
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
-                              "Agent shell commands."
+    "Agent shell commands."
     :block "Navigate"
     :desc "Next item"             "C-j"       #'agent-shell-next-item
     :desc "Previous item"         "C-k"       #'agent-shell-previous-item

@@ -82,7 +82,7 @@ See `+parse-key-groups' for the input format."
 (defmacro define-transient! (transient-name docstring &rest body)
   "Generate a transient prefix TRANSIENT-NAME.
 DOCSTRING is the transient's doc string; BODY is parsed by `+parse-key-groups'."
-  (declare (indent 2))
+  (declare (indent 1))
   (let ((groups (+parse-key-groups body)))
     `(transient-define-prefix ,transient-name ()
        ,docstring
@@ -94,7 +94,7 @@ DOCSTRING is the transient's doc string; BODY is parsed by `+parse-key-groups'."
 (defmacro define-keys-and-transient! (keymap transient-name docstring &rest body)
   "Define keybindings in KEYMAP and a transient prefix TRANSIENT-NAME.
 DOCSTRING is the transient's doc string; BODY is parsed by `+parse-key-groups'."
-  (declare (indent 3))
+  (declare (indent 2))
   (let ((groups (+parse-key-groups body)))
     `(progn
        ,@(cl-loop for group in groups
