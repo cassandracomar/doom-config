@@ -47,13 +47,13 @@ the string before it is KEY."
                    (items (nreverse items))
                    (key (car (last items)))
                    (kw-section (butlast items))
-                   desc state)
+                   desc states)
               (while kw-section
                 (let ((kw (pop kw-section)))
                   (if (eq kw :desc)
                       (setq desc (pop kw-section))
-                    (setq state kw))))
-              (push (if state (list key desc cmd state)
+                    (push kw states))))
+              (push (if states (list key desc cmd (nreverse states))
                       (list key desc cmd))
                     current-group)))))
       (when current-name
@@ -74,9 +74,9 @@ See `+parse-key-groups' for the input format."
     `(progn
        ,@(cl-loop for group in groups
                   nconc (cl-loop for b in (cdr group)
-                                 for state = (nth 3 b)
-                                 if (keywordp state)
-                                 collect `(map! :map ,keymap ,state ,(nth 0 b) ,(nth 2 b))
+                                 for states = (nth 3 b)
+                                 if states
+                                 collect `(map! :map ,keymap ,@states ,(nth 0 b) ,(nth 2 b))
                                  else collect `(map! :map ,keymap ,(nth 0 b) ,(nth 2 b)))))))
 
 (defmacro define-transient! (transient-name docstring &rest body)
