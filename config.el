@@ -801,7 +801,14 @@
            (headers . ())
            (url . (lambda ()
                     (+setup-claude-code-ide)
-                    (+setup-emacs-mcp))))))
+                    (+setup-emacs-mcp))))
+          ((name . "grafana")
+           (command . "uvx")
+           (args . ("mcp-grafana"))
+           (env . (((name . "GRAFANA_URL") (value . "https://grafana.drwholdings.com"))
+                   ((name . "GRAFANA_SERVICE_ACCOUNT_TOKEN")
+                    (value . (lambda () (auth-source-rbw-get "grafana-svc-token"))))
+                   ((name . "GRAFANA_ORG_ID") (value . "7")))))))
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
                               "Agent shell commands."
     :block "Navigate"
