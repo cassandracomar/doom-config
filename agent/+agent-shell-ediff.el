@@ -114,8 +114,11 @@ Arguments match `agent-shell-diff':
                                           (cons buf-b new-content))
              do (with-current-buffer buf
                   (insert content)
+                  ;; Temporarily set buffer-file-name for mode hooks,
+                  ;; then clear it so Emacs doesn't treat this as a file buffer
                   (when file (setq-local buffer-file-name file))
                   (when mode (ignore-errors (funcall mode)))
+                  (setq-local buffer-file-name nil)
                   (font-lock-ensure)
                   (set-buffer-modified-p nil)
                   (setq buffer-read-only t)))
