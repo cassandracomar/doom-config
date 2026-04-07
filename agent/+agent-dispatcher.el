@@ -463,34 +463,33 @@ Combines agent-reported status with shell-maker--busy fallback."
            (svg (+dispatch--build-svg render-data))
            (img (svg-image svg :scale 1.0))
            (body (propertize "dispatch-graph" 'display img)))
-      (with-current-buffer dispatcher
-        (agent-shell-ui-update-fragment
-         (agent-shell-ui-make-fragment-model
-          :namespace-id "dispatch-progress"
-          :block-id "status"
-          :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
-          :label-right (propertize
-                        (cond
-                         ((= ready-count total) (format "[%d/%d ✓ complete]" ready-count total))
-                         ((> busy-count 0) (format "[%d/%d done, %d active]" ready-count total busy-count))
-                         (t (format "[%d/%d done]" ready-count total)))
-                        'font-lock-face
-                        (if (= ready-count total) 'success 'font-lock-comment-face))
-          :body body)
-         :expanded t)))))
+      (let ((buf (get-buffer-create "*dispatch-progress*")))
+        (with-current-buffer buf
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert (propertize " " 'display img))
+            (setq buffer-read-only t
+                  cursor-type nil
+                  mode-line-format nil
+                  header-line-format nil)))
+        ;; Ensure the window exists, attached below the dispatcher
+        (unless (get-buffer-window buf)
+          (when-let* ((agent-win (get-buffer-window dispatcher)))
+            (let ((win (split-window agent-win -6 'below)))
+              (set-window-buffer win buf)
+              (set-window-dedicated-p win t)
+              (set-window-parameter win 'no-other-window t)
+              (set-window-parameter win 'no-delete-other-windows t))))
+        (when-let* ((win (get-buffer-window buf)))
+          (fit-window-to-buffer win))))))
 
 (defun +dispatch-start (dispatcher-buffer tasks &optional interval)
-  "Start the dispatch task graph.
+  "Start the dispatch task graph in a window below the dispatcher.
 DISPATCHER-BUFFER is the dispatcher's agent-shell buffer name.
 TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...).
 INTERVAL is seconds between render updates (default 2)."
   (+dispatch-stop)
   (setq +meta-agent-shell--pending-permission-agents nil)
-  (with-current-buffer dispatcher-buffer
-    (ignore-errors
-      (agent-shell-ui-delete-fragment
-       :namespace-id "dispatch-progress"
-       :block-id "status")))
   (let ((interval (or interval 2)))
     (setq +meta-agent-shell--dispatch-state
           (list :dispatcher-buffer dispatcher-buffer
@@ -499,10 +498,14 @@ INTERVAL is seconds between render updates (default 2)."
                 :timer (run-with-timer 1 interval #'+dispatch--render)))))
 
 (defun +dispatch-stop ()
-  "Stop the dispatch render timer."
+  "Stop the dispatch render timer and close the progress window."
   (when-let* ((state +meta-agent-shell--dispatch-state)
               (timer (plist-get state :timer)))
     (cancel-timer timer))
+  (when-let* ((win (get-buffer-window "*dispatch-progress*")))
+    (delete-window win))
+  (when (get-buffer "*dispatch-progress*")
+    (kill-buffer "*dispatch-progress*"))
   (setq +meta-agent-shell--dispatch-state nil))
 
 ;; Backward-compat aliases for old skill API

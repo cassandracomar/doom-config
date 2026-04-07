@@ -77,21 +77,7 @@ CRITERIA"
  "dispatcher")
 ```
 
-After sending ALL tasks, create the initial progress fragment (IMPORTANT: must be created during your output, before the prompt appears):
-
-```
-mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(agent-shell-ui-update-fragment
- (agent-shell-ui-make-fragment-model
-  :namespace-id "dispatch-progress"
-  :block-id "status"
-  :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
-  :label-right (propertize "[starting]" 'font-lock-face 'font-lock-comment-face)
-  :body "  ⏳ Starting agents...")
- :expanded t)
-```
-
-Then start the task graph renderer. Pass a list of task plists:
+After sending ALL tasks, start the task graph renderer. It opens a dedicated window below the agent-shell with a live SVG dependency graph. Pass a list of task plists:
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
@@ -101,7 +87,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
    (:id "impl-2" :name "Task 2 description" :agent "Claude Agent @ doom-config<M>")))
 ```
 
-The renderer updates the fragment every 2 seconds with spinners, elapsed times, and agent-reported details. You do NOT need to poll or check statuses.
+The progress window updates every 2 seconds with spinners, elapsed times, and agent-reported details. You do NOT need to poll or check statuses.
 
 ## Step 4: Wait for User
 
