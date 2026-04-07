@@ -777,6 +777,9 @@
 (use-package! acp
   :defer t)
 
+(use-package! meta-agent-shell
+  :after agent-shell)
+
 (use-package! agent-shell
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell
@@ -809,37 +812,45 @@
                    ((name . "GRAFANA_SERVICE_ACCOUNT_TOKEN")
                     (value . (lambda () (auth-source-rbw-get "grafana-svc-token"))))
                    ((name . "GRAFANA_ORG_ID") (value . "7")))))))
+
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
                               "Agent shell commands."
     :block "Navigate"
-    :desc "Next item"        "C-j"       #'agent-shell-next-item
-    :desc "Previous item"    "C-k"       #'agent-shell-previous-item
-    :desc "Forward block"    "<tab>"     #'agent-shell-ui-forward-block
-    :desc "Backward block"   "<backtab>" #'agent-shell-ui-backward-block
-    :desc "Toggle fragment"  :n "/"      #'agent-shell-ui-toggle-fragment-at-point
-    :desc "Jump to perm"     :n "b"      #'agent-shell-jump-to-latest-permission-button-row
+    :desc "Next item"             "C-j"       #'agent-shell-next-item
+    :desc "Previous item"         "C-k"       #'agent-shell-previous-item
+    :desc "Forward block"         "<tab>"     #'agent-shell-ui-forward-block
+    :desc "Backward block"        "<backtab>" #'agent-shell-ui-backward-block
+    :desc "Toggle fragment"    :n "/"         #'agent-shell-ui-toggle-fragment-at-point
+    :desc "Jump to permission" :n "b"         #'agent-shell-jump-to-latest-permission-button-row
     :block "Compose"
-    :desc "Compose prompt"   "C-c C-e"   #'agent-shell-prompt-compose
-    :desc "Search history"   "C-r"       #'agent-shell-search-history
-    :desc "Send region"      :n "r"      #'agent-shell-send-region
-    :desc "Send file"        :n "f"      #'agent-shell-send-other-file
-    :desc "Paste image"      :n "i"      #'agent-shell-send-clipboard-image
+    :desc "Compose prompt"        "C-c C-e"   #'agent-shell-prompt-compose
+    :desc "Search history"        "C-r"       #'agent-shell-search-history
+    :desc "Send region"       :n  "r"         #'agent-shell-send-region
+    :desc "Send file"         :n  "f"         #'agent-shell-send-other-file
+    :desc "Paste image"       :n  "i"         #'agent-shell-send-clipboard-image
     :block "Session"
-    :desc "Cycle mode"       "<C-tab>"   #'agent-shell-cycle-session-mode
-    :desc "Set model"        :n "m"      #'agent-shell-set-session-model
-    :desc "Set mode"         :n "M"      #'agent-shell-set-session-mode
-    :desc "Fork session"     :n "y"      #'agent-shell-fork
-    :desc "Restart"          :n "q"      #'agent-shell-restart
-    :desc "Toggle shell"     :n "o"      #'agent-shell-toggle
+    :desc "Cycle mode"            "<C-tab>"   #'agent-shell-cycle-session-mode
+    :desc "Set mode"          :n  "M"         #'agent-shell-set-session-mode
+    :desc "Fork session"      :n  "y"         #'agent-shell-fork
+    :desc "Restart"           :n  "q"         #'agent-shell-restart
+    :desc "Toggle shell"      :n  "o"         #'agent-shell-toggle
+    :block "Meta"
+    :desc "Agent dispatcher"  :n  "m m"       #'meta-agent-shell-start
+    :desc "Project dispatcher"    "m d"       #'meta-agent-shell-jump-to-dispatcher
+    :desc "Start heartbeat"       "m h"       #'meta-agent-shell-heartbeat-start
+    :desc "Stop heartbeat"        "m H"       #'meta-agent-shell-heartbeat-stop
+    :desc "Send heartbeat now"    "m s"       #'meta-agent-shell-heartbeat-send-now
+    :desc "STOP ALL AGENTS"       "m !"       #'meta-agent-shell-big-red-button
     :block "Launch"
-    :desc "Start Claude"     :n "l"      #'agent-shell-anthropic-start-claude-code
+    :desc "Start Claude"      :n  "l"         #'agent-shell-anthropic-start-claude-code
     :block "Debug"
-    :desc "Traffic"          :n "t"      #'agent-shell-view-traffic
-    :desc "Transcript"       :n "T"      #'agent-shell-open-transcript
-    :desc "Usage"            :n "u"      #'agent-shell-show-usage)
+    :desc "Traffic"           :n  "t"         #'agent-shell-view-traffic
+    :desc "Transcript"        :n  "T"         #'agent-shell-open-transcript
+    :desc "Usage"             :n  "u"         #'agent-shell-show-usage)
   (map! :map agent-shell-mode-map :n "?" #'+agent-shell-menu)
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
+
   (load! "+agent-shell-ediff")
   (load! "+agent-shell-view-on-y")
   (load! "+agent-shell-interrupt-fix"))
