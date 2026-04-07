@@ -154,39 +154,189 @@ DETAIL is an optional description of current activity."
     (dead       :bg "#1a1a1a" :fg "#555555" :icon "?"))
   "Color scheme for dispatch SVG task graph.")
 
+(defun +dispatch--compute-levels (tasks-info)
+  "Compute topological levels for TASKS-INFO based on :depends-on.
+Returns tasks-info with :level added to each entry."
+  (let ((id-to-task (make-hash-table :test 'equal))
+        (id-to-level (make-hash-table :test 'equal)))
+    (dolist (task tasks-info)
+      (puthash (plist-get task :id) task id-to-task))
+    (cl-labels ((compute (id)
+                  (or (gethash id id-to-level)
+                      (let* ((task (gethash id id-to-task))
+                             (deps (plist-get task :depends-on))
+                             (level (if deps
+                                        (1+ (cl-loop for d in deps maximize (compute d)))
+                                      0)))
+                        (puthash id level id-to-level)
+                        level))))
+      (dolist (task tasks-info) (compute (plist-get task :id))))
+    (mapcar (lambda (task)
+              (append task (list :level (gethash (plist-get task :id) id-to-level))))
+            tasks-info)))
+
+(defun +dispatch--transitive-reduce (tasks-info)
+  "Compute edges for TASKS-INFO with transitive reduction.
+Returns list of (from-id . to-id) pairs, plus edges from \"start\" and to \"end\"."
+  (let* ((id-to-task (make-hash-table :test 'equal))
+         (id-to-deps (make-hash-table :test 'equal))
+         (depended-on (make-hash-table :test 'equal))
+         (edges nil))
+    (dolist (task tasks-info)
+      (let ((id (plist-get task :id))
+            (deps (plist-get task :depends-on)))
+        (puthash id task id-to-task)
+        (puthash id deps id-to-deps)
+        (dolist (d deps) (puthash d t depended-on))))
+    ;; Direct dependency edges (already minimal from user spec)
+    (dolist (task tasks-info)
+      (let ((id (plist-get task :id))
+            (deps (plist-get task :depends-on)))
+        (if deps
+            (dolist (d deps) (push (cons d id) edges))
+          ;; No deps → depends on start
+          (push (cons "start" id) edges))))
+    ;; Terminal tasks → end
+    (dolist (task tasks-info)
+      (unless (gethash (plist-get task :id) depended-on)
+        (push (cons (plist-get task :id) "end") edges)))
+    edges))
+
+(defun +dispatch--draw-arrow (svg x1 y1 x2 y2 color)
+  "Draw an arrow from (X1,Y1) to (X2,Y2) on SVG with arrowhead."
+  (let* ((head-len 6)
+         (dx (- x2 x1)) (dy (- y2 y1))
+         (len (sqrt (+ (* dx dx) (* dy dy))))
+         (ux (/ (float dx) len)) (uy (/ (float dy) len))
+         ;; Shorten line so arrowhead meets the target
+         (ex (- x2 (* ux head-len))) (ey (- y2 (* uy head-len)))
+         ;; Arrowhead points
+         (px (- uy)) (py ux)
+         (ax1 (- ex (* ux head-len) (- (* px 4))))
+         (ay1 (- ey (* uy head-len) (- (* py 4))))
+         (ax2 (+ (- ex (* ux head-len)) (- (* px 4))))
+         (ay2 (+ (- ey (* uy head-len)) (- (* py 4)))))
+    (dom-append-child svg
+      (dom-node 'line `((x1 . ,(format "%f" x1)) (y1 . ,(format "%f" y1))
+                        (x2 . ,(format "%f" ex)) (y2 . ,(format "%f" ey))
+                        (stroke . ,color) (stroke-width . "1.5"))))
+    (dom-append-child svg
+      (dom-node 'polygon `((points . ,(format "%f,%f %f,%f %f,%f"
+                                              (float x2) (float y2)
+                                              ax1 ay1 ax2 ay2))
+                           (fill . ,color))))))
+
 (defun +dispatch--build-svg (tasks-info)
-  "Build an SVG image from TASKS-INFO, a list of plists.
-Each entry: (:name NAME :status STATUS :elapsed STR :detail STR-OR-NIL)."
-  (let* ((row-h 38) (detail-h 16) (pad 6) (w 440) (font "Iosevka Nerd Font")
-         (total-h (+ pad (cl-loop for info in tasks-info
-                                  sum (+ row-h (if (plist-get info :detail) detail-h 0) pad))))
-         (svg (svg-create w total-h))
-         (y pad))
-    (svg-rectangle svg 0 0 w total-h :fill "#1a1a2e" :rx 8)
-    (dolist (info tasks-info)
-      (let* ((status (plist-get info :status))
-             (name (plist-get info :name))
-             (elapsed (or (plist-get info :elapsed) ""))
-             (detail (plist-get info :detail))
-             (colors (cdr (assq status +dispatch--svg-colors)))
-             (bg (plist-get colors :bg))
-             (fg (plist-get colors :fg))
-             (icon (plist-get colors :icon))
-             (box-h (+ row-h (if detail detail-h 0))))
-        (svg-rectangle svg pad y (- w (* 2 pad)) box-h :fill bg :rx 5)
-        (svg-text svg (format "%s  %s" icon name)
-                  :x (+ pad 10) :y (+ y 24)
-                  :fill fg :font-size 14 :font-family font)
-        (when (> (length elapsed) 0)
-          (svg-text svg elapsed
-                    :x (- w pad 12) :y (+ y 24)
-                    :fill "#75715e" :font-size 12 :font-family font
-                    :text-anchor "end"))
-        (when detail
-          (svg-text svg (format "└ %s" detail)
-                    :x (+ pad 26) :y (+ y 24 detail-h)
-                    :fill "#75715e" :font-size 11 :font-family font))
-        (setq y (+ y box-h pad))))
+  "Build a horizontal dependency graph SVG from TASKS-INFO.
+Each entry: (:id ID :name NAME :status STATUS :elapsed STR :detail STR-OR-NIL
+             :depends-on (ID...) :level N)."
+  (let* ((font "Iosevka Nerd Font")
+         (node-h 34) (node-pad 8) (col-gap 50) (margin 10)
+         (pill-w 40) (pill-h 28)
+         (leveled (if (plist-get (car tasks-info) :level) tasks-info
+                    (+dispatch--compute-levels tasks-info)))
+         (max-level (cl-loop for t_ in leveled maximize (plist-get t_ :level)))
+         ;; Group by level
+         (columns (make-hash-table))
+         (_ (dolist (task leveled)
+              (push task (gethash (plist-get task :level) columns))))
+         ;; Reverse to preserve order within columns
+         (_ (cl-loop for lv from 0 to max-level
+                     do (puthash lv (nreverse (gethash lv columns)) columns)))
+         ;; Compute column max tasks for height
+         (max-col-size (cl-loop for lv from 0 to max-level
+                                maximize (length (gethash lv columns))))
+         ;; Node width based on longest name
+         (node-w (+ 40 (* 7 (cl-loop for t_ in leveled
+                                      maximize (length (plist-get t_ :name))))))
+         (node-w (min node-w 220))
+         ;; Total dimensions
+         (total-cols (+ 2 max-level 1))  ;; start + levels + end
+         (w (+ (* 2 margin) pill-w col-gap
+               (* (1+ max-level) (+ node-w col-gap))
+               pill-w))
+         (h (+ (* 2 margin) (* max-col-size (+ node-h node-pad)) (- node-pad)))
+         (h (max h 60))
+         (svg (svg-create w h))
+         ;; Node positions: hash of id → (cx . cy)
+         (positions (make-hash-table :test 'equal))
+         (edges (+dispatch--transitive-reduce leveled))
+         (arrow-color "#555566"))
+
+    ;; Background
+    (svg-rectangle svg 0 0 w h :fill "#1a1a2e" :rx 8)
+
+    ;; Start pill
+    (let* ((sx (+ margin (/ pill-w 2)))
+           (sy (/ h 2)))
+      (svg-rectangle svg (- sx (/ pill-w 2)) (- sy (/ pill-h 2))
+                     pill-w pill-h :fill "#333355" :rx 14)
+      (svg-text svg "▶" :x sx :y (+ sy 5)
+                :fill "#75715e" :font-size 14 :font-family font :text-anchor "middle")
+      (puthash "start" (cons (+ sx (/ pill-w 2)) sy) positions))
+
+    ;; Task nodes by level
+    (cl-loop for lv from 0 to max-level
+             for col-tasks = (gethash lv columns)
+             for n = (length col-tasks)
+             for col-x = (+ margin pill-w col-gap (* lv (+ node-w col-gap)))
+             for col-h = (+ (* n node-h) (* (1- (max n 1)) node-pad))
+             for start-y = (/ (- h col-h) 2)
+             do (cl-loop for task in col-tasks
+                         for i from 0
+                         for y = (+ start-y (* i (+ node-h node-pad)))
+                         for id = (plist-get task :id)
+                         for name = (plist-get task :name)
+                         for status = (plist-get task :status)
+                         for elapsed = (or (plist-get task :elapsed) "")
+                         for colors = (cdr (assq status +dispatch--svg-colors))
+                         for bg = (plist-get colors :bg)
+                         for fg = (plist-get colors :fg)
+                         for icon = (plist-get colors :icon)
+                         do
+                         (svg-rectangle svg col-x y node-w node-h :fill bg :rx 5)
+                         (svg-text svg (format "%s %s" icon
+                                              (if (> (length name) 24)
+                                                  (concat (substring name 0 22) "…")
+                                                name))
+                                   :x (+ col-x 8) :y (+ y 22)
+                                   :fill fg :font-size 12 :font-family font)
+                         (when (> (length elapsed) 0)
+                           (svg-text svg elapsed
+                                     :x (+ col-x node-w -8) :y (+ y 22)
+                                     :fill "#75715e" :font-size 10 :font-family font
+                                     :text-anchor "end"))
+                         (puthash id (cons (+ col-x (/ node-w 2)) (+ y (/ node-h 2)))
+                                  positions)))
+
+    ;; End pill
+    (let* ((ex (+ margin pill-w col-gap (* (1+ max-level) (+ node-w col-gap))
+                  (/ pill-w 2)))
+           (ey (/ h 2)))
+      (svg-rectangle svg (- ex (/ pill-w 2)) (- ey (/ pill-h 2))
+                     pill-w pill-h :fill "#333355" :rx 14)
+      (svg-text svg "■" :x ex :y (+ ey 5)
+                :fill "#75715e" :font-size 14 :font-family font :text-anchor "middle")
+      (puthash "end" (cons (+ ex (/ pill-w 2)) ey) positions))
+
+    ;; Draw arrows
+    (dolist (edge edges)
+      (let* ((from-pos (gethash (car edge) positions))
+             (to-pos (gethash (cdr edge) positions))
+             (from-id (car edge))
+             (to-id (cdr edge)))
+        (when (and from-pos to-pos)
+          ;; Arrow from right edge of source to left edge of target
+          (let* ((from-x (+ (car from-pos)
+                            (if (equal from-id "start") (/ pill-w 2)
+                              (/ node-w 2))))
+                 (from-y (cdr from-pos))
+                 (to-x (- (car to-pos)
+                           (if (equal to-id "end") (/ pill-w 2)
+                             (/ node-w 2))))
+                 (to-y (cdr to-pos)))
+            (+dispatch--draw-arrow svg from-x from-y to-x to-y arrow-color)))))
+
     svg))
 
 (defun +dispatch--resolve-status (task statuses)
@@ -245,10 +395,12 @@ Combines agent-reported status with shell-maker--busy fallback."
                        = (+dispatch--resolve-status task statuses)
                      when (eq effective 'done) do (cl-incf ready-count)
                      when (memq effective '(working permission)) do (cl-incf busy-count)
-                     collect (list :name (plist-get task :name)
+                     collect (list :id (plist-get task :id)
+                                   :name (plist-get task :name)
                                    :status effective
                                    :elapsed elapsed
-                                   :detail detail)))
+                                   :detail detail
+                                   :depends-on (plist-get task :depends-on))))
            (svg (+dispatch--build-svg render-data))
            (img (svg-image svg :scale 1.0))
            (body (propertize "dispatch-graph" 'display img)))
