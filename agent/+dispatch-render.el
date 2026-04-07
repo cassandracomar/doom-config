@@ -160,7 +160,7 @@ Caches the result; call `+dispatch-render-refresh-theme' to update."
   (setq +dispatch-render--theme-cache (+dispatch-render--compute-theme-colors)))
 
 (defun +dispatch-render--resolve-face (face attr)
-  "Resolve FACE's ATTR respecting face-remapping-alist in the dispatcher buffer."
+  "Resolve FACE's ATTR respecting `face-remapping-alist' in the dispatcher buffer."
   (let* ((buf (or (and +dispatch--primary-buffer
                        (get-buffer +dispatch--primary-buffer))
                   (current-buffer)))
@@ -172,7 +172,7 @@ Caches the result; call `+dispatch-render-refresh-theme' to update."
 
 (defun +dispatch-render--compute-theme-colors ()
   "Compute SVG color scheme from current Emacs faces.
-Respects face remapping (e.g. solaire-mode) in the dispatcher buffer."
+Respects face remapping (e.g. `solaire-mode') in the dispatcher buffer."
   (let* ((bg  (or (+dispatch-render--resolve-face 'header-line :background)
                   (face-background 'header-line nil t)
                   (face-background 'default)))
@@ -265,7 +265,7 @@ Returns list of (from-id . to-id) pairs, including start/end connections."
 
 (defun +dispatch-render--compute-stacks (columns max-level)
   "Identify levels to stack vertically as pairs.
-Only activates when there are more than :stack-threshold task columns.
+Only activates when there are more than MAX-LEVEL task COLUMNS
 Returns a hash of level -> +dispatch-render-stack-info,
 or nil if stacking is not needed."
   (when (>= (1+ max-level) (plist-get +dispatch-render--layout :stack-threshold))
@@ -352,7 +352,7 @@ When STACK-MAP is non-nil, paired levels share width."
     widths))
 
 (defun +dispatch-render--compute-col-x-positions (max-level col-widths &optional stack-map)
-  "Compute cumulative x-positions for each column level.
+  "Compute cumulative x-positions for each COL-WIDTHS level < MAX-LEVEL.
 When STACK-MAP is non-nil, paired levels share x-position."
   (let ((positions (make-hash-table))
         (x (+ (plist-get +dispatch-render--layout :margin)
@@ -368,7 +368,7 @@ When STACK-MAP is non-nil, paired levels share x-position."
     positions))
 
 (defun +dispatch-render--compute-task-heights (leveled col-widths)
-  "Compute per-task heights based on text wrapping within column widths."
+  "Compute per-task heights (LEVELED) based on text wrapping within COL-WIDTHS."
   (let ((heights (make-hash-table :test 'equal)))
     (dolist (task leveled)
       (puthash (plist-get task :id)
@@ -395,44 +395,45 @@ to avoid crossing intermediate boxes."
          (sw (plist-get L :arrow-stroke-w)))
     ;; Path
     (dom-append-child svg
-      (dom-node 'path
-        `((d . ,(if bypass-y
-                    (let* ((by (float bypass-y))
-                           (span (- ex (float x1)))
-                           (rise (min (float (plist-get L :col-gap))
-                                      (/ span 3.0)))
-                           (jx1 (+ (float x1) rise))
-                           (jx2 (- ex rise))
-                           (cp (* 0.55 rise)))
-                      (format "M%f,%f C%f,%f %f,%f %f,%f L%f,%f C%f,%f %f,%f %f,%f"
-                              (float x1) (float y1)
-                              (+ (float x1) cp) (float y1)
-                              (- jx1 cp) by
-                              jx1 by
-                              jx2 by
-                              (+ jx2 cp) by
-                              (- ex cp) ey
-                              ex ey))
-                  (let ((cp (* (plist-get L :arrow-cp-factor) (abs (- x2 x1)))))
-                    (format "M%f,%f C%f,%f %f,%f %f,%f"
-                            (float x1) (float y1)
-                            (+ x1 cp) (float y1)
-                            (- x2 cp) (float y2)
-                            ex ey))))
-          (stroke . ,color) (stroke-width . ,sw) (fill . "none"))))
+                      (dom-node 'path
+                                `((d . ,(if bypass-y
+                                            (let* ((by (float bypass-y))
+                                                   (span (- ex (float x1)))
+                                                   (rise (min (float (plist-get L :col-gap))
+                                                              (/ span 3.0)))
+                                                   (jx1 (+ (float x1) rise))
+                                                   (jx2 (- ex rise))
+                                                   (cp (* 0.55 rise)))
+                                              (format "M%f,%f C%f,%f %f,%f %f,%f L%f,%f C%f,%f %f,%f %f,%f"
+                                                      (float x1) (float y1)
+                                                      (+ (float x1) cp) (float y1)
+                                                      (- jx1 cp) by
+                                                      jx1 by
+                                                      jx2 by
+                                                      (+ jx2 cp) by
+                                                      (- ex cp) ey
+                                                      ex ey))
+                                          (let ((cp (* (plist-get L :arrow-cp-factor) (abs (- x2 x1)))))
+                                            (format "M%f,%f C%f,%f %f,%f %f,%f"
+                                                    (float x1) (float y1)
+                                                    (+ x1 cp) (float y1)
+                                                    (- x2 cp) (float y2)
+                                                    ex ey))))
+                                  (stroke . ,color) (stroke-width . ,sw) (fill . "none"))))
     ;; Arrowhead
     (dom-append-child svg
-      (dom-node 'polygon
-        `((points . ,(format "%f,%f %f,%f %f,%f"
-                             (float x2) (float y2)
-                             (- ex head-len) (- ey hw)
-                             (- ex head-len) (+ ey hw)))
-          (fill . ,color))))))
+                      (dom-node 'polygon
+                                `((points . ,(format "%f,%f %f,%f %f,%f"
+                                                     (float x2) (float y2)
+                                                     (- ex head-len) (- ey hw)
+                                                     (- ex head-len) (+ ey hw)))
+                                  (fill . ,color))))))
 
 (defun +dispatch-render--draw-stack-arrow (svg top-edges bot-x bot-y bot-w color)
-  "Draw internal pair arrow from top node's right edge to bottom node's top center.
+  "Draw int pair arrow into SVG from top node's r. edge to btm node's top center.
 TOP-EDGES is a +dispatch-render-node-edges struct.
-BOT-X, BOT-Y are the top-left corner of the bottom node. BOT-W is its width."
+BOT-X, BOT-Y are the top-left corner of the bottom node. BOT-W is its width.
+color is COLOR."
   (let* ((L +dispatch-render--layout)
          (x1 (+dispatch-render-node-edges-right-x top-edges))
          (y1 (+dispatch-render-node-edges-cy top-edges))
@@ -448,24 +449,25 @@ BOT-X, BOT-Y are the top-left corner of the bottom node. BOT-W is its width."
          (sw (plist-get L :arrow-stroke-w)))
     ;; Path
     (dom-append-child svg
-      (dom-node 'path
-        `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
-                        (float x1) (float y1)
-                        cp1-x cp1-y
-                        cp2-x cp2-y
-                        (float x2) ey))
-          (stroke . ,color) (stroke-width . ,sw) (fill . "none"))))
+                      (dom-node 'path
+                                `((d . ,(format "M%f,%f C%f,%f %f,%f %f,%f"
+                                                (float x1) (float y1)
+                                                cp1-x cp1-y
+                                                cp2-x cp2-y
+                                                (float x2) ey))
+                                  (stroke . ,color) (stroke-width . ,sw) (fill . "none"))))
     ;; Downward arrowhead
     (dom-append-child svg
-      (dom-node 'polygon
-        `((points . ,(format "%f,%f %f,%f %f,%f"
-                             (float x2) y2
-                             (- x2 hw) (- y2 (plist-get L :arrow-head-len))
-                             (+ x2 hw) (- y2 (plist-get L :arrow-head-len))))
-          (fill . ,color))))))
+                      (dom-node 'polygon
+                                `((points . ,(format "%f,%f %f,%f %f,%f"
+                                                     (float x2) y2
+                                                     (- x2 hw) (- y2 (plist-get L :arrow-head-len))
+                                                     (+ x2 hw) (- y2 (plist-get L :arrow-head-len))))
+                                  (fill . ,color))))))
 
 (defun +dispatch-render--draw-pill (svg x cy w h icon theme)
-  "Draw a pill-shaped node on SVG at X, centered at CY. Returns edge positions."
+  "Draw a pill-shaped node on SVG at X, centered at CY. Returns edge positions.
+W x H, ICON, THEME."
   (let ((L +dispatch-render--layout))
     (svg-rectangle svg x (- cy (/ h 2)) w h
                    :fill (+dispatch-render-theme-pill-bg theme)
@@ -478,7 +480,8 @@ BOT-X, BOT-Y are the top-left corner of the bottom node. BOT-W is its width."
       (+dispatch-render-node-edges-make :left-x (+ x rx) :right-x (- (+ x w) rx) :cy cy))))
 
 (defun +dispatch-render--draw-task-node (svg x y w h task theme)
-  "Draw a task node on SVG. H is the pre-computed height. Returns edge positions."
+  "Draw a task node on SVG. W x H is the pre-computed size @ (X, Y).
+Returns edge positions."
   (let* ((L +dispatch-render--layout)
          (sc (cdr (assq (plist-get task :status) (+dispatch-render-theme-status theme))))
          (font (+dispatch-render-theme-font theme))
@@ -509,7 +512,8 @@ BOT-X, BOT-Y are the top-left corner of the bottom node. BOT-W is its width."
 
 (defun +dispatch-render--compute-col-bounds (node-edges leveled task-heights node-h &optional stack-map)
   "Compute top/bottom bounds per level from NODE-EDGES.
-When STACK-MAP is non-nil, stacked pair levels share merged bounds."
+When STACK-MAP is non-nil, stacked pair levels (LEVELED) share merged bounds,
+governed by TASK-HEIGHTS, NODE-H."
   (let ((col-bounds (make-hash-table)))
     (maphash (lambda (id edges)
                (unless (member id '("start" "end"))
@@ -544,6 +548,7 @@ When STACK-MAP is non-nil, stacked pair levels share merged bounds."
 
 (defun +dispatch-render--compute-bypass-y (from-lv to-lv from-cy col-bounds h &optional stack-map)
   "Compute bypass Y for an arrow spanning FROM-LV to TO-LV, or nil if not needed.
+Starts from FROM-CY, respecting COL-BOUNDS, with height H.
 When STACK-MAP is non-nil, also avoids stacked pair bounds at the destination."
   (let ((span (- to-lv from-lv)))
     (when (> span 1)
@@ -553,9 +558,9 @@ When STACK-MAP is non-nil, also avoids stacked pair bounds at the destination."
         (cl-loop for lv from (1+ from-lv) to (if check-to to-lv (1- to-lv))
                  for bounds = (gethash lv col-bounds)
                  when bounds
-                   do (setq has-intermediate t
-                            min-top (min min-top (+dispatch-render-col-extent-top bounds))
-                            max-bot (max max-bot (+dispatch-render-col-extent-bot bounds))))
+                 do (setq has-intermediate t
+                          min-top (min min-top (+dispatch-render-col-extent-top bounds))
+                          max-bot (max max-bot (+dispatch-render-col-extent-bot bounds))))
         (when has-intermediate
           (let ((pad (+ (plist-get +dispatch-render--layout :node-pad) 6)))
             (if (< from-cy (/ h 2))
@@ -596,7 +601,8 @@ When STACK-MAP is non-nil, also avoids stacked pair bounds at the destination."
 ;; ── Prepare/Draw split ───────────────────────────────────────────────
 
 (defun +dispatch-render--compute-max-col-h (columns max-level stack-map task-heights layout)
-  "Compute the maximum column height across all levels."
+  "Compute the maximum column height across all levels.
+COLUMNS MAX-LEVEL STACK-MAP TASK-HEIGHTS LAYOUT"
   (let ((node-pad (plist-get layout :node-pad)))
     (cl-loop for lv from 0 to max-level
              for si = (and stack-map (gethash lv stack-map))
@@ -733,11 +739,11 @@ Returns a `+dispatch-render-ctx' for `+dispatch-render-draw'."
                do (puthash (plist-get task :id)
                            (+dispatch-render-node-pos-make :x col-x :y cur-y :w cw :h th)
                            node-positions)
-                  (puthash (plist-get task :id)
-                           (+dispatch-render-node-edges-make
-                            :left-x (+ col-x rx) :right-x (- (+ col-x cw) rx) :cy cy)
-                           node-edges-map)
-                  (cl-incf cur-y (+ th node-pad)))))))
+               (puthash (plist-get task :id)
+                        (+dispatch-render-node-edges-make
+                         :left-x (+ col-x rx) :right-x (- (+ col-x cw) rx) :cy cy)
+                        node-edges-map)
+               (cl-incf cur-y (+ th node-pad)))))))
 
     ;; End pill position
     (let* ((pill-x (+ last-col-right col-gap))
@@ -839,7 +845,7 @@ STATUS-MAP is a hash of task-id -> +dispatch-render-task-status."
              (task-with-status (list :id id
                                      :name (plist-get task :name)
                                      :status (if ts (+dispatch-render-task-status-status ts)
-                                                'waiting))))
+                                               'waiting))))
         (+dispatch-render--draw-task-node
          svg
          (+dispatch-render-node-pos-x pos)
@@ -905,7 +911,7 @@ DISPATCHER-BUF is the buffer name."
                              0))
            (show-level (max 0 (1- target-level)))
            (view-x (max 0 (- (gethash show-level col-xs)
-                              (plist-get +dispatch-render--layout :margin)))))
+                             (plist-get +dispatch-render--layout :margin)))))
       (setq svg-str (replace-regexp-in-string
                      (format "width=\"%d\" height=\"%d\"" svg-w svg-h)
                      (format "width=\"%d\" height=\"%d\" viewBox=\"%d 0 %d %d\""
