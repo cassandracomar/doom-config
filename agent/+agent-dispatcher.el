@@ -709,22 +709,6 @@ INTERVAL is seconds between render updates (default 2)."
                    interval))
 (defalias '+meta-agent-shell-stop-progress-polling #'+dispatch-stop)
 
-(defun +dispatch-start-linear (buffer-name task-names &optional interval)
-  "Start a linear task graph for single-agent sequential work.
-BUFFER-NAME is the agent-shell buffer.
-TASK-NAMES is a list of strings, chained as a sequential dependency graph.
-The agent should call (+dispatch-report ID STATUS DETAIL) as it works."
-  (let ((prev nil))
-    (+dispatch-start buffer-name
-                     (cl-loop for name in task-names
-                              for i from 1
-                              for id = (format "step-%d" i)
-                              for deps = (when prev (list prev))
-                              do (setq prev id)
-                              collect (list :id id :name name
-                                           :agent buffer-name
-                                           :depends-on deps))
-                     interval)))
 
 (defun +meta-agent-shell-kill-agents ()
   "Kill all agent-shell sessions except the current buffer.
