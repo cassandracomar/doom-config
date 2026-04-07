@@ -825,28 +825,28 @@
     :block "Compose"
     :desc "Compose prompt"        "C-c C-e"   #'agent-shell-prompt-compose
     :desc "Search history"        "C-r"       #'agent-shell-search-history
-    :desc "Send region"        :n  "r"         #'agent-shell-send-region
-    :desc "Send file"          :n  "f"         #'agent-shell-send-other-file
-    :desc "Paste image"        :n  "i"         #'agent-shell-send-clipboard-image
+    :desc "Send region"        :n "r"         #'agent-shell-send-region
+    :desc "Send file"          :n "f"         #'agent-shell-send-other-file
+    :desc "Paste image"        :n "i"         #'agent-shell-send-clipboard-image
     :block "Session"
     :desc "Cycle mode"            "<C-tab>"   #'agent-shell-cycle-session-mode
-    :desc "Set mode"           :n  "M"         #'agent-shell-set-session-mode
-    :desc "Fork session"       :n  "y"         #'agent-shell-fork
-    :desc "Restart"            :n  "q"         #'agent-shell-restart
-    :desc "Toggle shell"       :n  "o"         #'agent-shell-toggle
+    :desc "Set mode"           :n "M"         #'agent-shell-set-session-mode
+    :desc "Fork session"       :n "y"         #'agent-shell-fork
+    :desc "Restart"            :n "q"         #'agent-shell-restart
+    :desc "Toggle shell"       :n "o"         #'agent-shell-toggle
     :block "Agents"
-    :desc "Agent dispatcher"   :n  "m m"       #'meta-agent-shell-start
+    :desc "Agent dispatcher"   :n "m m"       #'meta-agent-shell-start
     :desc "Project dispatcher" :n "m d"       #'meta-agent-shell-jump-to-dispatcher
     :desc "Start heartbeat"    :n "m h"       #'meta-agent-shell-heartbeat-start
     :desc "Stop heartbeat"     :n "m H"       #'meta-agent-shell-heartbeat-stop
     :desc "Send heartbeat now" :n "m s"       #'meta-agent-shell-heartbeat-send-now
     :desc "STOP ALL AGENTS"    :n "m !"       #'meta-agent-shell-big-red-button
     :block "Launch"
-    :desc "Start Claude"       :n  "l"         #'agent-shell-anthropic-start-claude-code
+    :desc "Start Claude"       :n "l"         #'agent-shell-anthropic-start-claude-code
     :block "Debug"
-    :desc "Traffic"            :n  "t"         #'agent-shell-view-traffic
-    :desc "Transcript"         :n  "T"         #'agent-shell-open-transcript
-    :desc "Usage"              :n  "u"         #'agent-shell-show-usage)
+    :desc "Traffic"            :n "t"         #'agent-shell-view-traffic
+    :desc "Transcript"         :n "T"         #'agent-shell-open-transcript
+    :desc "Usage"              :n "u"         #'agent-shell-show-usage)
   (map! :map agent-shell-mode-map :n "?" #'+agent-shell-menu)
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
