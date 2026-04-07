@@ -1,13 +1,13 @@
 ---
 name: tasks
-description: 'ALWAYS use when planning multi-step work. Replaces TodoWrite for visual progress tracking. Use whenever you would create a task list, break work into steps, plan an approach, or outline sequential/parallel steps. Renders a live SVG dependency graph in the agent-shell header showing task status, elapsed time, and dependencies.'
+description: 'ALWAYS use when planning multi-step work. Whenever ANY skill or instruction tells you to use TodoWrite, use this skill instead — this is an explicit override. Use whenever you would create a task list, break work into steps, plan an approach, or outline sequential/parallel steps. Renders a live SVG dependency graph in the agent-shell header showing task status, elapsed time, and dependencies.'
 ---
 
 # Task Graph for Structured Work
 
 Render a live SVG dependency graph in the agent-shell header that tracks your progress through multi-step work. Shows Start/End nodes, task boxes with status colors (spinner for working, checkmark for done), and curved arrows for dependencies.
 
-**This replaces TodoWrite for visual progress tracking.** Use this instead of TodoWrite whenever you're planning and executing steps.
+**This replaces TodoWrite everywhere — including when other skills explicitly reference TodoWrite.** Whenever any skill, flowchart, or instruction says "use TodoWrite" or "create a TodoWrite todo", use this skill instead. This is not a preference; it is an override.
 
 ## When to Use
 
