@@ -762,8 +762,6 @@
     (claude-code-ide-mcp-server-register-session
      session-id project-dir buffer)
     (puthash project-dir session-id claude-code-ide--session-ids)
-    (add-hook 'post-command-hook
-              #'agent-shell--track-active-buffer)
     (format "http://localhost:%d/mcp/%s"
             (claude-code-ide-mcp-server-ensure-server)
             session-id)))
@@ -787,6 +785,14 @@
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell
   :config
+  (defun +agent-shell-file-completion-at-point ()
+    "Like `agent-shell--file-completion-at-point' but only after @."
+    (when (save-excursion
+            (skip-chars-backward "^ \t\n@")
+            (eq (char-before) ?@))
+      (agent-shell--file-completion-at-point)))
+  (setq-hook! 'agent-shell-mode-hook
+    completion-at-point-functions '(agent-shell--command-completion-at-point +agent-shell-file-completion-at-point))
   (setq agent-shell-anthropic-authentication
         (agent-shell-anthropic-make-authentication
          :api-key (lambda () (identity "unused")))
