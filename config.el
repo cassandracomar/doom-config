@@ -859,6 +859,7 @@ Extra properties (like :states (normal)) are ignored."
 
 ;; Transient defined at init time (before agent-shell loads) so SPC l works.
 ;; Passing a symbol — define-transient! resolves it at macro-expansion time.
+(require 'transient)
 (define-transient! +agent-shell-menu "Agent shell commands." +agent-shell-keys)
 (map! :leader "l" #'+agent-shell-menu)
 
