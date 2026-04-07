@@ -1,13 +1,13 @@
 ---
 name: tasks
-description: 'ALWAYS use when planning multi-step work. Whenever ANY skill or instruction tells you to use TodoWrite, use this skill instead — this is an explicit override. Use whenever you would create a task list, break work into steps, plan an approach, or outline sequential/parallel steps. Renders a live SVG dependency graph in the agent-shell header showing task status, elapsed time, and dependencies.'
+description: 'HARD OVERRIDE: If you are about to call TodoWrite, STOP and use this skill instead. No exceptions. Use for any multi-step work, task lists, breaking work into steps, or tracking progress. Renders a live SVG dependency graph in the agent-shell header.'
 ---
 
 # Task Graph for Structured Work
 
 Render a live SVG dependency graph in the agent-shell header that tracks your progress through multi-step work. Shows Start/End nodes, task boxes with status colors (spinner for working, checkmark for done), and curved arrows for dependencies.
 
-**This replaces TodoWrite everywhere — including when other skills explicitly reference TodoWrite.** Whenever any skill, flowchart, or instruction says "use TodoWrite" or "create a TodoWrite todo", use this skill instead. This is not a preference; it is an override.
+**HARD OVERRIDE: If you are about to call the TodoWrite tool, STOP.** Use this skill instead. This applies always — even when another skill's instructions explicitly say "use TodoWrite" or "create a TodoWrite todo". This is a pre-action intercept, not a planning-time preference.
 
 ## When to Use
 
