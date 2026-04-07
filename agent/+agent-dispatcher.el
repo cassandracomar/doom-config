@@ -10,9 +10,6 @@
 (declare-function agent-shell--make-permission-button "agent-shell")
 (declare-function agent-shell--start "agent-shell")
 (declare-function agent-shell-anthropic-make-claude-code-config "agent-shell")
-(declare-function agent-shell-ui-delete-fragment "agent-shell")
-(declare-function agent-shell-ui-make-fragment-model "agent-shell")
-(declare-function agent-shell-ui-update-fragment "agent-shell")
 (defvar agent-shell--state)
 (defvar shell-maker--busy)
 
@@ -124,12 +121,12 @@
 
 ;; -- Dispatch task graph and progress rendering --
 
-(defvar +dispatch--layout
+(defconst +dispatch--layout
   '(:node-h 34 :node-pad 8 :col-gap 50 :margin 10
     :pill-w 40 :pill-h 28 :pill-rx 14
-    :node-rx 5 :node-max-w 220 :node-base-w 40 :node-char-w 7
-    :node-text-x 8 :node-text-y 22 :node-elapsed-pad 8
-    :node-font-size 12 :pill-font-size 14 :elapsed-font-size 10
+    :node-rx 5 :node-max-w 220
+    :node-pad-x 4 :node-icon-w 14 :node-text-y 22
+    :node-font-size 12 :pill-font-size 14
     :pill-text-y-offset 5 :name-max-len 24
     :arrow-head-len 5 :arrow-head-hw 4.0 :arrow-cp-factor 0.4
     :arrow-stroke-w "1.5" :bg-rx 8)
@@ -193,7 +190,8 @@ Caches the result; call `+dispatch--refresh-theme' to update."
 (defun +dispatch--compute-theme-colors ()
   "Compute SVG color scheme from current Emacs faces.
 Respects face remapping (e.g. solaire-mode) in the dispatcher buffer."
-  (let* ((bg  (or (+dispatch--resolve-face 'default :background)
+  (let* ((bg  (or (+dispatch--resolve-face 'header-line :background)
+                  (face-background 'header-line nil t)
                   (face-background 'default)))
          (fg  (or (+dispatch--resolve-face 'default :foreground)
                   (face-foreground 'default)))
@@ -203,12 +201,20 @@ Respects face remapping (e.g. solaire-mode) in the dispatcher buffer."
          (dim (or (face-foreground 'font-lock-comment-face nil t) "#75715e"))
          (fnc (or (face-foreground 'font-lock-function-name-face nil t) fg))
          (tint 0.2))
+    ;; Compute SVG char width by measuring actual font rendering.
+    ;; string-pixel-width at SVG font-size gives the Emacs-side measurement;
+    ;; librsvg may differ slightly, so we apply a 0.85 correction factor.
+    (let* ((svg-font-size (plist-get +dispatch--layout :node-font-size))
+           (font-family (or (ignore-errors
+                              (symbol-name (font-get (face-attribute 'default :font) :family)))
+                            "monospace"))
+           (sample (propertize "MMMMMMMMMM" 'face
+                               `(:family ,(replace-regexp-in-string "\\\\" "" font-family)
+                                 :height ,(* svg-font-size 10))))
+           (char-w (* 0.85 (/ (float (string-pixel-width sample)) 10.0))))
     (list :bg bg :fg fg :name-fg fnc :dim dim
-          :font (replace-regexp-in-string
-                 "\\\\" ""
-                 (or (ignore-errors
-                       (symbol-name (font-get (face-attribute 'default :font) :family)))
-                     "monospace"))
+          :char-w char-w
+          :font (replace-regexp-in-string "\\\\" "" font-family)
           :arrow (doom-blend dim bg 0.6)
           :pill-bg (doom-blend dim bg 0.25)
           :status
@@ -217,7 +223,7 @@ Respects face remapping (e.g. solaire-mode) in the dispatcher buffer."
             (permission :bg ,(doom-blend err bg tint) :fg ,err :icon "🔒")
             (waiting    :bg ,(doom-blend dim bg 0.1)  :fg ,dim :icon "◦")
             (error      :bg ,(doom-blend err bg tint) :fg ,err :icon "✗")
-            (dead       :bg ,(doom-blend dim bg 0.05) :fg ,dim :icon "?")))))
+            (dead       :bg ,(doom-blend dim bg 0.05) :fg ,dim :icon "?"))))))
 
 (defun +dispatch--compute-levels (tasks-info)
   "Compute topological levels for TASKS-INFO based on :depends-on.
@@ -241,30 +247,21 @@ Returns tasks-info with :level added to each entry."
             tasks-info)))
 
 (defun +dispatch--transitive-reduce (tasks-info)
-  "Compute edges for TASKS-INFO with transitive reduction.
-Returns list of (from-id . to-id) pairs, plus edges from \"start\" and to \"end\"."
-  (let* ((id-to-task (make-hash-table :test 'equal))
-         (id-to-deps (make-hash-table :test 'equal))
-         (depended-on (make-hash-table :test 'equal))
-         (edges nil))
+  "Compute edges for TASKS-INFO.
+Returns list of (from-id . to-id) pairs, including start/end connections."
+  (let ((depended-on (make-hash-table :test 'equal))
+        (edges nil))
     (dolist (task tasks-info)
-      (let ((id (plist-get task :id))
-            (deps (plist-get task :depends-on)))
-        (puthash id task id-to-task)
-        (puthash id deps id-to-deps)
-        (dolist (d deps) (puthash d t depended-on))))
-    ;; Direct dependency edges (already minimal from user spec)
+      (dolist (d (plist-get task :depends-on))
+        (puthash d t depended-on)))
     (dolist (task tasks-info)
       (let ((id (plist-get task :id))
             (deps (plist-get task :depends-on)))
         (if deps
             (dolist (d deps) (push (cons d id) edges))
-          ;; No deps → depends on start
-          (push (cons "start" id) edges))))
-    ;; Terminal tasks → end
-    (dolist (task tasks-info)
-      (unless (gethash (plist-get task :id) depended-on)
-        (push (cons (plist-get task :id) "end") edges)))
+          (push (cons "start" id) edges))
+        (unless (gethash id depended-on)
+          (push (cons id "end") edges))))
     edges))
 
 (defun +dispatch--draw-arrow (svg x1 y1 x2 y2 color &optional bypass-y)
@@ -324,7 +321,8 @@ to avoid crossing intermediate boxes."
               :fill (plist-get theme :dim)
               :font-size (plist-get L :pill-font-size)
               :font-family (plist-get theme :font) :text-anchor "middle")
-    (list :left-x x :right-x (+ x w) :cy cy)))
+    (let ((rx (plist-get L :pill-rx)))
+      (list :left-x (+ x rx) :right-x (- (+ x w) rx) :cy cy))))
 
 (defun +dispatch--wrap-text (text max-chars)
   "Wrap TEXT into lines of at most MAX-CHARS, breaking at word boundaries."
@@ -342,66 +340,157 @@ to avoid crossing intermediate boxes."
       (when current-line (push current-line lines))
       (nreverse lines))))
 
+(defun +dispatch--node-wrap-lines (name node-w)
+  "Wrap NAME to fit within NODE-W pixels. Returns list of lines."
+  (let* ((L +dispatch--layout)
+         (char-w (plist-get (+dispatch--theme-colors) :char-w))
+         (text-start (+ (plist-get L :node-pad-x) (plist-get L :node-icon-w)))
+         (avail-chars (max 10 (/ (- node-w text-start (plist-get L :node-pad-x))
+                                 (max 1 char-w)))))
+    (+dispatch--wrap-text name avail-chars)))
+
 (defun +dispatch--task-node-height (task node-w)
   "Compute the height needed for TASK given NODE-W."
   (let* ((L +dispatch--layout)
-         (char-w (plist-get L :node-char-w))
-         (text-pad (+ (plist-get L :node-text-x) (plist-get L :node-elapsed-pad) 20))
-         (avail-chars (max 10 (/ (- node-w text-pad) (max 1 char-w))))
-         (name (plist-get task :name))
-         (lines (+dispatch--wrap-text name avail-chars))
-         (line-h (plist-get L :node-font-size))
+         (lines (+dispatch--node-wrap-lines (plist-get task :name) node-w))
          (base-h (plist-get L :node-h)))
     (if (> (length lines) 1)
-        (+ base-h (* (1- (length lines)) (+ line-h 2)))
+        (+ base-h (* (1- (length lines)) (+ (plist-get L :node-font-size) 2)))
       base-h)))
 
 (defun +dispatch--draw-task-node (svg x y w h task theme)
   "Draw a task node on SVG. H is the pre-computed height. Returns edge positions."
   (let* ((L +dispatch--layout)
-         (status (plist-get task :status))
-         (name (plist-get task :name))
-         (elapsed (or (plist-get task :elapsed) ""))
-         (sc (cdr (assq status (plist-get theme :status))))
+         (sc (cdr (assq (plist-get task :status) (plist-get theme :status))))
          (font (plist-get theme :font))
-         (char-w (plist-get L :node-char-w))
-         (text-pad (+ (plist-get L :node-text-x) (plist-get L :node-elapsed-pad) 20))
-         (avail-chars (max 10 (/ (- w text-pad) (max 1 char-w))))
-         (lines (+dispatch--wrap-text name avail-chars))
-         (icon (plist-get sc :icon))
+         (pad (plist-get L :node-pad-x))
+         (lines (+dispatch--node-wrap-lines (plist-get task :name) w))
          (font-size (plist-get L :node-font-size))
          (line-h (+ font-size 2))
-         (text-x (+ x (plist-get L :node-text-x)))
-         (text-y (+ y (plist-get L :node-text-y))))
+         (text-x (+ x pad (plist-get L :node-icon-w)))
+         (text-y (+ y (plist-get L :node-text-y)))
+         (cy (+ y (/ h 2))))
     (svg-rectangle svg x y w h :fill (plist-get sc :bg)
                    :rx (plist-get L :node-rx))
-    ;; First line with icon
-    (svg-text svg (format "%s %s" icon (car lines))
-              :x text-x :y text-y :fill (plist-get sc :fg)
+    ;; Icon — vertically centered
+    (svg-text svg (plist-get sc :icon) :x (+ x pad) :y (+ cy 4)
+              :fill (plist-get sc :fg)
               :font-size font-size :font-family font)
-    ;; Continuation lines
-    (cl-loop for line in (cdr lines)
-             for i from 1
-             do (svg-text svg (format "  %s" line)
+    ;; Text lines
+    (cl-loop for line in lines
+             for i from 0
+             do (svg-text svg line
                           :x text-x :y (+ text-y (* i line-h))
                           :fill (plist-get sc :fg)
                           :font-size font-size :font-family font))
-    ;; Elapsed time on first line
-    (when (> (length elapsed) 0)
-      (svg-text svg elapsed
-                :x (- (+ x w) (plist-get L :node-elapsed-pad))
-                :y text-y
-                :fill (plist-get theme :dim)
-                :font-size (plist-get L :elapsed-font-size)
-                :font-family font :text-anchor "end"))
-    (list :left-x x :right-x (+ x w) :cy (+ y (/ h 2)))))
+    (let ((rx (plist-get L :node-rx)))
+      (list :left-x (+ x rx) :right-x (- (+ x w) rx) :cy cy))))
+
+(defun +dispatch--compute-col-widths (columns max-level)
+  "Compute per-column widths from COLUMNS hash (level → tasks), up to MAX-LEVEL."
+  (let ((L +dispatch--layout)
+        (max-name-len (plist-get +dispatch--layout :name-max-len))
+        (char-w (plist-get (+dispatch--theme-colors) :char-w))
+        (widths (make-hash-table)))
+    (cl-loop for lv from 0 to max-level
+             for col = (gethash lv columns)
+             for max-line-len = (cl-loop for t_ in col
+                                         for lines = (+dispatch--wrap-text
+                                                      (plist-get t_ :name) max-name-len)
+                                         maximize (cl-loop for line in lines
+                                                           maximize (length line)))
+             do (puthash lv (min (+ (* 2 (plist-get L :node-pad-x))
+                                    (plist-get L :node-icon-w)
+                                    (* char-w max-line-len))
+                                 (plist-get L :node-max-w))
+                         widths))
+    widths))
+
+(defun +dispatch--compute-col-x-positions (max-level col-widths)
+  "Compute cumulative x-positions for each column level."
+  (let ((positions (make-hash-table))
+        (x (+ (plist-get +dispatch--layout :margin)
+              (plist-get +dispatch--layout :pill-w)
+              (plist-get +dispatch--layout :col-gap))))
+    (cl-loop for lv from 0 to max-level
+             do (puthash lv x positions)
+                (cl-incf x (+ (gethash lv col-widths)
+                              (plist-get +dispatch--layout :col-gap))))
+    positions))
+
+(defun +dispatch--compute-task-heights (leveled col-widths)
+  "Compute per-task heights based on text wrapping within column widths."
+  (let ((heights (make-hash-table :test 'equal)))
+    (dolist (task leveled)
+      (puthash (plist-get task :id)
+               (+dispatch--task-node-height
+                task (gethash (plist-get task :level) col-widths))
+               heights))
+    heights))
+
+(defun +dispatch--col-height (col task-heights node-pad)
+  "Compute total height of column COL given TASK-HEIGHTS and NODE-PAD."
+  (+ (cl-loop for t_ in col sum (gethash (plist-get t_ :id) task-heights))
+     (* (1- (max (length col) 1)) node-pad)))
+
+(defun +dispatch--compute-bypass-y (from-lv to-lv from-cy col-bounds h)
+  "Compute bypass Y for an arrow spanning FROM-LV to TO-LV, or nil if not needed."
+  (let ((span (- to-lv from-lv)))
+    (when (> span 1)
+      (let ((min-top h) (max-bot 0) (has-intermediate nil))
+        (cl-loop for lv from (1+ from-lv) below to-lv
+                 for bounds = (gethash lv col-bounds)
+                 when bounds
+                   do (setq has-intermediate t
+                            min-top (min min-top (plist-get bounds :top))
+                            max-bot (max max-bot (plist-get bounds :bot))))
+        (when has-intermediate
+          (let ((pad (+ (plist-get +dispatch--layout :node-pad) 6)))
+            (if (< from-cy (/ h 2))
+                (- min-top pad)
+              (+ max-bot pad))))))))
+
+(defun +dispatch--compute-col-bounds (node-edges leveled task-heights node-h)
+  "Compute top/bottom bounds per level from NODE-EDGES."
+  (let ((col-bounds (make-hash-table)))
+    (maphash (lambda (id edges)
+               (unless (member id '("start" "end"))
+                 (when-let* ((task (cl-find-if (lambda (t_) (equal (plist-get t_ :id) id)) leveled))
+                             (lv (plist-get task :level))
+                             (cy (plist-get edges :cy))
+                             (th (or (gethash id task-heights) node-h)))
+                   (let* ((top (- cy (/ th 2)))
+                          (bot (+ cy (/ th 2)))
+                          (cur (gethash lv col-bounds)))
+                     (puthash lv (list :top (if cur (min (plist-get cur :top) top) top)
+                                       :bot (if cur (max (plist-get cur :bot) bot) bot))
+                              col-bounds)))))
+             node-edges)
+    col-bounds))
+
+(defun +dispatch--draw-edges (svg edges node-edges leveled col-bounds h theme)
+  "Draw arrows for EDGES with bypass routing around intermediate columns."
+  (let ((id-to-level (make-hash-table :test 'equal)))
+    (puthash "start" -1 id-to-level)
+    (puthash "end" (1+ (cl-loop for t_ in leveled maximize (plist-get t_ :level))) id-to-level)
+    (dolist (task leveled)
+      (puthash (plist-get task :id) (plist-get task :level) id-to-level))
+    (dolist (edge edges)
+      (when-let* ((from (gethash (car edge) node-edges))
+                  (to (gethash (cdr edge) node-edges))
+                  (from-lv (gethash (car edge) id-to-level))
+                  (to-lv (gethash (cdr edge) id-to-level)))
+        (+dispatch--draw-arrow svg
+                               (plist-get from :right-x) (plist-get from :cy)
+                               (plist-get to :left-x) (plist-get to :cy)
+                               (plist-get theme :arrow)
+                               (+dispatch--compute-bypass-y
+                                from-lv to-lv (plist-get from :cy) col-bounds h))))))
 
 (defun +dispatch--build-svg (tasks-info)
-  "Build a horizontal dependency graph SVG from TASKS-INFO.
-Colors derived from Emacs theme, dimensions from `+dispatch--layout'."
+  "Build a horizontal dependency graph SVG from TASKS-INFO."
   (let* ((L +dispatch--layout)
          (theme (+dispatch--theme-colors))
-         (node-h (plist-get L :node-h))
          (node-pad (plist-get L :node-pad))
          (col-gap (plist-get L :col-gap))
          (margin (plist-get L :margin))
@@ -411,110 +500,55 @@ Colors derived from Emacs theme, dimensions from `+dispatch--layout'."
                     (+dispatch--compute-levels tasks-info)))
          (max-level (cl-loop for t_ in leveled maximize (plist-get t_ :level)))
          (columns (+dispatch--group-by-level leveled))
-         (max-col-size (cl-loop for lv from 0 to max-level
-                                maximize (length (gethash lv columns))))
-         (node-w (min (+ (plist-get L :node-base-w)
-                         (* (plist-get L :node-char-w)
-                            (cl-loop for t_ in leveled
-                                     maximize (length (plist-get t_ :name)))))
-                      (plist-get L :node-max-w)))
-         ;; Pre-compute per-task heights for wrapping
-         (task-heights (make-hash-table :test 'equal))
-         (_ (dolist (task leveled)
-              (puthash (plist-get task :id)
-                       (+dispatch--task-node-height task node-w)
-                       task-heights)))
-         ;; Column height = sum of task heights + padding
+         (col-widths (+dispatch--compute-col-widths columns max-level))
+         (col-xs (+dispatch--compute-col-x-positions max-level col-widths))
+         (task-heights (+dispatch--compute-task-heights leveled col-widths))
          (max-col-h (cl-loop for lv from 0 to max-level
-                             maximize (let ((col (gethash lv columns)))
-                                        (+ (cl-loop for t_ in col
-                                                    sum (gethash (plist-get t_ :id) task-heights))
-                                           (* (1- (max (length col) 1)) node-pad)))))
-         (w (+ (* 2 margin) pill-w col-gap
-               (* (1+ max-level) (+ node-w col-gap)) pill-w))
+                             maximize (+dispatch--col-height
+                                       (gethash lv columns) task-heights node-pad)))
+         (w (+ (gethash max-level col-xs) (gethash max-level col-widths)
+               col-gap pill-w margin))
          (h (max (+ (* 2 margin) max-col-h) 60))
          (svg (svg-create w h))
-         (node-edges (make-hash-table :test 'equal))
-         (edges (+dispatch--transitive-reduce leveled)))
+         (node-edges (make-hash-table :test 'equal)))
 
+    ;; Background
+    (svg-rectangle svg 0 0 w h :fill (plist-get theme :bg) :rx (plist-get L :bg-rx))
+
+    ;; Start pill
     (puthash "start"
              (+dispatch--draw-pill svg margin (/ h 2) pill-w pill-h "▶" theme)
              node-edges)
 
+    ;; Task nodes by column
     (cl-loop for lv from 0 to max-level
              for col-tasks = (gethash lv columns)
-             for col-x = (+ margin pill-w col-gap (* lv (+ node-w col-gap)))
-             for col-h = (+ (cl-loop for t_ in col-tasks
-                                     sum (gethash (plist-get t_ :id) task-heights))
-                            (* (1- (max (length col-tasks) 1)) node-pad))
+             for col-x = (gethash lv col-xs)
+             for cw = (gethash lv col-widths)
+             for col-h = (+dispatch--col-height col-tasks task-heights node-pad)
              for cur-y = (/ (- h col-h) 2)
              do (cl-loop for task in col-tasks
                          for th = (gethash (plist-get task :id) task-heights)
                          do (puthash (plist-get task :id)
-                                     (+dispatch--draw-task-node
-                                      svg col-x cur-y node-w th task theme)
+                                     (+dispatch--draw-task-node svg col-x cur-y cw th task theme)
                                      node-edges)
                             (cl-incf cur-y (+ th node-pad))))
 
+    ;; End pill
     (puthash "end"
              (+dispatch--draw-pill svg
-                                   (+ margin pill-w col-gap
-                                      (* (1+ max-level) (+ node-w col-gap)))
+                                   (+ (gethash max-level col-xs)
+                                      (gethash max-level col-widths) col-gap)
                                    (/ h 2) pill-w pill-h "■" theme)
              node-edges)
 
-    ;; Build column bounds for bypass routing
-    (let ((col-bounds (make-hash-table)))
-      ;; Track top/bottom of each level's nodes
-      (maphash (lambda (id edges)
-                 (unless (member id '("start" "end"))
-                   (let* ((task (cl-find-if (lambda (t_) (equal (plist-get t_ :id) id)) leveled))
-                          (lv (and task (plist-get task :level)))
-                          (cy (plist-get edges :cy))
-                          (th (and task (gethash id task-heights)))
-                          (top (- cy (/ (or th node-h) 2)))
-                          (bot (+ cy (/ (or th node-h) 2))))
-                     (when lv
-                       (let ((cur (gethash lv col-bounds)))
-                         (puthash lv (list :top (if cur (min (plist-get cur :top) top) top)
-                                           :bot (if cur (max (plist-get cur :bot) bot) bot))
-                                  col-bounds))))))
-               node-edges)
-      ;; Store levels for start/end
-      (let ((id-to-level (make-hash-table :test 'equal)))
-        (puthash "start" -1 id-to-level)
-        (puthash "end" (1+ max-level) id-to-level)
-        (dolist (task leveled)
-          (puthash (plist-get task :id) (plist-get task :level) id-to-level))
-        ;; Draw arrows with bypass for multi-level edges
-        (dolist (edge edges)
-          (when-let* ((from (gethash (car edge) node-edges))
-                      (to (gethash (cdr edge) node-edges)))
-            (let* ((from-lv (gethash (car edge) id-to-level))
-                   (to-lv (gethash (cdr edge) id-to-level))
-                   (span (and from-lv to-lv (- to-lv from-lv)))
-                   ;; Need bypass if spanning >1 level and intermediate levels have boxes
-                   (from-cy (plist-get from :cy))
-                   (bypass-y
-                    (when (and span (> span 1))
-                      (let ((min-top h) (max-bot 0) (has-intermediate nil))
-                        (cl-loop for lv from (1+ from-lv) below to-lv
-                                 for bounds = (gethash lv col-bounds)
-                                 when bounds
-                                   do (setq has-intermediate t
-                                            min-top (min min-top (plist-get bounds :top))
-                                            max-bot (max max-bot (plist-get bounds :bot))))
-                        (when has-intermediate
-                          ;; Route above if source is above center, below if below
-                          (let ((pad (+ (plist-get L :node-pad) 6)))
-                            (if (< from-cy (/ h 2))
-                                (- min-top pad)
-                              (+ max-bot pad))))))))
-              (+dispatch--draw-arrow svg
-                                     (plist-get from :right-x) (plist-get from :cy)
-                                     (plist-get to :left-x) (plist-get to :cy)
-                                     (plist-get theme :arrow)
-                                     bypass-y))))))
+    ;; Arrows with bypass routing
+    (+dispatch--draw-edges svg
+                           (+dispatch--transitive-reduce leveled)
+                           node-edges leveled
+                           (+dispatch--compute-col-bounds
+                            node-edges leveled task-heights (plist-get L :node-h))
+                           h theme)
     svg))
 
 (defun +dispatch--resolve-status (task statuses)
@@ -551,87 +585,107 @@ Returns (STATUS ELAPSED DETAIL STARTED) list."
           started)))
 
 
-(defvar +dispatch--current-graph-svg nil
-  "The latest task graph SVG data string, or nil when dispatch is inactive.")
+(defun +dispatch--apply-viewport (svg-str render-data dispatcher-buf)
+  "Apply viewBox panning to SVG-STR if the graph is wider than the window.
+Centers on the first non-done task, showing one completed level to its left."
+  (when-let* ((dims (+dispatch--svg-dimensions svg-str))
+              (svg-w (car dims))
+              (svg-h (cdr dims))
+              (win (get-buffer-window dispatcher-buf))
+              (win-pw (window-body-width win t))
+              ((> svg-w win-pw)))
+    (let* ((leveled (if (plist-get (car render-data) :level) render-data
+                      (+dispatch--compute-levels render-data)))
+           (max-level (cl-loop for t_ in leveled maximize (plist-get t_ :level)))
+           (columns (+dispatch--group-by-level leveled))
+           (col-widths (+dispatch--compute-col-widths columns max-level))
+           (col-xs (+dispatch--compute-col-x-positions max-level col-widths))
+           (target-level (or (cl-loop for task in leveled
+                                      unless (eq (plist-get task :status) 'done)
+                                      minimize (plist-get task :level))
+                             0))
+           (show-level (max 0 (1- target-level)))
+           (view-x (max 0 (- (gethash show-level col-xs)
+                              (plist-get +dispatch--layout :margin)))))
+      (setq svg-str (replace-regexp-in-string
+                     (format "width=\"%d\" height=\"%d\"" svg-w svg-h)
+                     (format "width=\"%d\" height=\"%d\" viewBox=\"%d 0 %d %d\""
+                             win-pw svg-h view-x win-pw svg-h)
+                     svg-str t t))))
+  svg-str)
 
-(defun +dispatch--render ()
-  "Update the task graph SVG data. The header advice handles display."
-  (when-let* ((state +meta-agent-shell--dispatch-state)
-              (dispatcher (plist-get state :dispatcher-buffer))
-              (tasks (plist-get state :tasks))
-              (statuses (plist-get state :statuses))
-              ((get-buffer dispatcher)))
-    ;; Cycle spinner
-    (cl-incf +dispatch--spinner-index)
-    (let ((spinner (nth (% +dispatch--spinner-index (length +dispatch--spinner-frames))
-                        +dispatch--spinner-frames)))
-      (plist-put (cdr (assq 'working (plist-get (+dispatch--theme-colors) :status)))
-                 :icon spinner))
-    ;; Resolve statuses and build render data
-    (let* ((render-data
-            (cl-loop for task in tasks
-                     for (effective elapsed detail _started)
-                     = (+dispatch--resolve-status task statuses)
-                     collect (list :id (plist-get task :id)
-                                   :name (plist-get task :name)
-                                   :status effective
-                                   :elapsed elapsed
-                                   :detail detail
-                                   :depends-on (plist-get task :depends-on))))
-           (svg (+dispatch--build-svg render-data)))
-      ;; Stash the SVG data for the header advice
-      (setq +dispatch--current-graph-svg (with-temp-buffer
-                                           (svg-print svg)
-                                           (buffer-string)))
-      ;; Invalidate agent-shell header cache to force rebuild
-      (with-current-buffer dispatcher
-        (when (boundp 'agent-shell--header-cache)
-          (setq agent-shell--header-cache nil))
-        (when (fboundp 'agent-shell--update-header-and-mode-line)
-          (ignore-errors (agent-shell--update-header-and-mode-line)))))))
+(defun +dispatch--svg-dimensions (svg-str)
+  "Extract (WIDTH . HEIGHT) from SVG-STR, or nil."
+  (when (string-match "width=\"\\([0-9]+\\)\"" svg-str)
+    (let ((w (string-to-number (match-string 1 svg-str))))
+      (when (string-match "height=\"\\([0-9]+\\)\"" svg-str)
+        (cons w (string-to-number (match-string 1 svg-str)))))))
 
-(defun +dispatch--extend-header (&rest _)
-  "Append task graph SVG below agent-shell's header SVG."
-  (when (and +dispatch--current-graph-svg
-             +meta-agent-shell--dispatch-state
-             (stringp header-line-format))
-    (when-let* ((disp (get-text-property 1 'display header-line-format))
-                (orig-data (plist-get (cdr disp) :data))
-                ((string-match "width=\"\\([0-9]+\\)\"" orig-data))
-                (orig-w (string-to-number (match-string 1 orig-data)))
-                ((string-match "height=\"\\([0-9]+\\)\"" orig-data))
-                (orig-h (string-to-number (match-string 1 orig-data)))
-                ((string-match "width=\"\\([0-9]+\\)\"" +dispatch--current-graph-svg))
-                (graph-w (string-to-number (match-string 1 +dispatch--current-graph-svg)))
-                ((string-match "height=\"\\([0-9]+\\)\"" +dispatch--current-graph-svg))
-                (graph-h (string-to-number (match-string 1 +dispatch--current-graph-svg))))
-      (let* ((gap-above -12)
-             (gap-below 10)
-             (total-w (max orig-w graph-w))
-             (total-h (+ orig-h gap-above graph-h gap-below))
-             (combined (format "<svg width=\"%d\" height=\"%d\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">
+(defun +dispatch--strip-svg-wrapper (svg-str)
+  "Remove the outer <svg>...</svg> tags from SVG-STR."
+  (replace-regexp-in-string
+   "\\`<svg[^>]*>" ""
+   (replace-regexp-in-string "</svg>\\'" "" svg-str)))
+
+(defun +dispatch--combine-svgs (top-svg bottom-svg gap-above gap-below)
+  "Stack TOP-SVG and BOTTOM-SVG vertically with GAP-ABOVE and GAP-BELOW."
+  (when-let* ((top-dims (+dispatch--svg-dimensions top-svg))
+              (bot-dims (+dispatch--svg-dimensions bottom-svg)))
+    (let* ((w (max (car top-dims) (car bot-dims)))
+           (h (+ (cdr top-dims) gap-above (cdr bot-dims) gap-below)))
+      (format "<svg width=\"%d\" height=\"%d\" version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\">
 <svg y=\"0\">%s</svg>
 <svg y=\"%d\">%s</svg>
 </svg>"
-                               total-w total-h
-                               ;; Strip outer <svg> wrapper from original
-                               (replace-regexp-in-string
-                                "\\`<svg[^>]*>" ""
-                                (replace-regexp-in-string "</svg>\\'" "" orig-data))
-                               (+ orig-h gap-above)
-                               ;; Strip outer <svg> wrapper from graph
-                               (replace-regexp-in-string
-                                "\\`<svg[^>]*>" ""
-                                (replace-regexp-in-string "</svg>\\'" "" +dispatch--current-graph-svg))))
-             (img (list 'image :type 'svg :data combined :scale 'default)))
-        (setq header-line-format
-              (format " %s" (propertize " " 'display img)))))))
+              w h
+              (+dispatch--strip-svg-wrapper top-svg)
+              (+ (cdr top-dims) gap-above)
+              (+dispatch--strip-svg-wrapper bottom-svg)))))
 
-(defun +dispatch-start (dispatcher-buffer tasks &optional interval)
+(defun +dispatch--cycle-spinner ()
+  "Advance the spinner frame and update the working icon."
+  (cl-incf +dispatch--spinner-index)
+  (plist-put (cdr (assq 'working (plist-get (+dispatch--theme-colors) :status)))
+             :icon (nth (% +dispatch--spinner-index (length +dispatch--spinner-frames))
+                        +dispatch--spinner-frames)))
+
+(defun +dispatch--build-render-data (tasks statuses)
+  "Resolve task statuses into render-ready plists."
+  (cl-loop for task in tasks
+           for (effective elapsed detail _started)
+           = (+dispatch--resolve-status task statuses)
+           collect (list :id (plist-get task :id)
+                         :name (plist-get task :name)
+                         :status effective
+                         :elapsed elapsed
+                         :detail detail
+                         :depends-on (plist-get task :depends-on))))
+
+(defun +dispatch--extend-header (&rest _)
+  "Build task graph SVG and append it below agent-shell's header SVG.
+Called as :after advice on `agent-shell--update-header-and-mode-line'."
+  (when-let* ((state +meta-agent-shell--dispatch-state)
+              (tasks (plist-get state :tasks))
+              (statuses (plist-get state :statuses))
+              ((stringp header-line-format))
+              (disp (get-text-property 1 'display header-line-format))
+              (orig-svg (plist-get (cdr disp) :data)))
+    (+dispatch--cycle-spinner)
+    (let* ((render-data (+dispatch--build-render-data tasks statuses))
+           (svg (+dispatch--build-svg render-data))
+           (graph-svg (with-temp-buffer (svg-print svg) (buffer-string)))
+           (graph-svg (+dispatch--apply-viewport graph-svg render-data (buffer-name)))
+           (combined (+dispatch--combine-svgs orig-svg graph-svg -12 10)))
+      (when combined
+        (setq header-line-format
+              (format " %s" (propertize " " 'display
+                                        (list 'image :type 'svg
+                                              :data combined :scale 'default))))))))
+
+(defun +dispatch-start (dispatcher-buffer tasks &optional _interval)
   "Start the dispatch task graph in the agent-shell header.
 DISPATCHER-BUFFER is the dispatcher's agent-shell buffer name.
-TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...).
-INTERVAL is seconds between render updates (default 2)."
+TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
   (+dispatch-stop)
   (setq +meta-agent-shell--pending-permission-agents nil)
   ;; Normalize :agent — default to dispatcher buffer if missing or not a string
@@ -639,26 +693,20 @@ INTERVAL is seconds between render updates (default 2)."
                               (let ((agent (plist-get task :agent)))
                                 (if (stringp agent) task
                                   (plist-put (copy-sequence task) :agent dispatcher-buffer))))
-                            tasks))
-        (interval (or interval 2)))
+                            tasks)))
     (setq +meta-agent-shell--dispatch-state
           (list :dispatcher-buffer dispatcher-buffer
                 :tasks normalized
-                :statuses (make-hash-table :test 'equal)
-                :timer (run-with-timer 1 interval #'+dispatch--render)))
-    ;; Install header advice
+                :statuses (make-hash-table :test 'equal)))
+    ;; Install header advice — graph rebuilds on every header update
     (advice-add 'agent-shell--update-header-and-mode-line
                 :after #'+dispatch--extend-header)))
 
 (defun +dispatch-stop ()
-  "Stop the dispatch render timer and remove header graph."
+  "Remove the dispatch task graph from the header."
   (let ((dispatcher (and +meta-agent-shell--dispatch-state
                          (plist-get +meta-agent-shell--dispatch-state :dispatcher-buffer))))
-    (when-let* ((state +meta-agent-shell--dispatch-state)
-                (timer (plist-get state :timer)))
-      (cancel-timer timer))
-    (setq +dispatch--current-graph-svg nil
-          +meta-agent-shell--dispatch-state nil)
+    (setq +meta-agent-shell--dispatch-state nil)
     ;; Remove header advice and force header rebuild
     (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch--extend-header)
     (when-let* ((buf (and dispatcher (get-buffer dispatcher))))
