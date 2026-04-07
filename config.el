@@ -780,48 +780,7 @@
 (use-package! meta-agent-shell
   :after agent-shell
   :config
-  ;; -- Permission prompt for background agents --
-  (defun +meta-agent-shell-prompt-permission (agent-name title kind on-accept on-reject)
-    "Prompt user to accept or reject a permission from AGENT-NAME.
-TITLE and KIND describe the permission. Calls ON-ACCEPT or ON-REJECT."
-    (run-at-time 0 nil
-                 (lambda ()
-                   (if (y-or-n-p (format "[%s] %s (%s) — Allow? " agent-name title kind))
-                       (funcall on-accept)
-                     (funcall on-reject)))))
-
-  (defun +meta-agent-shell-forward-permission (permission)
-    "Forward PERMISSION to user via y-or-n-p prompt."
-    (when-let* ((tool-call (map-elt permission :tool-call))
-                (respond (map-elt permission :respond))
-                (title (or (map-elt tool-call :title) "unknown"))
-                (kind (or (map-elt tool-call :kind) "unknown"))
-                (agent-buf (buffer-name)))
-      (+meta-agent-shell-prompt-permission
-       agent-buf title kind
-       (lambda () (funcall respond "allow_once"))
-       (lambda () (funcall respond "reject_once")))
-      t))
-
-  ;; -- Start function for spawned agents --
-  (defun +meta-agent-shell-start (_arg &optional _buffer-name)
-    "Start a new Claude agent-shell for meta-agent-shell.
-No window popup, no session prompt, acceptEdits mode.
-Permissions are prompted to the user directly."
-    (let* ((config (copy-alist (agent-shell-anthropic-make-claude-code-config)))
-           (buf nil))
-      (setf (map-elt config :default-session-mode-id)
-            (lambda () "acceptEdits"))
-      (setq buf (agent-shell--start :config config
-                                    :no-focus t
-                                    :new-session t
-                                    :session-strategy 'new))
-      (when (buffer-live-p buf)
-        (with-current-buffer buf
-          (rename-buffer (concat "[agent] " (buffer-name)) t)
-          (setq-local agent-shell-permission-responder-function
-                      #'+meta-agent-shell-forward-permission)))
-      buf))
+  (load! "agent/+agent-dispatcher")
   (setq meta-agent-shell-start-function #'+meta-agent-shell-start))
 
 (use-package! agent-shell
@@ -895,9 +854,9 @@ Permissions are prompted to the user directly."
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
 
-  (load! "+agent-shell-ediff")
-  (load! "+agent-shell-view-on-y")
-  (load! "+agent-shell-interrupt-fix"))
+  (load! "agent/+agent-shell-ediff")
+  (load! "agent/+agent-shell-view-on-y")
+  (load! "agent/+agent-shell-interrupt-fix"))
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
