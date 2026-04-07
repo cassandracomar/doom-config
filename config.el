@@ -766,9 +766,6 @@
             (claude-code-ide-mcp-server-ensure-server)
             session-id)))
 
-(setenv "EDITOR" "emacsclient")
-(setenv "VISUAL" "emacsclient")
-
 (use-package! shell-maker
   :defer t)
 
