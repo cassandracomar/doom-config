@@ -114,6 +114,7 @@ When :states is present, the binding is active in those Evil states
 \(e.g. :states (normal), :states (normal insert visual)).
 Without :states, the binding is active in all states via `define-key'.
 DESCRIPTION is ignored (used by `define-transient!' on the same spec)."
+  (declare (indent 1))
   (let ((resolved (if (and (= 1 (length groups)) (symbolp (car groups)))
                       (symbol-value (car groups))
                     groups)))
@@ -139,7 +140,7 @@ a list of group specs.  Each group spec is:
 
 KEY and DESCRIPTION are shown in the transient menu.
 Extra properties (like :states (normal)) are ignored."
-
+  (declare (indent 1))
   (let ((resolved (if (and (= 1 (length groups)) (symbolp (car groups)))
                       (symbol-value (car groups))
                     groups)))
@@ -155,6 +156,7 @@ Extra properties (like :states (normal)) are ignored."
 Combines `define-keys!' and `define-transient!' from a single spec.
 See those macros for the GROUPS format.  DOCSTRING is the transient's
 documentation string.  GROUPS can be inline specs or a single symbol."
+  (declare (indent 2))
   (let ((resolved (if (and (= 1 (length groups)) (symbolp (car groups)))
                       (car groups)
                     nil)))
@@ -873,33 +875,33 @@ documentation string.  GROUPS can be inline specs or a single symbol."
                     (+setup-claude-code-ide)
                     (+setup-emacs-mcp))))))
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
-                              "Agent shell commands."
-                              ("Navigate"
-                               ("C-j" "Next item" agent-shell-next-item)
-                               ("C-k" "Previous item" agent-shell-previous-item)
-                               ("<tab>" "Forward block" agent-shell-ui-forward-block)
-                               ("<backtab>" "Backward block" agent-shell-ui-backward-block)
-                               ("/" "Toggle fragment" agent-shell-ui-toggle-fragment-at-point :states (normal))
-                               ("b" "Jump to permission" agent-shell-jump-to-latest-permission-button-row :states (normal)))
-                              ("Compose"
-                               ("C-c C-e" "Compose prompt" agent-shell-prompt-compose)
-                               ("C-r" "Search history" agent-shell-search-history)
-                               ("r" "Send region" agent-shell-send-region :states (normal))
-                               ("f" "Send file" agent-shell-send-other-file :states (normal))
-                               ("i" "Paste image" agent-shell-send-clipboard-image :states (normal)))
-                              ("Session"
-                               ("<C-tab>" "Cycle mode" agent-shell-cycle-session-mode)
-                               ("m" "Set model" agent-shell-set-session-model :states (normal))
-                               ("M" "Set mode" agent-shell-set-session-mode :states (normal))
-                               ("y" "Fork session" agent-shell-fork :states (normal))
-                               ("q" "Restart" agent-shell-restart :states (normal))
-                               ("o" "Toggle shell" agent-shell-toggle :states (normal)))
-                              ("Launch"
-                               ("l" "Start Claude Code" agent-shell-anthropic-start-claude-code :states (normal)))
-                              ("Debug"
-                               ("t" "Traffic" agent-shell-view-traffic :states (normal))
-                               ("T" "Transcript" agent-shell-open-transcript :states (normal))
-                               ("u" "Usage" agent-shell-show-usage :states (normal))))
+    "Agent shell commands."
+    ("Navigate"
+     ("C-j" "Next item" agent-shell-next-item)
+     ("C-k" "Previous item" agent-shell-previous-item)
+     ("<tab>" "Forward block" agent-shell-ui-forward-block)
+     ("<backtab>" "Backward block" agent-shell-ui-backward-block)
+     ("/" "Toggle fragment" agent-shell-ui-toggle-fragment-at-point :states (normal))
+     ("b" "Jump to permission" agent-shell-jump-to-latest-permission-button-row :states (normal)))
+    ("Compose"
+     ("C-c C-e" "Compose prompt" agent-shell-prompt-compose)
+     ("C-r" "Search history" agent-shell-search-history)
+     ("r" "Send region" agent-shell-send-region :states (normal))
+     ("f" "Send file" agent-shell-send-other-file :states (normal))
+     ("i" "Paste image" agent-shell-send-clipboard-image :states (normal)))
+    ("Session"
+     ("<C-tab>" "Cycle mode" agent-shell-cycle-session-mode)
+     ("m" "Set model" agent-shell-set-session-model :states (normal))
+     ("M" "Set mode" agent-shell-set-session-mode :states (normal))
+     ("y" "Fork session" agent-shell-fork :states (normal))
+     ("q" "Restart" agent-shell-restart :states (normal))
+     ("o" "Toggle shell" agent-shell-toggle :states (normal)))
+    ("Launch"
+     ("l" "Start Claude Code" agent-shell-anthropic-start-claude-code :states (normal)))
+    ("Debug"
+     ("t" "Traffic" agent-shell-view-traffic :states (normal))
+     ("T" "Transcript" agent-shell-open-transcript :states (normal))
+     ("u" "Usage" agent-shell-show-usage :states (normal))))
   (evil-define-key 'normal agent-shell-mode-map (kbd "?") #'+agent-shell-menu)
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
