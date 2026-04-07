@@ -289,12 +289,22 @@ to avoid crossing intermediate boxes."
     (dom-append-child svg
       (dom-node 'path
         `((d . ,(if bypass-y
-                    ;; Both control points at bypass-y: arc stays high/low
-                    (let ((by (float bypass-y)))
-                      (format "M%f,%f C%f,%f %f,%f %f,%f"
+                    ;; Composite bezier: depart → cruise → arrive
+                    (let* ((by (float bypass-y))
+                           (span (- ex (float x1)))
+                           (rise (min (float (plist-get L :col-gap))
+                                      (/ span 3.0)))
+                           (jx1 (+ (float x1) rise))
+                           (jx2 (- ex rise))
+                           (cp (* 0.55 rise)))
+                      (format "M%f,%f C%f,%f %f,%f %f,%f L%f,%f C%f,%f %f,%f %f,%f"
                               (float x1) (float y1)
-                              (+ x1 20.0) by
-                              (- ex 20.0) by
+                              (+ (float x1) cp) (float y1)
+                              (- jx1 cp) by
+                              jx1 by
+                              jx2 by
+                              (+ jx2 cp) by
+                              (- ex cp) ey
                               ex ey))
                   ;; Direct bezier
                   (let ((cp (* (plist-get L :arrow-cp-factor) (abs (- x2 x1)))))
@@ -535,8 +545,7 @@ When STACK-MAP is non-nil, also avoids stacked pair bounds at the destination."
                             min-top (min min-top (plist-get bounds :top))
                             max-bot (max max-bot (plist-get bounds :bot))))
         (when has-intermediate
-          (let ((pad (+ (plist-get +dispatch--layout :node-pad)
-                        (if check-to 28 6))))
+          (let ((pad (+ (plist-get +dispatch--layout :node-pad) 6)))
             (if (< from-cy (/ h 2))
                 (- min-top pad)
               (+ max-bot pad))))))))
@@ -639,8 +648,18 @@ When STACK-MAP is non-nil, skip edges between stacked pair members."
                                   for si = (and stack-map (gethash lv stack-map))
                                   unless (and si (eq (plist-get si :position) 'bottom))
                                   maximize (+ (gethash lv col-xs) (gethash lv col-widths))))
+         (edges (+dispatch--transitive-reduce leveled))
+         (has-bypass (let ((id-lv (make-hash-table :test 'equal)))
+                       (puthash "start" -1 id-lv)
+                       (puthash "end" (1+ max-level) id-lv)
+                       (dolist (t_ leveled) (puthash (plist-get t_ :id) (plist-get t_ :level) id-lv))
+                       (cl-loop for (from . to) in edges
+                                thereis (> (- (gethash to id-lv)
+                                             (gethash from id-lv))
+                                           1))))
+         (bypass-pad (if has-bypass (+ node-pad 6 5) 0))
          (w (+ last-col-right col-gap pill-w margin))
-         (h (max (+ (* 2 margin) max-col-h) 60))
+         (h (max (+ (* 2 (+ margin bypass-pad)) max-col-h) 60))
          (svg (svg-create w h))
          (node-edges (make-hash-table :test 'equal)))
 
@@ -698,9 +717,7 @@ When STACK-MAP is non-nil, skip edges between stacked pair members."
              node-edges)
 
     ;; Arrows with bypass routing
-    (+dispatch--draw-edges svg
-                           (+dispatch--transitive-reduce leveled)
-                           node-edges leveled
+    (+dispatch--draw-edges svg edges node-edges leveled
                            (+dispatch--compute-col-bounds
                             node-edges leveled task-heights (plist-get L :node-h) stack-map)
                            h theme stack-map)
