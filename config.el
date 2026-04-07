@@ -98,10 +98,10 @@
 ;; MACROS
 (eval-when-compile (require 'cl-lib))
 
-(defmacro define-keys! (keymap &rest groups)
+(defun define-keys (keymap groups)
   "Define keybindings in KEYMAP from grouped binding specs.
 
-Each element of GROUPS is:
+GROUPS is a list of:
 
   (\"Group Name\"
    (KEY DESCRIPTION COMMAND &optional :states (STATE ...))
@@ -112,20 +112,22 @@ When :states is present, the binding is active in those Evil states
 \(e.g. :states (normal), :states (normal insert visual)).
 Without :states, the binding is active in all states via `define-key'.
 DESCRIPTION is ignored (used by `define-transient!' on the same spec)."
-  `(progn
-     ,@(cl-loop for group in groups
-                nconc (cl-loop for b in (cdr group)
-                               for states = (plist-get (nthcdr 3 b) :states)
-                               if states
-                               nconc (cl-loop for state in states
-                                              collect `(evil-define-key ',state ,keymap (kbd ,(nth 0 b)) #',(nth 2 b)))
-                               else collect `(define-key ,keymap (kbd ,(nth 0 b)) #',(nth 2 b))))))
+  (dolist (group groups)
+    (dolist (b (cdr group))
+      (let ((key (nth 0 b))
+            (cmd (nth 2 b))
+            (states (plist-get (nthcdr 3 b) :states)))
+        (if states
+            (dolist (state states)
+              (evil-define-key state keymap (kbd key) cmd))
+          (define-key keymap (kbd key) cmd))))))
 
 (defmacro define-transient! (transient-name docstring &rest groups)
   "Generate a transient prefix TRANSIENT-NAME from grouped binding specs.
 DOCSTRING is the transient's documentation string.
 
-Each element of GROUPS is:
+GROUPS can be inline group specs or a single symbol whose value is
+a list of group specs.  Each group spec is:
 
   (\"Group Name\"
    (KEY DESCRIPTION COMMAND ...)
@@ -133,21 +135,15 @@ Each element of GROUPS is:
 
 KEY and DESCRIPTION are shown in the transient menu.
 Extra properties (like :states (normal)) are ignored."
-  `(transient-define-prefix ,transient-name ()
-     ,docstring
-     [,@(cl-loop for group in groups
-                 collect (apply #'vector (car group)
-                                (cl-loop for b in (cdr group)
-                                         collect (list (nth 0 b) (nth 1 b) (nth 2 b)))))]))
-
-(defmacro define-keys-and-transient! (keymap transient-name docstring &rest groups)
-  "Define keybindings in KEYMAP and a transient prefix TRANSIENT-NAME.
-Combines `define-keys!' and `define-transient!' from a single spec.
-See those macros for the GROUPS format.  DOCSTRING is the transient's
-documentation string."
-  `(progn
-     (define-keys! ,keymap ,@groups)
-     (define-transient! ,transient-name ,docstring ,@groups)))
+  (let ((resolved (if (and (= 1 (length groups)) (symbolp (car groups)))
+                      (symbol-value (car groups))
+                    groups)))
+    `(transient-define-prefix ,transient-name ()
+       ,docstring
+       [,@(cl-loop for group in resolved
+                   collect (apply #'vector (car group)
+                                  (cl-loop for b in (cdr group)
+                                           collect (list (nth 0 b) (nth 1 b) (nth 2 b)))))])))
 
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
@@ -830,6 +826,42 @@ documentation string."
 (use-package! acp
   :defer t)
 
+;; Single source of truth for agent-shell keybindings.
+;; Used by define-transient! (init time) and define-keys! (config time).
+(eval-and-compile
+  (defconst +agent-shell-keys
+    '(("Navigate"
+       ("C-j" "Next item" agent-shell-next-item)
+       ("C-k" "Previous item" agent-shell-previous-item)
+       ("<tab>" "Forward block" agent-shell-ui-forward-block)
+       ("<backtab>" "Backward block" agent-shell-ui-backward-block)
+       ("/" "Toggle fragment" agent-shell-ui-toggle-fragment-at-point :states (normal))
+       ("b" "Jump to permission" agent-shell-jump-to-latest-permission-button-row :states (normal)))
+      ("Compose"
+       ("C-c C-e" "Compose prompt" agent-shell-prompt-compose)
+       ("C-r" "Search history" agent-shell-search-history)
+       ("r" "Send region" agent-shell-send-region :states (normal))
+       ("f" "Send file" agent-shell-send-other-file :states (normal))
+       ("i" "Paste image" agent-shell-send-clipboard-image :states (normal)))
+      ("Session"
+       ("<C-tab>" "Cycle mode" agent-shell-cycle-session-mode)
+       ("m" "Set model" agent-shell-set-session-model :states (normal))
+       ("M" "Set mode" agent-shell-set-session-mode :states (normal))
+       ("y" "Fork session" agent-shell-fork :states (normal))
+       ("q" "Restart" agent-shell-restart :states (normal))
+       ("o" "Toggle shell" agent-shell-toggle :states (normal)))
+      ("Launch"
+       ("l" "Start Claude Code" agent-shell-anthropic-start-claude-code :states (normal)))
+      ("Debug"
+       ("t" "Traffic" agent-shell-view-traffic :states (normal))
+       ("T" "Transcript" agent-shell-open-transcript :states (normal))
+       ("u" "Usage" agent-shell-show-usage :states (normal))))))
+
+;; Transient defined at init time (before agent-shell loads) so SPC l works.
+;; Passing a symbol — define-transient! resolves it at macro-expansion time.
+(define-transient! +agent-shell-menu "Agent shell commands." +agent-shell-keys)
+(map! :leader "l" #'+agent-shell-menu)
+
 (use-package! agent-shell
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell
@@ -855,40 +887,8 @@ documentation string."
            (url . (lambda ()
                     (+setup-claude-code-ide)
                     (+setup-emacs-mcp))))))
+  (define-keys agent-shell-mode-map +agent-shell-keys)
+  (evil-define-key 'normal agent-shell-mode-map (kbd "?") #'+agent-shell-menu)
   (load! "+agent-shell-ediff")
   (load! "+agent-shell-view-on-y")
   (load! "+agent-shell-interrupt-fix"))
-
-(define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
-  "Agent shell commands."
-  ("Navigate"
-   ("C-j" "Next item" agent-shell-next-item)
-   ("C-k" "Previous item" agent-shell-previous-item)
-   ("<tab>" "Forward block" agent-shell-ui-forward-block)
-   ("<backtab>" "Backward block" agent-shell-ui-backward-block)
-   ("/" "Toggle fragment" agent-shell-ui-toggle-fragment-at-point :states (normal))
-   ("b" "Jump to permission" agent-shell-jump-to-latest-permission-button-row :states (normal)))
-  ("Compose"
-   ("C-c C-e" "Compose prompt" agent-shell-prompt-compose)
-   ("C-r" "Search history" agent-shell-search-history)
-   ("r" "Send region" agent-shell-send-region :states (normal))
-   ("f" "Send file" agent-shell-send-other-file :states (normal))
-   ("i" "Paste image" agent-shell-send-clipboard-image :states (normal)))
-  ("Session"
-   ("<C-tab>" "Cycle mode" agent-shell-cycle-session-mode)
-   ("m" "Set model" agent-shell-set-session-model :states (normal))
-   ("M" "Set mode" agent-shell-set-session-mode :states (normal))
-   ("y" "Fork session" agent-shell-fork :states (normal))
-   ("q" "Restart" agent-shell-restart :states (normal))
-   ("o" "Toggle shell" agent-shell-toggle :states (normal)))
-  ("Launch"
-   ("l" "Start Claude Code" agent-shell-anthropic-start-claude-code :states (normal)))
-  ("Debug"
-   ("t" "Traffic" agent-shell-view-traffic :states (normal))
-   ("T" "Transcript" agent-shell-open-transcript :states (normal))
-   ("u" "Usage" agent-shell-show-usage :states (normal))))
-
-(evil-define-key 'normal agent-shell-mode-map (kbd "?") #'+agent-shell-menu)
-
-;; SPC l opens the transient menu
-(map! :leader "l" #'+agent-shell-menu)
