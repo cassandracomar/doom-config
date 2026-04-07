@@ -99,9 +99,9 @@ DOCSTRING is the transient's doc string; BODY is parsed by `+parse-key-groups'."
     `(progn
        ,@(cl-loop for group in groups
                   nconc (cl-loop for b in (cdr group)
-                                 for state = (nth 3 b)
-                                 if (keywordp state)
-                                 collect `(map! :map ,keymap ,state ,(nth 0 b) ,(nth 2 b))
+                                 for states = (nth 3 b)
+                                 if states
+                                 collect `(map! :map ,keymap ,@states ,(nth 0 b) ,(nth 2 b))
                                  else collect `(map! :map ,keymap ,(nth 0 b) ,(nth 2 b))))
        (transient-define-prefix ,transient-name ()
          ,docstring
