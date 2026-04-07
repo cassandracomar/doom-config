@@ -5,6 +5,7 @@
 
 (require 'cl-lib)
 (require 'map)
+(require 'svg)
 
 (declare-function agent-shell--make-permission-button "agent-shell")
 (declare-function agent-shell--start "agent-shell")
@@ -144,103 +145,128 @@ DETAIL is an optional description of current activity."
                      :started (or (plist-get existing :started) (current-time)))
                statuses))))
 
+(defvar +dispatch--svg-colors
+  '((done       :bg "#2a4a2a" :fg "#b6e63e" :icon "✓")
+    (working    :bg "#4a3a1a" :fg "#fd971f" :icon "⠹")
+    (permission :bg "#4a1a2a" :fg "#f92672" :icon "🔒")
+    (waiting    :bg "#2a2a2a" :fg "#75715e" :icon "◦")
+    (error      :bg "#4a1a1a" :fg "#f92672" :icon "✗")
+    (dead       :bg "#1a1a1a" :fg "#555555" :icon "?"))
+  "Color scheme for dispatch SVG task graph.")
+
+(defun +dispatch--build-svg (tasks-info)
+  "Build an SVG image from TASKS-INFO, a list of plists.
+Each entry: (:name NAME :status STATUS :elapsed STR :detail STR-OR-NIL)."
+  (let* ((row-h 38) (detail-h 16) (pad 6) (w 440) (font "Iosevka Nerd Font")
+         (total-h (+ pad (cl-loop for info in tasks-info
+                                  sum (+ row-h (if (plist-get info :detail) detail-h 0) pad))))
+         (svg (svg-create w total-h))
+         (y pad))
+    (svg-rectangle svg 0 0 w total-h :fill "#1a1a2e" :rx 8)
+    (dolist (info tasks-info)
+      (let* ((status (plist-get info :status))
+             (name (plist-get info :name))
+             (elapsed (or (plist-get info :elapsed) ""))
+             (detail (plist-get info :detail))
+             (colors (cdr (assq status +dispatch--svg-colors)))
+             (bg (plist-get colors :bg))
+             (fg (plist-get colors :fg))
+             (icon (plist-get colors :icon))
+             (box-h (+ row-h (if detail detail-h 0))))
+        (svg-rectangle svg pad y (- w (* 2 pad)) box-h :fill bg :rx 5)
+        (svg-text svg (format "%s  %s" icon name)
+                  :x (+ pad 10) :y (+ y 24)
+                  :fill fg :font-size 14 :font-family font)
+        (when (> (length elapsed) 0)
+          (svg-text svg elapsed
+                    :x (- w pad 12) :y (+ y 24)
+                    :fill "#75715e" :font-size 12 :font-family font
+                    :text-anchor "end"))
+        (when detail
+          (svg-text svg (format "└ %s" detail)
+                    :x (+ pad 26) :y (+ y 24 detail-h)
+                    :fill "#75715e" :font-size 11 :font-family font))
+        (setq y (+ y box-h pad))))
+    svg))
+
+(defun +dispatch--resolve-status (task statuses)
+  "Determine effective status for TASK given STATUSES hash.
+Returns (STATUS ELAPSED DETAIL STARTED) list."
+  (let* ((id (plist-get task :id))
+         (agent-buf (plist-get task :agent))
+         (buf (get-buffer agent-buf))
+         (alive (and buf (get-buffer-process buf)))
+         (busy (and buf (buffer-local-value 'shell-maker--busy buf)))
+         (perm (member agent-buf +meta-agent-shell--pending-permission-agents))
+         (reported (gethash id statuses))
+         (rep-status (plist-get reported :status))
+         (rep-detail (plist-get reported :detail))
+         (started (plist-get reported :started))
+         (effective (cond
+                     ((eq rep-status 'done) 'done)
+                     ((eq rep-status 'error) 'error)
+                     (perm 'permission)
+                     ((and alive busy) 'working)
+                     ((eq rep-status 'working) 'working)
+                     ((and alive (not busy) started) 'done)
+                     (alive 'waiting)
+                     (t 'dead))))
+    ;; Record start time on first working state
+    (when (and (eq effective 'working) (not started))
+      (puthash id (list :status 'working :detail rep-detail
+                        :updated (current-time) :started (current-time))
+               statuses)
+      (setq started (current-time)))
+    (list effective
+          (if started (+dispatch--format-elapsed started) nil)
+          (and rep-detail (memq effective '(working permission)) rep-detail)
+          started)))
+
 (defun +dispatch--render ()
-  "Render the dispatch task graph as a progress fragment.
+  "Render the dispatch task graph as an SVG in a progress fragment.
 Combines agent-reported status with shell-maker--busy fallback."
   (when-let* ((state +meta-agent-shell--dispatch-state)
               (dispatcher (plist-get state :dispatcher-buffer))
               (tasks (plist-get state :tasks))
               (statuses (plist-get state :statuses))
               ((get-buffer dispatcher)))
-    (let ((spinner (nth (% +dispatch--spinner-index
-                           (length +dispatch--spinner-frames))
+    ;; Cycle spinner
+    (cl-incf +dispatch--spinner-index)
+    (let ((spinner (nth (% +dispatch--spinner-index (length +dispatch--spinner-frames))
                         +dispatch--spinner-frames)))
-      (cl-incf +dispatch--spinner-index)
-      (cl-loop
-       with total = (length tasks)
-       with max-name-len = (cl-loop for task in tasks
-                                    maximize (length (plist-get task :name)))
-       for task in tasks
-       for id = (plist-get task :id)
-       for name = (plist-get task :name)
-       for agent-buf = (plist-get task :agent)
-       for buf = (get-buffer agent-buf)
-       for alive = (and buf (get-buffer-process buf))
-       for busy = (and buf (buffer-local-value 'shell-maker--busy buf))
-       for perm = (member agent-buf +meta-agent-shell--pending-permission-agents)
-       for reported = (gethash id statuses)
-       for rep-status = (plist-get reported :status)
-       for rep-detail = (plist-get reported :detail)
-       for started = (plist-get reported :started)
-       for elapsed = (if started (+dispatch--format-elapsed started) "")
-       for padded = (format (format "%%-%ds" max-name-len) name)
-
-       ;; Determine effective status: agent report > busy poll > fallback
-       for effective = (cond
-                        ((eq rep-status 'done) 'done)
-                        ((eq rep-status 'error) 'error)
-                        (perm 'permission)
-                        ((and alive busy) 'working)
-                        ((eq rep-status 'working) 'working)
-                        ((and alive (not busy) started) 'done)
-                        (alive 'waiting)
-                        (t 'dead))
-
-       ;; Record start time on first working state
-       when (and (eq effective 'working) (not started))
-         do (puthash id (list :status 'working :detail rep-detail
-                              :updated (current-time) :started (current-time))
-                    statuses)
-         and do (setq elapsed "0s")
-
-       ;; Count
-       when (eq effective 'done) count t into ready-count
-       when (memq effective '(working permission)) count t into busy-count
-
-       ;; Render line
-       collect
-       (let ((status-icon
-              (pcase effective
-                ('working  (propertize (format " %s " spinner) 'font-lock-face 'warning))
-                ('permission (propertize " 🔒 " 'font-lock-face 'error))
-                ('done     (propertize " ✓ " 'font-lock-face 'success))
-                ('waiting  (propertize " ◦ " 'font-lock-face 'font-lock-comment-face))
-                ('error    (propertize " ✗ " 'font-lock-face 'error))
-                (_         (propertize " ? " 'font-lock-face 'font-lock-comment-face))))
-             (name-str
-              (propertize padded 'font-lock-face
-                          (if (eq effective 'dead) '(:strike-through t)
-                            'font-lock-function-name-face)))
-             (time-str
-              (if (member effective '(working permission done error))
-                  (propertize (format " %5s" elapsed) 'font-lock-face 'font-lock-comment-face)
-                ""))
-             (detail-str
-              (if (and rep-detail (memq effective '(working permission)))
-                  (concat "\n"
-                          (propertize (format "     └ %s" rep-detail)
-                                     'font-lock-face 'font-lock-doc-face))
-                "")))
-         (concat " " status-icon name-str time-str detail-str))
-       into lines
-
-       finally do
-       (with-current-buffer dispatcher
-         (agent-shell-ui-update-fragment
-          (agent-shell-ui-make-fragment-model
-           :namespace-id "dispatch-progress"
-           :block-id "status"
-           :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
-           :label-right (propertize
-                         (let ((r (or ready-count 0)) (b (or busy-count 0)))
-                           (cond
-                            ((= r total) (format "[%d/%d ✓ complete]" r total))
-                            ((> b 0) (format "[%d/%d done, %d active]" r total b))
-                            (t (format "[%d/%d done]" r total))))
-                         'font-lock-face
-                         (if (= (or ready-count 0) total) 'success 'font-lock-comment-face))
-           :body (string-join lines "\n"))
-          :expanded t))))))
+      ;; Update spinner icon in color scheme
+      (plist-put (cdr (assq 'working +dispatch--svg-colors)) :icon spinner))
+    ;; Resolve statuses and build render data
+    (let* ((total (length tasks))
+           (ready-count 0) (busy-count 0)
+           (render-data
+            (cl-loop for task in tasks
+                     for (effective elapsed detail _started)
+                       = (+dispatch--resolve-status task statuses)
+                     when (eq effective 'done) do (cl-incf ready-count)
+                     when (memq effective '(working permission)) do (cl-incf busy-count)
+                     collect (list :name (plist-get task :name)
+                                   :status effective
+                                   :elapsed elapsed
+                                   :detail detail)))
+           (svg (+dispatch--build-svg render-data))
+           (img (svg-image svg :scale 1.0))
+           (body (propertize "dispatch-graph" 'display img)))
+      (with-current-buffer dispatcher
+        (agent-shell-ui-update-fragment
+         (agent-shell-ui-make-fragment-model
+          :namespace-id "dispatch-progress"
+          :block-id "status"
+          :label-left (propertize " Dispatch" 'font-lock-face 'font-lock-keyword-face)
+          :label-right (propertize
+                        (cond
+                         ((= ready-count total) (format "[%d/%d ✓ complete]" ready-count total))
+                         ((> busy-count 0) (format "[%d/%d done, %d active]" ready-count total busy-count))
+                         (t (format "[%d/%d done]" ready-count total)))
+                        'font-lock-face
+                        (if (= ready-count total) 'success 'font-lock-comment-face))
+          :body body)
+         :expanded t)))))
 
 (defun +dispatch-start (dispatcher-buffer tasks &optional interval)
   "Start the dispatch task graph.
