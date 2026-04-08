@@ -42,20 +42,22 @@
 ;; `load-theme' function. This is the default:
 (setq doom-theme 'doom-molokai)
 
-;; Ediff: remove fg overrides so syntax highlighting shows through.
-;; Fine-diff gets brighter bg than current-diff for word-level emphasis.
-(let ((bg (face-background 'default))
-      (red (face-foreground 'error nil t))
-      (green (face-foreground 'success nil t)))
-  (custom-set-faces!
-    `(ediff-current-diff-A :foreground unspecified :inherit nil
-      :background ,(doom-blend red bg 0.2) :extend t)
-    `(ediff-current-diff-B :foreground unspecified :inherit nil
-      :background ,(doom-blend green bg 0.2) :extend t)
-    `(ediff-fine-diff-A    :foreground unspecified :inherit nil
-      :background ,(doom-blend red bg 0.35) :extend t)
-    `(ediff-fine-diff-B    :foreground unspecified :inherit nil
-      :background ,(doom-blend green bg 0.35) :extend t)))
+(add-hook!
+ 'doom-load-theme-hook
+ ;; Ediff: remove fg overrides so syntax highlighting shows through.
+ ;; Fine-diff gets brighter bg than current-diff for word-level emphasis.
+ (let ((bg (face-background 'default))
+       (red (face-foreground 'error nil t))
+       (green (face-foreground 'success nil t)))
+   (custom-set-faces!
+     `(ediff-current-diff-A :foreground unspecified :inherit nil
+       :background ,(doom-blend red bg 0.2) :extend t)
+     `(ediff-current-diff-B :foreground unspecified :inherit nil
+       :background ,(doom-blend green bg 0.2) :extend t)
+     `(ediff-fine-diff-A    :foreground unspecified :inherit nil
+       :background ,(doom-blend red bg 0.35) :extend t)
+     `(ediff-fine-diff-B    :foreground unspecified :inherit nil
+       :background ,(doom-blend green bg 0.35) :extend t))))
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
