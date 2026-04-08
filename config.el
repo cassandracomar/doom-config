@@ -863,7 +863,8 @@
 
   (load! "agent/+agent-shell-ediff")
   (load! "agent/+agent-shell-view-on-y")
-  (load! "agent/+agent-shell-interrupt-fix"))
+  (load! "agent/+agent-shell-interrupt-fix")
+  (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
