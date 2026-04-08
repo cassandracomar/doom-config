@@ -415,6 +415,11 @@
 ;; magit
 (add-hook! 'after-save-hook #'magit-after-save-refresh-status)
 
+;; ediff:
+;; global-hl-line-mode sets overlay priority to 100 (hardcoded) so switch to buffer-local hl-line-mode to prevent
+;; obscuring hunk highlighting faces. buffer-local hl-line mode has an overlay priority of -50.
+(add-hook! 'ediff-prepare-buffer-hook (hl-line-mode +1))
+
 (use-package! forge
   :defer t
   :config
