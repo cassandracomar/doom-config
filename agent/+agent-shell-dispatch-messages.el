@@ -128,5 +128,55 @@ Default is no-op."
          (t (goto-char (point-max))
             (insert text)))))))
 
+;; ── Render methods ──────────────────────────────────────────────────
+
+(cl-defmethod agent-shell-dispatch-msg-render
+  ((msg agent-shell-dispatch-msg-input-needed))
+  "Render input-needed as question with context."
+  (let ((q (agent-shell-dispatch-msg-input-needed-question msg))
+        (ctx (agent-shell-dispatch-msg-input-needed-context msg)))
+    (concat (propertize "❓ " 'font-lock-face 'warning)
+            (propertize q 'font-lock-face 'bold)
+            (when ctx (concat "\n\n" ctx)))))
+
+(cl-defmethod agent-shell-dispatch-msg-render
+  ((msg agent-shell-dispatch-msg-batch-progress))
+  "Render batch progress as milestone line."
+  (let ((phase (agent-shell-dispatch-msg-batch-progress-phase msg))
+        (done (agent-shell-dispatch-msg-batch-progress-completed msg))
+        (total (agent-shell-dispatch-msg-batch-progress-total msg)))
+    (concat (propertize "📋 " 'font-lock-face 'success)
+            (propertize (format "%s (%d/%d)" phase done total)
+                        'font-lock-face 'font-lock-function-name-face))))
+
+(cl-defmethod agent-shell-dispatch-msg-render
+  ((msg agent-shell-dispatch-msg-batch-completed))
+  "Render batch completed as summary."
+  (concat (propertize "✅ " 'font-lock-face 'success)
+          (propertize "Batch complete: " 'font-lock-face 'bold)
+          (agent-shell-dispatch-msg-batch-completed-summary msg)))
+
+(cl-defmethod agent-shell-dispatch-msg-render
+  ((msg agent-shell-dispatch-msg-task-progress))
+  "Render task progress as phase milestone."
+  (concat (propertize "📋 " 'font-lock-face 'success)
+          (agent-shell-dispatch-msg-task-progress-phase msg)))
+
+(cl-defmethod agent-shell-dispatch-msg-render
+  ((msg agent-shell-dispatch-msg-task-completed))
+  "Render task completed as summary."
+  (concat (propertize "✅ " 'font-lock-face 'success)
+          (propertize "Task complete: " 'font-lock-face 'bold)
+          (agent-shell-dispatch-msg-task-completed-summary msg)))
+
+(cl-defmethod agent-shell-dispatch-msg-render
+  ((msg agent-shell-dispatch-msg-error))
+  "Render error with description and context."
+  (let ((desc (agent-shell-dispatch-msg-error-description msg))
+        (ctx (agent-shell-dispatch-msg-error-context msg)))
+    (concat (propertize "❌ " 'font-lock-face 'error)
+            (propertize desc 'font-lock-face 'error)
+            (when ctx (concat "\n\n" ctx)))))
+
 (provide '+agent-shell-dispatch-messages)
 ;;; +agent-shell-dispatch-messages.el ends here
