@@ -782,14 +782,6 @@
 (use-package! acp
   :defer t)
 
-(use-package! meta-agent-shell
-  :after agent-shell
-  :config
-  (load! "agent/+dispatch-render")
-  (load! "agent/+agent-shell-dispatch-messages")
-  (load! "agent/+agent-dispatcher")
-  (setq meta-agent-shell-start-function (-partial #'agent-shell-dispatch-start-agent (agent-shell-anthropic-make-claude-code-config))))
-
 (use-package! agent-shell
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell
@@ -858,14 +850,6 @@
     :desc "Toggle shell"                                 :n       "C-o"       #'agent-shell-toggle
 
     :row
-    :block "Agents"
-    :desc "Agent dispatcher"                             :n       "m m"       #'meta-agent-shell-start
-    :desc "Project dispatcher"                           :n       "m d"       #'meta-agent-shell-jump-to-dispatcher
-    :desc "Start heartbeat"                              :n       "m h"       #'meta-agent-shell-heartbeat-start
-    :desc "Stop heartbeat"                               :n       "m H"       #'meta-agent-shell-heartbeat-stop
-    :desc "Send heartbeat now"                           :n       "m s"       #'meta-agent-shell-heartbeat-send-now
-    :desc "STOP ALL AGENTS"                              :n       "m !"       #'meta-agent-shell-big-red-button
-
     :block "Launch"
     :desc "Start Claude"                                 :n       "l"         #'agent-shell-anthropic-start-claude-code
 
@@ -877,20 +861,19 @@
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
 
-  (load! "agent/+agent-shell-ediff")
-
-  ;; Skip ediff's "Really quit?" prompt — go straight to "Accept changes?"
-  (defun +agent-shell-ediff-quit ()
-    "Quit ediff without the extra confirmation prompt."
-    (interactive)
-    (ediff-barf-if-not-control-buffer)
-    (setq this-command 'ediff-quit)
-    (ediff-really-quit nil))
-  (map! :map ediff-mode-map "q" #'+agent-shell-ediff-quit)
-
   (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
+
+(use-package! agent-shell-ediff
+  :after agent-shell
+  :custom
+  (agent-shell-ediff-quick-quit t)
+  :config
+  (agent-shell-ediff-mode 1))
+
+(use-package! agent-shell-dispatch
+  :after agent-shell)
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.

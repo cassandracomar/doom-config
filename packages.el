@@ -85,4 +85,5 @@
 (package! agent-shell :recipe (:host github :repo "xenodium/agent-shell") :pin "73718e228c2011b0f645ed4c6b3f2377965b1940")
 (package! claude-code-ide-extras-emacs :recipe (:host github :repo "acmorrow/claude-code-ide-extras" :files ("claude-code-ide-extras-common.el" "claude-code-ide-extras-emacs.el" "claude-code-ide-extras-meta.el" "claude-code-ide-extras-projectile.el")) :pin "56ad113f7206378ce23238dd7932737513a01748")
 (package! let-completion)
-(package! meta-agent-shell :recipe (:host github :repo "ElleNajt/meta-agent-shell") :pin "d1f4622b0f99105d7be2dd38a714fe7b9b5f49f5")
+(package! agent-shell-dispatch :recipe (:host github :repo "cassandracomar/agent-shell-dispatch") :pin "a4c963c017a479d743d63498d733a08d70988de4")
+(package! agent-shell-ediff :recipe (:host github :repo "cassandracomar/agent-shell-ediff") :pin "d4511be78560df7b0dcd7320ee44da0ba8c55959")
