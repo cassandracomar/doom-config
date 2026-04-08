@@ -288,7 +288,7 @@ When disabled, tears them all down and restores the header."
   "Start the dispatch task graph in the agent-shell header.
 DISPATCHER-BUFFER is the dispatcher's agent-shell buffer name.
 TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
-  (+dispatch-stop)
+  (+dispatch--teardown)
   (setq +dispatch--pending-permission-agents nil)
   ;; Normalize :agent — default to dispatcher buffer if missing or not a string
   (let ((normalized (mapcar (lambda (task)
@@ -314,10 +314,19 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
     (with-current-buffer (get-buffer dispatcher-buffer)
       (+dispatch-render-mode 1))))
 
+(defun +dispatch--teardown ()
+  "Stop rendering and clear state. Used by `+dispatch-start' to reset."
+  (when-let* ((state +dispatch--state)
+              (buf-name (+dispatch-state-dispatcher-buffer state))
+              (buf (get-buffer buf-name)))
+    (with-current-buffer buf
+      (when +dispatch-render-mode
+        (+dispatch-render-mode -1))))
+  (setq +dispatch--state nil))
+
 (defun +dispatch-stop ()
   "Stop the dispatch task graph rendering.
-State is preserved so the graph can be re-shown with `+dispatch-render-mode'.
-State is cleared on the next `+dispatch-start'."
+State is preserved so the graph can be re-shown with `+dispatch-render-mode'."
   (when-let* ((state +dispatch--state)
               (buf-name (+dispatch-state-dispatcher-buffer state))
               (buf (get-buffer buf-name)))
