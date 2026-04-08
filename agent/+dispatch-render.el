@@ -812,7 +812,7 @@ Returns a `+dispatch-render-ctx' for `+dispatch-render-draw'."
 CTX is a +dispatch-render-ctx from `+dispatch-render-prepare'.
 STATUS-MAP is a hash of task-id -> +dispatch-render-task-status."
   (let* ((L +dispatch-render--layout)
-         (theme (+dispatch-render-ctx-theme ctx))
+         (theme (+dispatch-render--theme-colors))
          (topo (+dispatch-render-ctx-topo ctx))
          (canvas (+dispatch-render-ctx-canvas ctx))
          (w (+dispatch-render-dimensions-w canvas))
