@@ -5,12 +5,7 @@
 
 (require 'cl-lib)
 (require 'map)
-
-
-(declare-function agent-shell--start "agent-shell")
-(declare-function agent-shell-anthropic-make-claude-code-config "agent-shell")
-(defvar agent-shell--state)
-(defvar shell-maker--busy)
+(require 'agent-shell)
 
 ;; ── Dispatcher structs ──────────────────────────────────────────────
 
@@ -180,7 +175,7 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
 
 
 (defun agent-shell-dispatch-stop ()
-  "Stop rendering. State is preserved for `agent-shell-dispatch-render-mode' toggle."
+  "Stop rendering. State preserved for mode toggle."
   (when agent-shell-dispatch-render-mode
     (agent-shell-dispatch-render-mode -1)))
 
@@ -241,3 +236,81 @@ BUFFER-NAME, if provided, is incorporated into the buffer label."
         (setq-local agent-shell-permission-responder-function
                     #'agent-shell-dispatch-forward-permission)))
     buf))
+
+;; -- Multi-agent coordination --
+
+(defun agent-shell-dispatch-spawn-agent (dir name &optional initial-message)
+  "Spawn a background agent in DIR with NAME.
+Sends INITIAL-MESSAGE if provided. Returns the buffer name."
+  (let* ((default-directory (expand-file-name dir))
+         (buf (agent-shell-dispatch-start-agent
+               (agent-shell-anthropic-make-claude-code-config)
+               nil name)))
+    (when (and buf (buffer-live-p buf) initial-message)
+      (agent-shell-dispatch-send-to-agent
+       (buffer-name buf) initial-message "dispatcher"))
+    (when (buffer-live-p buf) (buffer-name buf))))
+
+(defun agent-shell-dispatch-list-agents ()
+  "List active agent-shell dispatch buffers.
+Returns list of plists with :buffer and :status."
+  (let (result)
+    (dolist (buf (buffer-list))
+      (when (and (buffer-live-p buf)
+                 (with-current-buffer buf
+                   (derived-mode-p 'agent-shell-mode))
+                 (string-match-p "\\[agent:" (buffer-name buf)))
+        (push (list :buffer (buffer-name buf)
+                    :status (if (with-current-buffer buf
+                                  shell-maker--busy)
+                                "busy" "ready"))
+              result)))
+    (nreverse result)))
+
+(defun agent-shell-dispatch-send-to-agent (buffer-name message &optional from)
+  "Send MESSAGE to the agent session in BUFFER-NAME.
+FROM identifies the sender. Queues if agent is busy.
+Returns t on success, nil if buffer not found."
+  (when-let* ((buf (get-buffer buffer-name)))
+    (with-current-buffer buf
+      (let ((prompt (if from
+                        (format "[From: %s]\n\n%s" from message)
+                      message)))
+        (agent-shell--enqueue-request :prompt prompt)))
+    t))
+
+(defun agent-shell-dispatch-view-agent (buffer-name &optional num-lines)
+  "Return the last NUM-LINES (default 100) from BUFFER-NAME."
+  (when-let* ((buf (get-buffer buffer-name)))
+    (with-current-buffer buf
+      (let ((lines (or num-lines 100)))
+        (save-excursion
+          (goto-char (point-max))
+          (forward-line (- lines))
+          (buffer-substring-no-properties (point) (point-max)))))))
+
+(defun agent-shell-dispatch-view-all-agents (&optional num-chars)
+  "View recent output from all dispatch agents.
+Returns formatted summary with last NUM-CHARS (default 500) per agent."
+  (let ((chars (or num-chars 500))
+        (agents (agent-shell-dispatch-list-agents)))
+    (mapconcat
+     (lambda (agent)
+       (let* ((name (plist-get agent :buffer))
+              (status (plist-get agent :status))
+              (output (when-let* ((buf (get-buffer name)))
+                        (with-current-buffer buf
+                          (let ((s (buffer-substring-no-properties
+                                    (max (point-min) (- (point-max) chars))
+                                    (point-max))))
+                            (string-trim s))))))
+         (format "═══ %s [%s] ═══\n%s\n" name status (or output "(empty)"))))
+     agents "\n")))
+
+(defun agent-shell-dispatch-interrupt-agent (buffer-name)
+  "Interrupt the agent session in BUFFER-NAME.
+Returns t on success, nil if buffer not found."
+  (when-let* ((buf (get-buffer buffer-name)))
+    (with-current-buffer buf
+      (agent-shell-interrupt t))
+    t))

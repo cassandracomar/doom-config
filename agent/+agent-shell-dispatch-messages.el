@@ -9,11 +9,9 @@
 
 (require 'cl-lib)
 (require 'map)
+(require 'agent-shell)
 
-(declare-function agent-shell--make-permission-button "agent-shell")
-(declare-function agent-shell-diff "agent-shell-diff")
-(declare-function agent-shell-queue-request "agent-shell")
-(defvar shell-maker--busy)
+(defvar agent-shell-dispatch--primary-buffer)
 
 ;; ── Base struct ─────────────────────────────────────────────────────
 
@@ -81,7 +79,7 @@
   "Format MSG body as a propertized string.
 Does not include the agent-name frame — that is added by `msg-send'.")
 
-(cl-defgeneric agent-shell-dispatch-msg-handle (msg target-buf)
+(cl-defgeneric agent-shell-dispatch-msg-handle (_msg _target-buf)
   "Handle side effects of MSG after rendering in TARGET-BUF.
 Default is no-op."
   nil)
@@ -359,11 +357,11 @@ Permission render returns text with embedded keymap that must be preserved."
       (let ((agent (agent-shell-dispatch-msg-agent-buffer msg))
             (question (agent-shell-dispatch-msg-input-needed-question msg))
             (context (agent-shell-dispatch-msg-input-needed-context msg)))
-        (agent-shell-queue-request
-         (format "[Input Needed: %s]\n\n%s%s\n\nRespond via (meta-agent-shell-send-to-session \"%s\" YOUR_ANSWER \"dispatcher\")"
-                 agent question
-                 (if context (format "\n\nContext: %s" context) "")
-                 agent))))))
+        (agent-shell--enqueue-request
+         :prompt (format "[Input Needed: %s]\n\n%s%s\n\nRespond via (agent-shell-dispatch-send-to-agent \"%s\" YOUR_ANSWER \"dispatcher\")"
+                         agent question
+                         (if context (format "\n\nContext: %s" context) "")
+                         agent))))))
 
 (provide '+agent-shell-dispatch-messages)
 ;;; +agent-shell-dispatch-messages.el ends here

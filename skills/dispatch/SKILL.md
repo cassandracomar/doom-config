@@ -5,7 +5,7 @@ description: 'Execute a plan with parallel agents. You become the dispatcher: sp
 
 # Dispatch Plan Execution
 
-You (the primary agent) become the dispatcher. Use the Emacs MCP to call meta-agent-shell elisp functions for spawning agents, sending messages, and checking status. The dispatch renderer runs as `agent-shell-dispatch-render-mode` — a minor mode that shows " Dispatch" in the mode line and can be toggled by the user.
+You (the primary agent) become the dispatcher. Use the Emacs MCP to call agent-shell-dispatch elisp functions for spawning agents, sending messages, and checking status. The dispatch renderer runs as `agent-shell-dispatch-render-mode` — a minor mode that shows " Dispatch" in the mode line and can be toggled by the user.
 
 ## When to Use
 
@@ -35,18 +35,17 @@ Then spawn agents. They run in the background (no popup, no prompts, acceptEdits
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(meta-agent-shell-start-named-agent
+(agent-shell-dispatch-spawn-agent
  default-directory
  "Impl-1"
- "You are implementation agent 1. Wait for your task assignment."
- t)
+ "You are implementation agent 1. Wait for your task assignment.")
 ```
 
 Repeat for each agent. Then verify:
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(meta-agent-shell-list-sessions)
+(agent-shell-dispatch-list-agents)
 ```
 
 Note exact buffer names.
@@ -57,7 +56,7 @@ Send each agent its task. Include the task ID and status reporting instructions 
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(meta-agent-shell-send-to-session
+(agent-shell-dispatch-send-to-agent
  "EXACT-BUFFER-NAME"
  "## Your Task: TASK_NAME (id: TASK_ID)
 
@@ -153,7 +152,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 View that agent's output and send it guidance:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(meta-agent-shell-view-session "BUFFER-NAME" 200)
+(agent-shell-dispatch-view-agent "BUFFER-NAME" 200)
 ```
 
 ## Step 5: Completion
@@ -169,7 +168,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 2. **Gather results**:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(meta-agent-shell-view-project-agents default-directory 3000)
+(agent-shell-dispatch-view-all-agents 3000)
 ```
 
 3. **Report**: completed tasks, commits, issues, next steps.
@@ -184,30 +183,30 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 
 | Action | Function |
 |--------|----------|
-| Spawn agent | `(meta-agent-shell-start-named-agent DIR NAME MSG t)` |
-| Send message | `(meta-agent-shell-send-to-session BUF MSG FROM)` |
-| Ask question | `(meta-agent-shell-ask-session BUF QUESTION FROM)` |
-| List agents | `(meta-agent-shell-list-sessions)` |
-| View output | `(meta-agent-shell-view-session BUF LINES)` |
+| Spawn agent | `(agent-shell-dispatch-spawn-agent DIR NAME MSG)` |
+| Send message | `(agent-shell-dispatch-send-to-agent BUF MSG FROM)` |
+| List agents | `(agent-shell-dispatch-list-agents)` |
+| View output | `(agent-shell-dispatch-view-agent BUF LINES)` |
+| View all | `(agent-shell-dispatch-view-all-agents NUM-CHARS)` |
 | Start task graph | `(agent-shell-dispatch-start BUF TASKS)` — enables `agent-shell-dispatch-render-mode` |
 | Report status | `(agent-shell-dispatch-report TASK-ID STATUS DETAIL)` |
+| Send msg to dispatcher | `(agent-shell-dispatch-msg-send MSG TARGET)` |
 | Stop task graph | `(agent-shell-dispatch-stop)` — disables `agent-shell-dispatch-render-mode` |
-| Interrupt one | `(meta-agent-shell-interrupt-session BUF)` |
-| Send message to dispatcher | `(agent-shell-dispatch-msg-send MSG TARGET)` |
+| Interrupt one | `(agent-shell-dispatch-interrupt-agent BUF)` |
 | Stop ALL | `(agent-shell-dispatch-kill-agents)` — also stops task graph |
 
 ## Rules
 
 - You ARE the dispatcher. Don't start a separate session.
 - ALL agent management via MCP elisp calls.
-- Use `meta-agent-shell-list-sessions` to discover buffer names.
+- Use `agent-shell-dispatch-list-agents` to discover buffer names.
 - Assign ONE task per agent at a time.
 - Permissions are shown directly to the user — do NOT accept or reject on their behalf.
 - Do NOT poll or check statuses in a loop — the elisp timer handles progress.
 - Wait for the user to tell you when tasks are done or need intervention.
 - When a subagent asks for input (queued as a prompt prefixed with
   "[Input Needed: agent-name]"), answer it using
-  `meta-agent-shell-send-to-session`. If the question is ambiguous or you
+  `agent-shell-dispatch-send-to-agent`. If the question is ambiguous or you
   lack context to answer confidently, ask the USER for clarification before
   responding to the subagent — don't guess.
 - Never implement tasks yourself — coordinate.

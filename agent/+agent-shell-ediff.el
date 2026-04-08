@@ -7,10 +7,8 @@
 ;;; Code:
 
 (require 'ediff)
-(eval-when-compile
-  (require 'cl-lib))
-
-(defvar agent-shell-diff--on-exit)
+(require 'cl-lib)
+(require 'agent-shell)
 
 (cl-defun +agent-shell-ediff (&key old new on-exit on-accept on-reject title file)
   "Ediff-based replacement for `agent-shell-diff'.
