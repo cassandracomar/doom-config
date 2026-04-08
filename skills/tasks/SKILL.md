@@ -27,7 +27,7 @@ Call via Emacs MCP. Each task is a plist with `:id`, `:name`, `:agent` (your buf
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+dispatch-start
+(agent-shell-dispatch-start
  (buffer-name)
  '((:id "step-1" :name "Read codebase")
    (:id "step-2" :name "Write tests" :depends-on ("step-1"))
@@ -43,19 +43,19 @@ The `:agent` field is optional for single-agent work — it defaults to the disp
 As you begin each step:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+dispatch-report "step-1" "working" "brief description of current activity")
+(agent-shell-dispatch-report "step-1" "working" "brief description of current activity")
 ```
 
 When you finish a step:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+dispatch-report "step-1" "done")
+(agent-shell-dispatch-report "step-1" "done")
 ```
 
 If a step fails:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+dispatch-report "step-2" "error" "what went wrong")
+(agent-shell-dispatch-report "step-2" "error" "what went wrong")
 ```
 
 ## Step 4: Clean Up
@@ -63,7 +63,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 When all work is complete:
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
-(+dispatch-stop)
+(agent-shell-dispatch-stop)
 ```
 
 ## Rules
@@ -73,4 +73,4 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 - Keep step names short (they render in SVG boxes, long names wrap)
 - Express real dependencies — if step 3 needs step 1's output, say so
 - Independent steps should NOT depend on each other (they render in parallel columns)
-- Always call `+dispatch-stop` when finished
+- Always call `agent-shell-dispatch-stop` when finished
