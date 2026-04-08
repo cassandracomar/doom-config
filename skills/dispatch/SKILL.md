@@ -72,6 +72,41 @@ TASK_DESCRIPTION
 - If you hit an error:
   (agent-shell-dispatch-report \"TASK_ID\" \"error\" \"what went wrong\")
 
+## Messaging (to dispatcher buffer)
+Report significant milestones (phase completions, not individual steps):
+  (agent-shell-dispatch-msg-send
+   (agent-shell-dispatch-msg-batch-progress-make
+    :agent-buffer (buffer-name) :timestamp (current-time)
+    :phase \"Phase 1: Unit tests\" :completed 1 :total 3)
+   agent-shell-dispatch--primary-buffer)
+
+Report batch completion:
+  (agent-shell-dispatch-msg-send
+   (agent-shell-dispatch-msg-batch-completed-make
+    :agent-buffer (buffer-name) :timestamp (current-time)
+    :summary \"All 3 phases complete, 47 tests passing\")
+   agent-shell-dispatch--primary-buffer)
+
+Report errors:
+  (agent-shell-dispatch-msg-send
+   (agent-shell-dispatch-msg-error-make
+    :agent-buffer (buffer-name) :timestamp (current-time)
+    :description \"Build failed\" :context \"Missing dependency X\")
+   agent-shell-dispatch--primary-buffer)
+
+Ask the dispatcher a question (queues automatically):
+  (agent-shell-dispatch-msg-send
+   (agent-shell-dispatch-msg-input-needed-make
+    :agent-buffer (buffer-name) :timestamp (current-time)
+    :question \"Should I split this into two PRs?\"
+    :context \"Changes touch both frontend and backend\")
+   agent-shell-dispatch--primary-buffer)
+
+- If you're unsure about a design decision, implementation approach, or
+  requirement — ASK. Send an input-needed message with enough context
+  for the dispatcher to answer: what task you're working on, what you've
+  tried, what the options are, and what you need decided.
+
 ## Acceptance Criteria
 CRITERIA"
  "dispatcher")
@@ -101,7 +136,10 @@ Tell the user:
 **Do NOT poll statuses yourself.** The elisp timer handles progress updates. Wait for the user to tell you what to do next.
 
 ### Permissions:
-Non-edit permissions from background agents render as button dialogs in your buffer. The user sees and clicks Accept/Reject directly. You do NOT need to handle, accept, or reject permissions.
+Permission requests from background agents render as button dialogs in your
+buffer with all available options. Edit permissions with diffs include a
+View (v) button that opens an ediff session. The user handles permissions
+directly — you do NOT accept or reject on their behalf.
 
 ### If user says "stop":
 ```
@@ -155,6 +193,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 | Report status | `(agent-shell-dispatch-report TASK-ID STATUS DETAIL)` |
 | Stop task graph | `(agent-shell-dispatch-stop)` — disables `agent-shell-dispatch-render-mode` |
 | Interrupt one | `(meta-agent-shell-interrupt-session BUF)` |
+| Send message to dispatcher | `(agent-shell-dispatch-msg-send MSG TARGET)` |
 | Stop ALL | `(agent-shell-dispatch-kill-agents)` — also stops task graph |
 
 ## Rules
@@ -166,6 +205,11 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 - Permissions are shown directly to the user — do NOT accept or reject on their behalf.
 - Do NOT poll or check statuses in a loop — the elisp timer handles progress.
 - Wait for the user to tell you when tasks are done or need intervention.
+- When a subagent asks for input (queued as a prompt prefixed with
+  "[Input Needed: agent-name]"), answer it using
+  `meta-agent-shell-send-to-session`. If the question is ambiguous or you
+  lack context to answer confidently, ask the USER for clarification before
+  responding to the subagent — don't guess.
 - Never implement tasks yourself — coordinate.
 - Always clean up agents and stop polling when dispatch is complete.
 - The user can manually toggle rendering off with `M-x agent-shell-dispatch-render-mode` if something goes wrong.
