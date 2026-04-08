@@ -224,7 +224,7 @@ Returns a hash of id → `+dispatch-render-task-status', or nil."
   "Start the dispatch task graph in the agent-shell header.
 DISPATCHER-BUFFER is the dispatcher's agent-shell buffer name.
 TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
-  (+dispatch--teardown)
+  (+dispatch-render-teardown)
   (setq +dispatch--pending-permission-agents nil)
   ;; Normalize :agent — default to dispatcher buffer if missing or not a string
   (let* ((normalized (mapcar (lambda (task)
@@ -243,7 +243,9 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
            :dispatcher-buffer dispatcher-buffer
            :tasks normalized
            :statuses (make-hash-table :test 'equal)))
-    ;; Set up render module
+    ;; Set up render module — register dispatcher cleanup on teardown hook
+    (add-hook '+dispatch-render-teardown-hook
+              (lambda () (setq +dispatch--state nil)))
     (setq +dispatch-render--task-defs task-defs
           +dispatch-render--ctx (+dispatch-render-prepare task-defs)
           +dispatch-render-status-function #'+dispatch--build-status-map
@@ -253,10 +255,6 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
     (with-current-buffer (get-buffer dispatcher-buffer)
       (+dispatch-render-mode 1))))
 
-(defun +dispatch--teardown ()
-  "Stop rendering, clear render and dispatch state."
-  (+dispatch-render-teardown)
-  (setq +dispatch--state nil))
 
 (defun +dispatch-stop ()
   "Stop rendering. State is preserved for `+dispatch-render-mode' toggle."

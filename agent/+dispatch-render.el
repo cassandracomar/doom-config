@@ -1013,9 +1013,13 @@ When disabled, tears them all down and restores the header."
     (when +dispatch-render-header-function
       (ignore-errors (funcall +dispatch-render-header-function)))))
 
+(defvar +dispatch-render-teardown-hook nil
+  "Hook run during teardown for clearing external state.")
+
 (defun +dispatch-render-teardown ()
   "Disable rendering and clear all render state and hooks."
   (+dispatch-render-mode -1)
+  (run-hooks '+dispatch-render-teardown-hook)
   (setq +dispatch-render--ctx nil
         +dispatch-render--task-defs nil
         +dispatch-render-status-function nil
