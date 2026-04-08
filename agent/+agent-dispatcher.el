@@ -286,9 +286,17 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
     ;; Install header advice — graph rebuilds on every header update
     (advice-add 'agent-shell--update-header-and-mode-line
                 :after #'+dispatch--extend-header)
+    ;; Invalidate geometry on theme change (font/char-w may differ)
+    (add-hook 'enable-theme-functions #'+dispatch--on-theme-change)
     ;; Start heartbeat timer — only fires when dispatcher is idle
     (setq +dispatch--heartbeat-timer
           (run-with-timer 0.1 0.1 #'+dispatch--heartbeat))))
+
+(defun +dispatch--on-theme-change (&rest _)
+  "Invalidate cached render context when theme changes."
+  (+dispatch-render-refresh-theme)
+  (when +dispatch--state
+    (setf (+dispatch-state-render-ctx +dispatch--state) nil)))
 
 (defun +dispatch-stop ()
   "Remove the dispatch task graph from the header."
@@ -298,8 +306,9 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
   (let ((dispatcher (and +dispatch--state
                          (+dispatch-state-dispatcher-buffer +dispatch--state))))
     (setq +dispatch--state nil)
-    ;; Remove header advice and force header rebuild
+    ;; Remove header advice, theme hook, and force header rebuild
     (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch--extend-header)
+    (remove-hook 'enable-theme-functions #'+dispatch--on-theme-change)
     (when-let* ((buf (and dispatcher (get-buffer dispatcher))))
       (with-current-buffer buf
         (when (boundp 'agent-shell--header-cache)
