@@ -178,6 +178,177 @@ Default is no-op."
             (propertize desc 'font-lock-face 'error)
             (when ctx (concat "\n\n" ctx)))))
 
+;; ── Permission state ────────────────────────────────────────────────
+
+(defvar agent-shell-dispatch-msg--pending-permission-agents nil
+  "List of agent buffer names with unresolved permission dialogs.")
+
+(defun agent-shell-dispatch-msg--cleanup-permission
+    (perm-id target-buf agent-buf option-id)
+  "Remove the permission dialog identified by PERM-ID from TARGET-BUF."
+  (when-let* ((buf (get-buffer target-buf)))
+    (with-current-buffer buf
+      (save-excursion
+        (let ((inhibit-read-only t))
+          (goto-char (point-min))
+          (when-let* ((match (text-property-search-forward
+                              'agent-shell-dispatch-msg-perm-id perm-id t)))
+            (let ((start (prop-match-beginning match))
+                  (end (prop-match-end match)))
+              (delete-region start end)
+              (goto-char start)
+              (insert (propertize
+                       (format "    ✓ %s — %s\n" agent-buf option-id)
+                       'font-lock-face 'font-lock-comment-face
+                       'read-only t)))))))))
+
+(defun agent-shell-dispatch-msg--make-respond-action
+    (respond option-id agent-buf perm-id target-name)
+  "Create a permission button action that responds and cleans up."
+  (lambda ()
+    (interactive)
+    (funcall respond option-id)
+    (setq agent-shell-dispatch-msg--pending-permission-agents
+          (delete agent-buf
+                  agent-shell-dispatch-msg--pending-permission-agents))
+    (agent-shell-dispatch-msg--cleanup-permission
+     perm-id target-name agent-buf option-id)))
+
+(defun agent-shell-dispatch-msg--make-permission-buttons
+    (options keymap respond agent-buf perm-id target-name)
+  "Build permission button string from OPTIONS, binding keys in KEYMAP."
+  (mapconcat
+   (lambda (opt)
+     (let ((action (agent-shell-dispatch-msg--make-respond-action
+                    respond (map-elt opt :option-id)
+                    agent-buf perm-id target-name)))
+       (when-let* ((char-str (map-elt opt :char)))
+         (define-key keymap (kbd char-str) action))
+       (agent-shell--make-permission-button
+        :text (map-elt opt :label)
+        :help (map-elt opt :label)
+        :action action
+        :keymap keymap
+        :char (map-elt opt :char)
+        :option (or (map-elt opt :option) (map-elt opt :label))
+        :navigatable t)))
+   options " "))
+
+(defun agent-shell-dispatch-msg--make-view-button
+    (diff options respond keymap agent-buf perm-id target-name)
+  "Create a View (v) button that opens ediff for DIFF.
+OPTIONS and RESPOND are used to wire accept/reject in the ediff session."
+  (let* ((old (map-elt diff :old))
+         (new (map-elt diff :new))
+         (file (map-elt diff :file))
+         (accept-opt (seq-find (lambda (o)
+                                 (equal (map-elt o :kind) "allow_once"))
+                               options))
+         (reject-opt (seq-find (lambda (o)
+                                 (equal (map-elt o :kind) "reject_once"))
+                               options))
+         (view-action
+          (lambda ()
+            (interactive)
+            (agent-shell-diff
+             :old (or old "")
+             :new (or new "")
+             :file file
+             :title (and file (file-name-nondirectory file))
+             :on-accept (when accept-opt
+                          (lambda ()
+                            (funcall respond (map-elt accept-opt :option-id))
+                            (setq agent-shell-dispatch-msg--pending-permission-agents
+                                  (delete agent-buf
+                                          agent-shell-dispatch-msg--pending-permission-agents))
+                            (agent-shell-dispatch-msg--cleanup-permission
+                             perm-id target-name agent-buf
+                             (map-elt accept-opt :option-id))))
+             :on-reject (when reject-opt
+                          (lambda ()
+                            (funcall respond (map-elt reject-opt :option-id))
+                            (setq agent-shell-dispatch-msg--pending-permission-agents
+                                  (delete agent-buf
+                                          agent-shell-dispatch-msg--pending-permission-agents))
+                            (agent-shell-dispatch-msg--cleanup-permission
+                             perm-id target-name agent-buf
+                             (map-elt reject-opt :option-id))))))))
+    (define-key keymap "v" view-action)
+    (agent-shell--make-permission-button
+     :text "View (v)"
+     :help "Press v to view diff"
+     :action view-action
+     :keymap keymap
+     :char "v"
+     :option "View"
+     :navigatable t)))
+
+(cl-defmethod agent-shell-dispatch-msg-render
+  ((msg agent-shell-dispatch-msg-permission))
+  "Render permission as interactive button block.
+Returns propertized text with keymap for button interaction."
+  (let* ((tool-call (agent-shell-dispatch-msg-permission-tool-call msg))
+         (options (agent-shell-dispatch-msg-permission-options msg))
+         (respond (agent-shell-dispatch-msg-permission-respond msg))
+         (agent-buf (agent-shell-dispatch-msg-agent-buffer msg))
+         (title (or (map-elt tool-call :title) "unknown"))
+         (kind (or (map-elt tool-call :kind) "unknown"))
+         (diff (map-elt tool-call :diff))
+         (perm-id (format "perm-%s-%s" agent-buf (random)))
+         (keymap (make-sparse-keymap))
+         ;; Build option buttons
+         (buttons (agent-shell-dispatch-msg--make-permission-buttons
+                   options keymap respond agent-buf perm-id
+                   (or agent-shell-dispatch--primary-buffer "")))
+         ;; Add View button if diff available
+         (view-btn (when diff
+                     (agent-shell-dispatch-msg--make-view-button
+                      diff options respond keymap agent-buf perm-id
+                      (or agent-shell-dispatch--primary-buffer ""))))
+         (all-buttons (if view-btn
+                         (concat view-btn " " buttons)
+                       buttons))
+         (text (concat
+                (propertize "⚠ " 'font-lock-face 'warning)
+                (propertize (format "Permission: %s" agent-buf)
+                            'font-lock-face 'bold)
+                " "
+                (propertize "⚠" 'font-lock-face 'warning)
+                "\n\n"
+                (propertize (format "%s (%s)" title kind)
+                            'font-lock-face 'comint-highlight-input)
+                "\n\n"
+                all-buttons)))
+    (put-text-property 0 (length text) 'keymap keymap text)
+    (put-text-property 0 (length text)
+                       'agent-shell-dispatch-msg-perm-id perm-id text)
+    text))
+
+(cl-defmethod agent-shell-dispatch-msg-handle
+  ((msg agent-shell-dispatch-msg-permission) _target-buf)
+  "Track agent as having a pending permission."
+  (cl-pushnew (agent-shell-dispatch-msg-agent-buffer msg)
+              agent-shell-dispatch-msg--pending-permission-agents
+              :test #'equal))
+
+(cl-defmethod agent-shell-dispatch-msg-send
+  ((msg agent-shell-dispatch-msg-permission) target-buf)
+  "Send permission MSG: render with frame, insert, handle.
+Permission render returns text with embedded keymap that must be preserved."
+  (when-let* ((buf (get-buffer target-buf)))
+    (let* ((body (agent-shell-dispatch-msg-render msg))
+           (agent (agent-shell-dispatch-msg-agent-buffer msg))
+           (text (agent-shell-dispatch-msg--frame agent body)))
+      ;; Preserve the keymap and perm-id from the body across the frame
+      (when-let* ((km (get-text-property 0 'keymap body)))
+        (put-text-property 0 (length text) 'keymap km text))
+      (when-let* ((pid (get-text-property 0
+                         'agent-shell-dispatch-msg-perm-id body)))
+        (put-text-property 0 (length text)
+                           'agent-shell-dispatch-msg-perm-id pid text))
+      (agent-shell-dispatch-msg--insert-before-prompt buf text)
+      (agent-shell-dispatch-msg-handle msg target-buf))))
+
 ;; ── Handle methods ──────────────────────────────────────────────────
 
 (cl-defmethod agent-shell-dispatch-msg-handle
