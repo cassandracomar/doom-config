@@ -1,73 +1,16 @@
 ;;; +agent-shell-ediff.el --- Replace agent-shell-diff with ediff -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
 ;; Uses ediff for side-by-side comparison instead of diff-mode.
+
+;;; Code:
 
 (require 'ediff)
 (eval-when-compile
   (require 'cl-lib))
 
 (defvar agent-shell-diff--on-exit)
-
-(defvar +agent-shell-ediff--scroll-timer nil
-  "Timer for ediff scroll sync polling.")
-
-(defun +agent-shell-ediff--sync-line (from-buf from-start to-buf to-win)
-  "Set TO-WIN's start to the same line as FROM-START in FROM-BUF."
-  (set-window-start to-win
-    (with-current-buffer to-buf
-      (save-excursion
-        (goto-char (point-min))
-        (forward-line (1- (with-current-buffer from-buf
-                            (line-number-at-pos from-start t))))
-        (point)))))
-
-(defun +agent-shell-ediff--start-scroll-sync (buf-a buf-b)
-  "Start a timer that syncs scroll position between BUF-A and BUF-B."
-  (+agent-shell-ediff--stop-scroll-sync)
-  (let ((last-a nil) (last-b nil))
-    (setq +agent-shell-ediff--scroll-timer
-          (run-with-timer 0.05 0.05
-            (lambda ()
-              (if (not (and (buffer-live-p buf-a) (buffer-live-p buf-b)))
-                  (+agent-shell-ediff--stop-scroll-sync)
-                (when-let* ((win-a (get-buffer-window buf-a))
-                            (win-b (get-buffer-window buf-b))
-                            (start-a (window-start win-a))
-                            (start-b (window-start win-b)))
-                  (cond
-                   ((and last-a (/= start-a last-a))
-                    (+agent-shell-ediff--sync-line buf-a start-a buf-b win-b))
-                   ((and last-b (/= start-b last-b))
-                    (+agent-shell-ediff--sync-line buf-b start-b buf-a win-a)))
-                  (setq last-a (window-start win-a)
-                        last-b (window-start win-b)))))))))
-
-(defun +agent-shell-ediff--stop-scroll-sync ()
-  "Stop the ediff scroll sync timer."
-  (when (timerp +agent-shell-ediff--scroll-timer)
-    (cancel-timer +agent-shell-ediff--scroll-timer)
-    (setq +agent-shell-ediff--scroll-timer nil)))
-
-(defvar +agent-shell-ediff--bg-only-faces
-  '(ediff-current-diff-A ediff-current-diff-B
-    ediff-fine-diff-A ediff-fine-diff-B
-    ediff-even-diff-A ediff-even-diff-B
-    ediff-odd-diff-A ediff-odd-diff-B)
-  "Ediff faces to reduce to background-only in agent-shell sessions.")
-
-(defun +agent-shell-ediff--strip-overlay-fg (&rest _)
-  "Replace ediff overlay faces with background-only anonymous specs.
-This preserves font-lock syntax foreground colors while still
-showing diff-region background highlighting."
-  (dolist (buf (list ediff-buffer-A ediff-buffer-B))
-    (when (buffer-live-p buf)
-      (with-current-buffer buf
-        (cl-loop for ov in (overlays-in (point-min) (point-max))
-                 for face = (overlay-get ov 'face)
-                 when (and (symbolp face)
-                           (memq face +agent-shell-ediff--bg-only-faces))
-                 do (when-let* ((bg (face-background face nil t)))
-                      (overlay-put ov 'face (list :background bg :extend t))
-                      (overlay-put ov 'priority (or (overlay-get ov 'priority) 10))))))))
 
 (cl-defun +agent-shell-ediff (&key old new on-exit on-accept on-reject title file)
   "Ediff-based replacement for `agent-shell-diff'.
@@ -142,17 +85,6 @@ Arguments match `agent-shell-diff':
               ;; Suppress janitor asking about our temp buffers
               (setq-local ediff-keep-variants t)
 
-              ;; Sync scrolling between the two buffers via polling timer.
-              ;; (window-scroll-functions doesn't survive redisplay.)
-              (+agent-shell-ediff--start-scroll-sync
-               ediff-buffer-A ediff-buffer-B)
-
-              ;; Strip fg from ediff overlays so syntax highlighting
-              ;; foreground is preserved.  Re-apply on diff navigation.
-              (+agent-shell-ediff--strip-overlay-fg)
-              (add-hook 'ediff-select-difference-hook
-                        #'+agent-shell-ediff--strip-overlay-fg nil t)
-
               ;; Quit hook chain: prompt → kill temps → ediff cleanup → restore winconf
               (setq-local ediff-quit-hook
                           (list
@@ -180,9 +112,8 @@ Arguments match `agent-shell-diff':
                                            (funcall on-exit))
                                        (when on-reject (funcall on-reject))))
                                     (_ (message "Ignored")))))))
-                           ;; 2. Stop scroll sync and kill temp buffers
+                           ;; 2. Kill temp buffers
                            (lambda ()
-                             (+agent-shell-ediff--stop-scroll-sync)
                              (when (buffer-live-p buf-a) (kill-buffer buf-a))
                              (when (buffer-live-p buf-b) (kill-buffer buf-b)))
                            ;; 3. Standard ediff cleanup (kills aux buffers + control buffer)
@@ -206,16 +137,7 @@ Arguments match `agent-shell-diff':
                                                 ediff-custom-diff-buffer ediff-error-buffer)
                                    for buf = (and (boundp var) (symbol-value var))
                                    when (and buf (buffer-live-p buf)) do (kill-buffer buf)))
-                        nil t)
-
-              ;; Override q to skip ediff's "Quit?" prompt — straight to "Accept?"
-              (define-key ediff-mode-map "q"
-                          (lambda ()
-                            (interactive)
-                            (ediff-barf-if-not-control-buffer)
-                            (setq this-command 'ediff-quit)
-                            (ediff-really-quit nil)))
-              (evil-normalize-keymaps))
+                        nil t))
 
             (ignore-errors (ediff-next-difference))
             (remove-hook 'ediff-startup-hook startup-hook-fn)))

@@ -42,6 +42,21 @@
 ;; `load-theme' function. This is the default:
 (setq doom-theme 'doom-molokai)
 
+;; Ediff: remove fg overrides so syntax highlighting shows through.
+;; Fine-diff gets brighter bg than current-diff for word-level emphasis.
+(let ((bg (face-background 'default))
+      (red (face-foreground 'error nil t))
+      (green (face-foreground 'success nil t)))
+  (custom-set-faces!
+    `(ediff-current-diff-A :foreground unspecified :inherit nil
+      :background ,(doom-blend red bg 0.2) :extend t)
+    `(ediff-current-diff-B :foreground unspecified :inherit nil
+      :background ,(doom-blend green bg 0.2) :extend t)
+    `(ediff-fine-diff-A    :foreground unspecified :inherit nil
+      :background ,(doom-blend red bg 0.35) :extend t)
+    `(ediff-fine-diff-B    :foreground unspecified :inherit nil
+      :background ,(doom-blend green bg 0.35) :extend t)))
+
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
 (setq org-directory "~/todo/")
@@ -862,6 +877,16 @@
   (map! :leader "l" #'+agent-shell-menu)
 
   (load! "agent/+agent-shell-ediff")
+
+  ;; Skip ediff's "Really quit?" prompt — go straight to "Accept changes?"
+  (defun +agent-shell-ediff-quit ()
+    "Quit ediff without the extra confirmation prompt."
+    (interactive)
+    (ediff-barf-if-not-control-buffer)
+    (setq this-command 'ediff-quit)
+    (ediff-really-quit nil))
+  (map! :map ediff-mode-map "q" #'+agent-shell-ediff-quit)
+
   (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
