@@ -1041,7 +1041,8 @@ When disabled, tears them all down and restores the header."
         +dispatch-render-header-function nil
         +dispatch-render-reset-function nil
         +dispatch-render-busy-p-function nil
-        +dispatch-render-advice-target nil))
+        +dispatch-render-advice-target nil
+        +dispatch-render-teardown-hook nil))
 
 (provide '+dispatch-render)
 ;;; +dispatch-render.el ends here

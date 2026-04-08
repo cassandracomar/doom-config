@@ -141,6 +141,10 @@
 
 ;; -- Dispatch task graph and progress rendering --
 
+(defun +dispatch--clear-state ()
+  "Clear dispatch state. Used as teardown hook."
+  (setq +dispatch--state nil))
+
 (defun +dispatch--format-elapsed (start-time)
   "Format elapsed time since START-TIME as a human-readable string."
   (let ((elapsed (floor (float-time (time-subtract nil start-time)))))
@@ -245,7 +249,7 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
            :statuses (make-hash-table :test 'equal)))
     ;; Set up render module
     (add-hook '+dispatch-render-teardown-hook
-              (lambda () (setq +dispatch--state nil)))
+              #'+dispatch--clear-state)
     (+dispatch-render-set-tasks task-defs)
     (setq +dispatch-render-buffer dispatcher-buffer
           +dispatch-render-status-function #'+dispatch--build-status-map
