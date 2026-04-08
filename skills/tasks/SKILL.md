@@ -58,6 +58,28 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 (agent-shell-dispatch-report "step-2" "error" "what went wrong")
 ```
 
+## Step 3b: Send Messages (optional)
+
+For significant milestones visible to the user:
+```
+mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
+(agent-shell-dispatch-msg-send
+ (agent-shell-dispatch-msg-task-progress-make
+  :agent-buffer (buffer-name) :timestamp (current-time)
+  :phase "Switching to integration testing")
+ agent-shell-dispatch--primary-buffer)
+```
+
+When your overall task is done:
+```
+mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
+(agent-shell-dispatch-msg-send
+ (agent-shell-dispatch-msg-task-completed-make
+  :agent-buffer (buffer-name) :timestamp (current-time)
+  :summary "Feature implemented and all tests passing")
+ agent-shell-dispatch--primary-buffer)
+```
+
 ## Step 4: Clean Up
 
 When all work is complete:
