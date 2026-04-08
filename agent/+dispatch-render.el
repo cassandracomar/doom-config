@@ -12,8 +12,6 @@
 (require 'color)
 (require 'svg)
 
-(defvar +dispatch--primary-buffer)
-
 ;; ── Color blending (replaces doom-blend) ────────────────────────────
 
 (defun +dispatch-render--blend-colors (color1 color2 alpha)
@@ -160,9 +158,9 @@ Caches the result; call `+dispatch-render-refresh-theme' to update."
   (setq +dispatch-render--theme-cache (+dispatch-render--compute-theme-colors)))
 
 (defun +dispatch-render--resolve-face (face attr)
-  "Resolve FACE's ATTR respecting `face-remapping-alist' in the dispatcher buffer."
-  (let* ((buf (or (and +dispatch--primary-buffer
-                       (get-buffer +dispatch--primary-buffer))
+  "Resolve FACE's ATTR respecting `face-remapping-alist' in the render buffer."
+  (let* ((buf (or (and +dispatch-render-buffer
+                       (get-buffer +dispatch-render-buffer))
                   (current-buffer)))
          (remap (with-current-buffer buf
                   (alist-get face face-remapping-alist)))
@@ -935,10 +933,13 @@ DISPATCHER-BUF is the buffer name."
 ;; agent-shell, or shell-maker directly.
 
 (defvar +dispatch-render--ctx nil
-  "Cached `+dispatch-render-ctx'.  Set by `+dispatch-render-prepare'.")
+  "Cached `+dispatch-render-ctx'.")
 
 (defvar +dispatch-render--task-defs nil
   "Original `+dispatch-render-task' list for re-prepare on theme change.")
+
+(defvar +dispatch-render-buffer nil
+  "Buffer name for face resolution and heartbeat context.")
 
 (defvar +dispatch-render-status-function nil
   "Function of no args returning a hash of id → `+dispatch-render-task-status'.
@@ -948,21 +949,34 @@ Called every frame by the header renderer.")
   "Function of no args that triggers a header redisplay.
 Called by the heartbeat timer.")
 
+(defvar +dispatch-render-reset-function nil
+  "Function of no args that restores the original header on mode disable.")
+
 (defvar +dispatch-render-busy-p-function nil
   "Function of no args returning non-nil when the host buffer is busy.
 When busy, the heartbeat skips since the host drives updates itself.")
 
+(defvar +dispatch-render-advice-target nil
+  "Function symbol to advise with the header extend function.")
+
 (defvar +dispatch-render--heartbeat-timer nil
   "Timer that drives header updates while the host buffer is idle.")
 
-(defvar agent-shell--header-cache)
+(defun +dispatch-render-set-tasks (task-defs)
+  "Set TASK-DEFS and prepare the render context."
+  (setq +dispatch-render--task-defs task-defs
+        +dispatch-render--ctx (+dispatch-render-prepare task-defs)))
 
 (defun +dispatch-render--heartbeat ()
   "Force a header update when the host buffer is idle."
-  (when (and +dispatch-render--ctx +dispatch-render-header-function)
-    (unless (and +dispatch-render-busy-p-function
-                 (funcall +dispatch-render-busy-p-function))
-      (ignore-errors (funcall +dispatch-render-header-function)))))
+  (when-let* (( +dispatch-render--ctx)
+              (buf (and +dispatch-render-buffer
+                        (get-buffer +dispatch-render-buffer))))
+    (with-current-buffer buf
+      (unless (and +dispatch-render-busy-p-function
+                   (funcall +dispatch-render-busy-p-function))
+        (when +dispatch-render-header-function
+          (ignore-errors (funcall +dispatch-render-header-function)))))))
 
 (defun +dispatch-render--extend-header (&rest _)
   "Build task graph SVG and append below the host header SVG."
@@ -998,20 +1012,20 @@ When disabled, tears them all down and restores the header."
   (if +dispatch-render-mode
       (if (null +dispatch-render--ctx)
           (setq +dispatch-render-mode nil)
-        (advice-add 'agent-shell--update-header-and-mode-line
-                    :after #'+dispatch-render--extend-header)
+        (when +dispatch-render-advice-target
+          (advice-add +dispatch-render-advice-target
+                      :after #'+dispatch-render--extend-header))
         (add-hook 'enable-theme-functions #'+dispatch-render--on-theme-change)
         (setq +dispatch-render--heartbeat-timer
               (run-with-timer 0.1 0.1 #'+dispatch-render--heartbeat)))
     (when (timerp +dispatch-render--heartbeat-timer)
       (cancel-timer +dispatch-render--heartbeat-timer)
       (setq +dispatch-render--heartbeat-timer nil))
-    (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch-render--extend-header)
+    (when +dispatch-render-advice-target
+      (advice-remove +dispatch-render-advice-target #'+dispatch-render--extend-header))
     (remove-hook 'enable-theme-functions #'+dispatch-render--on-theme-change)
-    (when (boundp 'agent-shell--header-cache)
-      (setq agent-shell--header-cache nil))
-    (when +dispatch-render-header-function
-      (ignore-errors (funcall +dispatch-render-header-function)))))
+    (when +dispatch-render-reset-function
+      (ignore-errors (funcall +dispatch-render-reset-function)))))
 
 (defvar +dispatch-render-teardown-hook nil
   "Hook run during teardown for clearing external state.")
@@ -1022,9 +1036,12 @@ When disabled, tears them all down and restores the header."
   (run-hooks '+dispatch-render-teardown-hook)
   (setq +dispatch-render--ctx nil
         +dispatch-render--task-defs nil
+        +dispatch-render-buffer nil
         +dispatch-render-status-function nil
         +dispatch-render-header-function nil
-        +dispatch-render-busy-p-function nil))
+        +dispatch-render-reset-function nil
+        +dispatch-render-busy-p-function nil
+        +dispatch-render-advice-target nil))
 
 (provide '+dispatch-render)
 ;;; +dispatch-render.el ends here

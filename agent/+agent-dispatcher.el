@@ -243,14 +243,19 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
            :dispatcher-buffer dispatcher-buffer
            :tasks normalized
            :statuses (make-hash-table :test 'equal)))
-    ;; Set up render module — register dispatcher cleanup on teardown hook
+    ;; Set up render module
     (add-hook '+dispatch-render-teardown-hook
               (lambda () (setq +dispatch--state nil)))
-    (setq +dispatch-render--task-defs task-defs
-          +dispatch-render--ctx (+dispatch-render-prepare task-defs)
+    (+dispatch-render-set-tasks task-defs)
+    (setq +dispatch-render-buffer dispatcher-buffer
           +dispatch-render-status-function #'+dispatch--build-status-map
           +dispatch-render-header-function #'agent-shell--update-header-and-mode-line
-          +dispatch-render-busy-p-function (lambda () shell-maker--busy))
+          +dispatch-render-reset-function (lambda ()
+                                           (when (boundp 'agent-shell--header-cache)
+                                             (setq agent-shell--header-cache nil))
+                                           (agent-shell--update-header-and-mode-line))
+          +dispatch-render-busy-p-function (lambda () shell-maker--busy)
+          +dispatch-render-advice-target 'agent-shell--update-header-and-mode-line)
     ;; Enable render mode in dispatcher buffer
     (with-current-buffer (get-buffer dispatcher-buffer)
       (+dispatch-render-mode 1))))
