@@ -927,5 +927,100 @@ DISPATCHER-BUF is the buffer name."
         (nth (% +dispatch-render--spinner-index (length +dispatch-render--spinner-frames))
              +dispatch-render--spinner-frames)))
 
+;; ── Header integration ─────────────────────────────────────────────
+;;
+;; The render module owns the rendering lifecycle (mode, heartbeat,
+;; header advice, theme hook).  The dispatcher injects its logic via
+;; hook variables — the render module never references dispatch state,
+;; agent-shell, or shell-maker directly.
+
+(defvar +dispatch-render--ctx nil
+  "Cached `+dispatch-render-ctx'.  Set by `+dispatch-render-prepare'.")
+
+(defvar +dispatch-render--task-defs nil
+  "Original `+dispatch-render-task' list for re-prepare on theme change.")
+
+(defvar +dispatch-render-status-function nil
+  "Function of no args returning a hash of id → `+dispatch-render-task-status'.
+Called every frame by the header renderer.")
+
+(defvar +dispatch-render-header-function nil
+  "Function of no args that triggers a header redisplay.
+Called by the heartbeat timer.")
+
+(defvar +dispatch-render-busy-p-function nil
+  "Function of no args returning non-nil when the host buffer is busy.
+When busy, the heartbeat skips since the host drives updates itself.")
+
+(defvar +dispatch-render--heartbeat-timer nil
+  "Timer that drives header updates while the host buffer is idle.")
+
+(defvar agent-shell--header-cache)
+
+(defun +dispatch-render--heartbeat ()
+  "Force a header update when the host buffer is idle."
+  (when (and +dispatch-render--ctx +dispatch-render-header-function)
+    (unless (and +dispatch-render-busy-p-function
+                 (funcall +dispatch-render-busy-p-function))
+      (ignore-errors (funcall +dispatch-render-header-function)))))
+
+(defun +dispatch-render--extend-header (&rest _)
+  "Build task graph SVG and append below the host header SVG."
+  (when-let* ((ctx +dispatch-render--ctx)
+              (status-fn +dispatch-render-status-function)
+              (status-map (funcall status-fn))
+              ((stringp header-line-format))
+              (disp (get-text-property 1 'display header-line-format))
+              (orig-svg (plist-get (cdr disp) :data)))
+    (+dispatch-render-cycle-spinner)
+    (let* ((svg (+dispatch-render-draw ctx status-map))
+           (graph-svg (with-temp-buffer (svg-print svg) (buffer-string)))
+           (graph-svg (+dispatch-render-apply-viewport graph-svg ctx status-map (buffer-name)))
+           (combined (+dispatch-render-combine-svgs orig-svg graph-svg -12 10)))
+      (when combined
+        (setq header-line-format
+              (format " %s" (propertize " " 'display
+                                        (list 'image :type 'svg
+                                              :data combined :scale 'default))))))))
+
+(defun +dispatch-render--on-theme-change (&rest _)
+  "Recompute theme and re-prepare geometry on theme change."
+  (+dispatch-render-refresh-theme)
+  (when +dispatch-render--task-defs
+    (setq +dispatch-render--ctx
+          (+dispatch-render-prepare +dispatch-render--task-defs))))
+
+(define-minor-mode +dispatch-render-mode
+  "Minor mode for dispatch task graph rendering in the header.
+When enabled, installs header advice, heartbeat timer, and theme hook.
+When disabled, tears them all down and restores the header."
+  :lighter " Dispatch"
+  (if +dispatch-render-mode
+      (if (null +dispatch-render--ctx)
+          (setq +dispatch-render-mode nil)
+        (advice-add 'agent-shell--update-header-and-mode-line
+                    :after #'+dispatch-render--extend-header)
+        (add-hook 'enable-theme-functions #'+dispatch-render--on-theme-change)
+        (setq +dispatch-render--heartbeat-timer
+              (run-with-timer 0.1 0.1 #'+dispatch-render--heartbeat)))
+    (when (timerp +dispatch-render--heartbeat-timer)
+      (cancel-timer +dispatch-render--heartbeat-timer)
+      (setq +dispatch-render--heartbeat-timer nil))
+    (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch-render--extend-header)
+    (remove-hook 'enable-theme-functions #'+dispatch-render--on-theme-change)
+    (when (boundp 'agent-shell--header-cache)
+      (setq agent-shell--header-cache nil))
+    (when +dispatch-render-header-function
+      (ignore-errors (funcall +dispatch-render-header-function)))))
+
+(defun +dispatch-render-teardown ()
+  "Disable rendering and clear all render state and hooks."
+  (+dispatch-render-mode -1)
+  (setq +dispatch-render--ctx nil
+        +dispatch-render--task-defs nil
+        +dispatch-render-status-function nil
+        +dispatch-render-header-function nil
+        +dispatch-render-busy-p-function nil))
+
 (provide '+dispatch-render)
 ;;; +dispatch-render.el ends here
