@@ -257,6 +257,34 @@ Returns a +dispatch-resolved-status struct."
                                         (list 'image :type 'svg
                                               :data combined :scale 'default))))))))
 
+(defun +dispatch--on-theme-change (&rest _)
+  "Invalidate cached render context when theme changes."
+  (+dispatch-render-refresh-theme)
+  (when +dispatch--state
+    (setf (+dispatch-state-render-ctx +dispatch--state) nil)))
+
+(define-minor-mode +dispatch-render-mode
+  "Minor mode for dispatch task graph rendering in the header.
+When enabled, installs header advice, heartbeat timer, and theme hook.
+When disabled, tears them all down and restores the header."
+  :lighter " Dispatch"
+  (if +dispatch-render-mode
+      (progn
+        (advice-add 'agent-shell--update-header-and-mode-line
+                    :after #'+dispatch--extend-header)
+        (add-hook 'enable-theme-functions #'+dispatch--on-theme-change)
+        (setq +dispatch--heartbeat-timer
+              (run-with-timer 0.1 0.1 #'+dispatch--heartbeat)))
+    (when (timerp +dispatch--heartbeat-timer)
+      (cancel-timer +dispatch--heartbeat-timer)
+      (setq +dispatch--heartbeat-timer nil))
+    (setq +dispatch--state nil)
+    (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch--extend-header)
+    (remove-hook 'enable-theme-functions #'+dispatch--on-theme-change)
+    (when (boundp 'agent-shell--header-cache)
+      (setq agent-shell--header-cache nil))
+    (ignore-errors (agent-shell--update-header-and-mode-line))))
+
 (defun +dispatch-start (dispatcher-buffer tasks &optional _interval)
   "Start the dispatch task graph in the agent-shell header.
 DISPATCHER-BUFFER is the dispatcher's agent-shell buffer name.
@@ -283,37 +311,18 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
                       :name (plist-get task :name)
                       :depends-on (plist-get task :depends-on)))
                    normalized)))
-    ;; Install header advice — graph rebuilds on every header update
-    (advice-add 'agent-shell--update-header-and-mode-line
-                :after #'+dispatch--extend-header)
-    ;; Invalidate geometry on theme change (font/char-w may differ)
-    (add-hook 'enable-theme-functions #'+dispatch--on-theme-change)
-    ;; Start heartbeat timer — only fires when dispatcher is idle
-    (setq +dispatch--heartbeat-timer
-          (run-with-timer 0.1 0.1 #'+dispatch--heartbeat))))
-
-(defun +dispatch--on-theme-change (&rest _)
-  "Invalidate cached render context when theme changes."
-  (+dispatch-render-refresh-theme)
-  (when +dispatch--state
-    (setf (+dispatch-state-render-ctx +dispatch--state) nil)))
+    ;; Enable render mode in dispatcher buffer
+    (with-current-buffer (get-buffer dispatcher-buffer)
+      (+dispatch-render-mode 1))))
 
 (defun +dispatch-stop ()
-  "Remove the dispatch task graph from the header."
-  (when (timerp +dispatch--heartbeat-timer)
-    (cancel-timer +dispatch--heartbeat-timer)
-    (setq +dispatch--heartbeat-timer nil))
-  (let ((dispatcher (and +dispatch--state
-                         (+dispatch-state-dispatcher-buffer +dispatch--state))))
-    (setq +dispatch--state nil)
-    ;; Remove header advice, theme hook, and force header rebuild
-    (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch--extend-header)
-    (remove-hook 'enable-theme-functions #'+dispatch--on-theme-change)
-    (when-let* ((buf (and dispatcher (get-buffer dispatcher))))
-      (with-current-buffer buf
-        (when (boundp 'agent-shell--header-cache)
-          (setq agent-shell--header-cache nil))
-        (ignore-errors (agent-shell--update-header-and-mode-line))))))
+  "Stop the dispatch task graph."
+  (when-let* ((state +dispatch--state)
+              (buf-name (+dispatch-state-dispatcher-buffer state))
+              (buf (get-buffer buf-name)))
+    (with-current-buffer buf
+      (when +dispatch-render-mode
+        (+dispatch-render-mode -1)))))
 
 ;; Backward-compat aliases for old skill API
 (defun +dispatch-start-progress-polling (dispatcher-buffer agents &optional interval)
