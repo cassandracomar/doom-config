@@ -50,6 +50,14 @@
        (red (face-foreground 'error nil t))
        (green (face-foreground 'success nil t)))
    (custom-set-faces!
+     `(ediff-odd-diff-A :foreground unspecified :inherit nil
+       :background ,(doom-blend red bg 0.1) :extend t)
+     `(ediff-odd-diff-B :foreground unspecified :inherit nil
+       :background ,(doom-blend green bg 0.1) :extend t)
+     `(ediff-even-diff-A :foreground unspecified :inherit nil
+       :background ,(doom-blend red bg 0.1) :extend t)
+     `(ediff-even-diff-B :foreground unspecified :inherit nil
+       :background ,(doom-blend green bg 0.1) :extend t)
      `(ediff-current-diff-A :foreground unspecified :inherit nil
        :background ,(doom-blend red bg 0.2) :extend t)
      `(ediff-current-diff-B :foreground unspecified :inherit nil
