@@ -146,12 +146,14 @@
 is idle.")
 
 (defun +dispatch--heartbeat ()
-  "Force a header update in the dispatcher buffer."
+  "Force a header update when the dispatcher is idle.
+When busy, agent-shell drives updates itself."
   (when-let* ((state +dispatch--state)
               (buf-name (+dispatch-state-dispatcher-buffer state))
               (buf (get-buffer buf-name)))
     (with-current-buffer buf
-      (ignore-errors (agent-shell--update-header-and-mode-line)))))
+      (unless shell-maker--busy
+        (ignore-errors (agent-shell--update-header-and-mode-line))))))
 
 (defun +dispatch--format-elapsed (start-time)
   "Format elapsed time since START-TIME as a human-readable string."
@@ -284,9 +286,9 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
     ;; Install header advice — graph rebuilds on every header update
     (advice-add 'agent-shell--update-header-and-mode-line
                 :after #'+dispatch--extend-header)
-    ;; Start heartbeat timer for when dispatcher is idle
+    ;; Start heartbeat timer — only fires when dispatcher is idle
     (setq +dispatch--heartbeat-timer
-          (run-with-timer 2 2 #'+dispatch--heartbeat))))
+          (run-with-timer 0.1 0.1 #'+dispatch--heartbeat))))
 
 (defun +dispatch-stop ()
   "Remove the dispatch task graph from the header."
