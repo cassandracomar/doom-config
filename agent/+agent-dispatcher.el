@@ -269,7 +269,8 @@ When enabled, installs header advice, heartbeat timer, and theme hook.
 When disabled, tears them all down and restores the header."
   :lighter " Dispatch"
   (if +dispatch-render-mode
-      (progn
+      (if (null +dispatch--state)
+          (setq +dispatch-render-mode nil)
         (advice-add 'agent-shell--update-header-and-mode-line
                     :after #'+dispatch--extend-header)
         (add-hook 'enable-theme-functions #'+dispatch--on-theme-change)
