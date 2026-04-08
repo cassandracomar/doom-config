@@ -24,6 +24,57 @@
   agent-buffer
   timestamp)
 
+;; ── Message types ───────────────────────────────────────────────────
+
+(cl-defstruct (agent-shell-dispatch-msg-permission
+               (:include agent-shell-dispatch-msg)
+               (:constructor agent-shell-dispatch-msg-permission-make)
+               (:copier nil))
+  "Permission request from a subagent."
+  tool-call options respond)
+
+(cl-defstruct (agent-shell-dispatch-msg-input-needed
+               (:include agent-shell-dispatch-msg)
+               (:constructor agent-shell-dispatch-msg-input-needed-make)
+               (:copier nil))
+  "Subagent needs input from the dispatcher."
+  question context)
+
+(cl-defstruct (agent-shell-dispatch-msg-batch-progress
+               (:include agent-shell-dispatch-msg)
+               (:constructor agent-shell-dispatch-msg-batch-progress-make)
+               (:copier nil))
+  "Milestone progress on a batch of work."
+  phase completed total)
+
+(cl-defstruct (agent-shell-dispatch-msg-batch-completed
+               (:include agent-shell-dispatch-msg)
+               (:constructor agent-shell-dispatch-msg-batch-completed-make)
+               (:copier nil))
+  "Batch of work completed."
+  summary)
+
+(cl-defstruct (agent-shell-dispatch-msg-task-progress
+               (:include agent-shell-dispatch-msg)
+               (:constructor agent-shell-dispatch-msg-task-progress-make)
+               (:copier nil))
+  "Milestone progress on the overall task."
+  phase)
+
+(cl-defstruct (agent-shell-dispatch-msg-task-completed
+               (:include agent-shell-dispatch-msg)
+               (:constructor agent-shell-dispatch-msg-task-completed-make)
+               (:copier nil))
+  "Overall task completed."
+  summary)
+
+(cl-defstruct (agent-shell-dispatch-msg-error
+               (:include agent-shell-dispatch-msg)
+               (:constructor agent-shell-dispatch-msg-error-make)
+               (:copier nil))
+  "Error report from a subagent."
+  description context)
+
 ;; ── Protocol ────────────────────────────────────────────────────────
 
 (cl-defgeneric agent-shell-dispatch-msg-render (msg)
