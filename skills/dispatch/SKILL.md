@@ -5,7 +5,7 @@ description: 'Execute a plan with parallel agents. You become the dispatcher: sp
 
 # Dispatch Plan Execution
 
-You (the primary agent) become the dispatcher. Use the Emacs MCP to call meta-agent-shell elisp functions for spawning agents, sending messages, and checking status.
+You (the primary agent) become the dispatcher. Use the Emacs MCP to call meta-agent-shell elisp functions for spawning agents, sending messages, and checking status. The dispatch renderer runs as `+dispatch-render-mode` — a minor mode that shows " Dispatch" in the mode line and can be toggled by the user.
 
 ## When to Use
 
@@ -77,7 +77,7 @@ CRITERIA"
  "dispatcher")
 ```
 
-After sending ALL tasks, start the task graph renderer. It opens a dedicated window below the agent-shell with a live SVG dependency graph. Pass a list of task plists:
+After sending ALL tasks, start the task graph renderer. It enables `+dispatch-render-mode` in the dispatcher buffer, rendering a live SVG dependency graph in the header. Pass a list of task plists:
 
 ```
 mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
@@ -87,7 +87,7 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
    (:id "impl-2" :name "Task 2 description" :agent "Claude Agent @ doom-config<M>")))
 ```
 
-The progress window updates every 2 seconds with spinners, elapsed times, and agent-reported details. You do NOT need to poll or check statuses.
+The header graph updates at ~100ms with spinners, elapsed times, and agent-reported details. Geometry is cached; only status colors redraw per frame. You do NOT need to poll or check statuses.
 
 ## Step 4: Wait for User
 
@@ -151,11 +151,11 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 | Ask question | `(meta-agent-shell-ask-session BUF QUESTION FROM)` |
 | List agents | `(meta-agent-shell-list-sessions)` |
 | View output | `(meta-agent-shell-view-session BUF LINES)` |
-| Start task graph | `(+dispatch-start BUF TASKS)` |
+| Start task graph | `(+dispatch-start BUF TASKS)` — enables `+dispatch-render-mode` |
 | Report status | `(+dispatch-report TASK-ID STATUS DETAIL)` |
-| Stop task graph | `(+dispatch-stop)` |
+| Stop task graph | `(+dispatch-stop)` — disables `+dispatch-render-mode` |
 | Interrupt one | `(meta-agent-shell-interrupt-session BUF)` |
-| Stop ALL | `(+dispatch-kill-agents)` |
+| Stop ALL | `(+dispatch-kill-agents)` — also stops task graph |
 
 ## Rules
 
@@ -168,3 +168,4 @@ mcp__emacs__claude-code-ide-extras-emacs_eval_elisp:
 - Wait for the user to tell you when tasks are done or need intervention.
 - Never implement tasks yourself — coordinate.
 - Always clean up agents and stop polling when dispatch is complete.
+- The user can manually toggle rendering off with `M-x +dispatch-render-mode` if something goes wrong.
