@@ -278,7 +278,6 @@ When disabled, tears them all down and restores the header."
     (when (timerp +dispatch--heartbeat-timer)
       (cancel-timer +dispatch--heartbeat-timer)
       (setq +dispatch--heartbeat-timer nil))
-    (setq +dispatch--state nil)
     (advice-remove 'agent-shell--update-header-and-mode-line #'+dispatch--extend-header)
     (remove-hook 'enable-theme-functions #'+dispatch--on-theme-change)
     (when (boundp 'agent-shell--header-cache)
@@ -316,7 +315,9 @@ TASKS is a list of plists: ((:id ID :name NAME :agent AGENT-BUF) ...)."
       (+dispatch-render-mode 1))))
 
 (defun +dispatch-stop ()
-  "Stop the dispatch task graph."
+  "Stop the dispatch task graph rendering.
+State is preserved so the graph can be re-shown with `+dispatch-render-mode'.
+State is cleared on the next `+dispatch-start'."
   (when-let* ((state +dispatch--state)
               (buf-name (+dispatch-state-dispatcher-buffer state))
               (buf (get-buffer buf-name)))
