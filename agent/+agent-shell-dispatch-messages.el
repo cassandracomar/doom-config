@@ -178,5 +178,21 @@ Default is no-op."
             (propertize desc 'font-lock-face 'error)
             (when ctx (concat "\n\n" ctx)))))
 
+;; ── Handle methods ──────────────────────────────────────────────────
+
+(cl-defmethod agent-shell-dispatch-msg-handle
+  ((msg agent-shell-dispatch-msg-input-needed) target-buf)
+  "Queue the question to the dispatcher agent."
+  (when-let* ((buf (get-buffer target-buf)))
+    (with-current-buffer buf
+      (let ((agent (agent-shell-dispatch-msg-agent-buffer msg))
+            (question (agent-shell-dispatch-msg-input-needed-question msg))
+            (context (agent-shell-dispatch-msg-input-needed-context msg)))
+        (agent-shell-queue-request
+         (format "[Input Needed: %s]\n\n%s%s\n\nRespond via (meta-agent-shell-send-to-session \"%s\" YOUR_ANSWER \"dispatcher\")"
+                 agent question
+                 (if context (format "\n\nContext: %s" context) "")
+                 agent))))))
+
 (provide '+agent-shell-dispatch-messages)
 ;;; +agent-shell-dispatch-messages.el ends here
