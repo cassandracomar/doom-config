@@ -194,8 +194,17 @@ Called after `shell-maker-finish-output' when streaming is complete."
       ;; Force header-line and vtable faces to use monospace font.
       ;; Solaire-mode remaps header-line to a variable-pitch font,
       ;; causing header/data column misalignment.
-      (face-remap-set-base 'header-line :inherit 'fixed-pitch)
-      (face-remap-set-base 'vtable :inherit 'fixed-pitch)
+      ;; Force header-line and vtable faces to inherit from default
+      ;; so they use the same font metrics as buffer text.  Must
+      ;; replace the full face-remapping-alist entry (not just the
+      ;; base) because theme packages like solaire-mode layer their
+      ;; own faces on top which can change font family/weight.
+      (setq face-remapping-alist
+            (cons '(header-line (:inherit default))
+                  (cons '(vtable (:inherit default))
+                        (assq-delete-all
+                         'header-line
+                         (assq-delete-all 'vtable face-remapping-alist)))))
       ;; Clean up any stale vtable text from previous completions
       (agent-shell-vtable--cleanup)
       ;; Remove the overlay-based table decorations
@@ -237,8 +246,11 @@ widgets with full cursor navigation support."
     (advice-remove 'vtable-revert
                    #'agent-shell-vtable--around-revert)
     (agent-shell-vtable--cleanup)
-    (face-remap-reset-base 'header-line)
-    (face-remap-reset-base 'vtable)))
+    ;; Remove our face remapping entries
+    (setq face-remapping-alist
+          (assq-delete-all
+           'vtable
+           (assq-delete-all 'header-line face-remapping-alist)))))
 
 ;;;###autoload
 (define-globalized-minor-mode agent-shell-vtable-global-mode
