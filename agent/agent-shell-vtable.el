@@ -22,8 +22,6 @@
 (require 'color)
 (require 'markdown-overlays-tables)
 
-(defvar shell-maker--busy)
-
 (defun agent-shell-vtable--zebra-face ()
   "Return a face spec with a subtly shifted default background.
 Lightens on dark themes, darkens on light themes."
@@ -77,7 +75,10 @@ Lightens on dark themes, darkens on light themes."
                           (cl-loop for i from 1 to ncols
                                    collect (format "Column %d" i))))
              (columns (mapcar (lambda (name)
-                                (make-vtable-column :name name :align 'left))
+                                (make-vtable-column
+                                 :name name
+                                 :align 'left
+                                 :min-width (1+ (length name))))
                               col-names))
              (table-start (map-elt table :start))
              (table-end (map-elt table :end))
@@ -106,13 +107,7 @@ Lightens on dark themes, darkens on light themes."
                :objects data-rows
                :getter (lambda (object index _table)
                          (or (nth index object) ""))
-               :displayer (lambda (value _index max-width _table)
-                            (let ((s (if (stringp value) value
-                                       (format "%s" value))))
-                              (if (> (string-width s) max-width)
-                                  (truncate-string-to-width s max-width nil nil "…")
-                                s)))
-               :separator-width 3
+               :separator-width 1
                :use-header-line nil)
               ;; vtable--insert moves point back to data start (after header);
               ;; find actual end via the 'vtable text property.
@@ -127,43 +122,92 @@ Lightens on dark themes, darkens on light themes."
                 (when line-prefix
                   (put-text-property insert-start vtable-end
                                      'line-prefix line-prefix))
-                ;; Header bold and zebra striping via overlays
-                ;; (text property faces get stripped by shell-maker hooks).
-                (when (> data-start insert-start)
-                  (let ((ov (make-overlay insert-start (1- data-start))))
-                    (overlay-put ov 'face 'bold)
-                    (overlay-put ov 'agent-shell-vtable t)
-                    (overlay-put ov 'evaporate t)))
-                (when markdown-overlays--table-zebra-stripe
-                  (save-excursion
-                    (goto-char data-start)
-                    (let ((row-num 0))
-                      (while (< (point) vtable-end)
-                        (when (= (mod row-num 2) 1)
-                          (let ((ov (make-overlay (line-beginning-position)
-                                                  (line-end-position))))
-                            (overlay-put ov 'face (agent-shell-vtable--zebra-face))
-                            (overlay-put ov 'agent-shell-vtable t)
-                            (overlay-put ov 'evaporate t)))
-                        (setq row-num (1+ row-num))
-                        (forward-line 1)))))))))))))
+                (agent-shell-vtable--apply-overlays
+                 insert-start vtable-end data-start)))))))))
+
+(defun agent-shell-vtable--apply-overlays (beg end data-start)
+  "Apply overlays between BEG and END.
+DATA-START is where data rows begin (after the header line)."
+  ;; Bold header
+  (when (> data-start beg)
+    (let ((ov (make-overlay beg (1- data-start))))
+      (overlay-put ov 'face 'bold)
+      (overlay-put ov 'agent-shell-vtable t)
+      (overlay-put ov 'evaporate t)))
+  ;; Zebra stripe alternating data rows
+  (when markdown-overlays--table-zebra-stripe
+    (save-excursion
+      (goto-char data-start)
+      (let ((row-num 0))
+        (while (< (point) end)
+          (when (= (mod row-num 2) 1)
+            (let ((ov (make-overlay (line-beginning-position)
+                                    (line-end-position))))
+              (overlay-put ov 'face (agent-shell-vtable--zebra-face))
+              (overlay-put ov 'agent-shell-vtable t)
+              (overlay-put ov 'evaporate t)))
+          (setq row-num (1+ row-num))
+          (forward-line 1))))))
+
+(defun agent-shell-vtable--around-revert (orig-fn &optional table)
+  "Wrap `vtable-revert' to re-apply overlays and preserve point."
+  (if (not agent-shell-vtable-mode)
+      (funcall orig-fn table)
+    ;; Save line/column offset within the table.
+    ;; Must capture position BEFORE vtable-beginning-of-table moves point.
+    (let* ((saved-pos (line-beginning-position))
+           (saved-col (current-column))
+           (tbl-beg (save-excursion (vtable-beginning-of-table)))
+           (saved-line (and tbl-beg (count-lines tbl-beg saved-pos))))
+      (funcall orig-fn table)
+      ;; Re-apply overlays
+      (let ((beg (vtable-beginning-of-table))
+            (end (vtable-end-of-table))
+            (inhibit-read-only t)
+            (inhibit-modification-hooks t))
+        (when (and beg end)
+          (put-text-property beg end 'agent-shell-vtable t)
+          ;; Re-apply line-prefix from the hidden markdown region
+          (let ((invis-ov (seq-find (lambda (ov)
+                                      (and (overlay-get ov 'agent-shell-vtable)
+                                           (overlay-get ov 'invisible)))
+                                    (overlays-in (max (- beg 200) (point-min)) beg))))
+            (when invis-ov
+              (let ((lp (get-text-property (overlay-start invis-ov) 'line-prefix)))
+                (when lp
+                  (put-text-property beg end 'line-prefix lp)))))
+          (save-excursion
+            (goto-char beg)
+            (forward-line 1)
+            (agent-shell-vtable--apply-overlays beg end (point)))
+          ;; Restore point to same line/column within table
+          (when saved-line
+            (goto-char beg)
+            (forward-line saved-line)
+            (move-to-column saved-col)))))))
 
 (defun agent-shell-vtable--on-finish (&rest _)
   "Replace overlay-based table rendering with vtable widgets.
 Called after `shell-maker-finish-output' when streaming is complete."
   (when agent-shell-vtable-mode
-    ;; Clean up any stale vtable text from previous completions
-    (agent-shell-vtable--cleanup)
-    ;; Remove the overlay-based table decorations
-    (remove-overlays (point-min) (point-max) 'invisible 'markdown-overlays-tables)
-    ;; Find and render all tables as vtable widgets
-    (let ((tables (markdown-overlays--find-tables)))
-      (when tables
-        (unless (and (listp buffer-invisibility-spec)
-                     (memq 'agent-shell-vtable buffer-invisibility-spec))
-          (add-to-invisibility-spec 'agent-shell-vtable))
-        (dolist (table (reverse tables))
-          (agent-shell-vtable--render-table table))))))
+    (save-window-excursion
+      ;; Force header-line and vtable faces to use monospace font.
+      ;; Solaire-mode remaps header-line to a variable-pitch font,
+      ;; causing header/data column misalignment.
+      (face-remap-set-base 'header-line :inherit 'fixed-pitch)
+      (face-remap-set-base 'vtable :inherit 'fixed-pitch)
+      ;; Clean up any stale vtable text from previous completions
+      (agent-shell-vtable--cleanup)
+      ;; Remove the overlay-based table decorations
+      (remove-overlays (point-min) (point-max) 'invisible 'markdown-overlays-tables)
+      ;; Find and render all tables as vtable widgets
+      (let ((tables (markdown-overlays--find-tables)))
+        (when tables
+          (unless (and (listp buffer-invisibility-spec)
+                       (memq 'agent-shell-vtable buffer-invisibility-spec))
+            (add-to-invisibility-spec 'agent-shell-vtable))
+          (dolist (table (reverse tables))
+            (agent-shell-vtable--render-table table)))))))
 
 (defun agent-shell-vtable--maybe-enable ()
   "Enable `agent-shell-vtable-mode' in agent-shell buffers."
@@ -183,11 +227,18 @@ widgets with full cursor navigation support."
   :lighter " VT"
   :group 'agent-shell
   (if agent-shell-vtable-mode
-      (advice-add 'shell-maker-finish-output
-                  :after #'agent-shell-vtable--on-finish)
+      (progn
+        (advice-add 'shell-maker-finish-output
+                    :after #'agent-shell-vtable--on-finish)
+        (advice-add 'vtable-revert
+                    :around #'agent-shell-vtable--around-revert))
     (advice-remove 'shell-maker-finish-output
                    #'agent-shell-vtable--on-finish)
-    (agent-shell-vtable--cleanup)))
+    (advice-remove 'vtable-revert
+                   #'agent-shell-vtable--around-revert)
+    (agent-shell-vtable--cleanup)
+    (face-remap-reset-base 'header-line)
+    (face-remap-reset-base 'vtable)))
 
 ;;;###autoload
 (define-globalized-minor-mode agent-shell-vtable-global-mode
