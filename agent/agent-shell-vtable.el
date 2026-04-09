@@ -165,26 +165,35 @@ Called after `shell-maker-finish-output' when streaming is complete."
         (dolist (table (reverse tables))
           (agent-shell-vtable--render-table table))))))
 
+(defun agent-shell-vtable--maybe-enable ()
+  "Enable `agent-shell-vtable-mode' in agent-shell buffers."
+  (when (derived-mode-p 'agent-shell-mode)
+    (agent-shell-vtable-mode 1)))
+
 ;;;###autoload
 (define-minor-mode agent-shell-vtable-mode
-  "Global minor mode to render markdown tables as vtable widgets.
-When enabled, tables in `agent-shell' buffers use Emacs's built-in
-vtable package instead of overlay decorations, providing proper
-cursor navigation through table cells.
+  "Buffer-local minor mode to render markdown tables as vtable widgets.
+When enabled, tables use Emacs's built-in vtable package instead of
+overlay decorations, providing proper cursor navigation through
+table cells.
 
 During streaming output, the original overlay-based rendering is
 used.  Once output completes, tables are converted to vtable
 widgets with full cursor navigation support."
-  :global t
+  :lighter " VT"
   :group 'agent-shell
   (if agent-shell-vtable-mode
       (advice-add 'shell-maker-finish-output
                   :after #'agent-shell-vtable--on-finish)
     (advice-remove 'shell-maker-finish-output
                    #'agent-shell-vtable--on-finish)
-    (dolist (buf (buffer-list))
-      (with-current-buffer buf
-        (agent-shell-vtable--cleanup)))))
+    (agent-shell-vtable--cleanup)))
+
+;;;###autoload
+(define-globalized-minor-mode agent-shell-vtable-global-mode
+  agent-shell-vtable-mode
+  agent-shell-vtable--maybe-enable
+  :group 'agent-shell)
 
 (provide 'agent-shell-vtable)
 ;;; agent-shell-vtable.el ends here
