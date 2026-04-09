@@ -875,6 +875,7 @@
 
   (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
+  (load! "agent/agent-shell-vtable.el")
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
 
 (use-package! agent-shell-ediff
