@@ -887,7 +887,7 @@
 (use-package! agent-shell-dispatch
   :after agent-shell
   :config
-  (agent-shell-dispatch-render-global-mode +1))
+  (agent-shell-dispatch-global-mode +1))
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
