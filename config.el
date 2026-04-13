@@ -805,7 +805,8 @@
             (eq (char-before) ?@))
       (agent-shell--file-completion-at-point)))
   (defun +agent-shell-command-completion-at-point ()
-    "Like `agent-shell--command-completion-at-point' but only after / at the start of the line."
+    "Like `agent-shell--command-completion-at-point' but only after / at
+the start of the line."
     (when (save-excursion
             (skip-chars-backward "^ \t\n/")
             (equal (buffer-substring-no-properties (line-beginning-position) (point)) "/"))
