@@ -842,28 +842,28 @@
     :block "Navigate"
     :desc "Next item"                                             "C-j"       #'agent-shell-next-item
     :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
-    :desc "Forward block"                                         "<tab>"     #'agent-shell-ui-forward-block
-    :desc "Backward block"                                        "<backtab>" #'agent-shell-ui-backward-block
-    :desc "Toggle fragment"                              :n       "."         #'agent-shell-ui-toggle-fragment-at-point
+    :desc "Forward block"                                         "C-n"       #'agent-shell-ui-forward-block
+    :desc "Backward block"                                        "C-p"       #'agent-shell-ui-backward-block
+    :desc "Toggle fragment"                              :n       "<tab>"     #'agent-shell-ui-toggle-fragment-at-point
     :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
 
     :block "Compose"
     :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
     :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
-    :desc "Send region"                                  :n       "r"         #'agent-shell-send-region
+    :desc "Send region"              :localleader        :n       "r"         #'agent-shell-send-region
     :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
     :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
 
     :block "Session"
     :desc "Cycle mode"                                            "<C-tab>"   #'agent-shell-cycle-session-mode
-    :desc "Set mode"                                     :n       "M"         #'agent-shell-set-session-mode
-    :desc "Fork session"                                 :n       "C-y"       #'agent-shell-fork
-    :desc "Restart"                                      :n       "q"         #'agent-shell-restart
-    :desc "Toggle shell"                                 :n       "C-o"       #'agent-shell-toggle
+    :desc "Set mode"                 :localleader        :n       "M"         #'agent-shell-set-session-mode
+    :desc "Fork session"             :localleader        :n       "y"         #'agent-shell-fork
+    :desc "Restart"                  :localleader        :n       "q"         #'agent-shell-restart
+    :desc "Toggle shell"             :localleader        :n       "o"         #'agent-shell-toggle
 
     :row
     :block "Launch"
-    :desc "Start Claude"                                 :n       "l"         #'agent-shell-anthropic-start-claude-code
+    :desc "Start Claude"             :localleader        :n       "l"         #'agent-shell-anthropic-start-claude-code
 
     :block "Debug"
     :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
