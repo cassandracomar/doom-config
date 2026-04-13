@@ -804,8 +804,14 @@
             (skip-chars-backward "^ \t\n@")
             (eq (char-before) ?@))
       (agent-shell--file-completion-at-point)))
+  (defun +agent-shell-command-completion-at-point ()
+    "Like `agent-shell--command-completion-at-point' but only after / at the start of the line."
+    (when (save-excursion
+            (skip-chars-backward "^ \t\n/")
+            (equal (buffer-substring-no-properties (line-beginning-position) (point)) "/"))
+      (agent-shell--command-completion-at-point)))
   (setq-hook! 'agent-shell-mode-hook
-    completion-at-point-functions '(agent-shell--command-completion-at-point +agent-shell-file-completion-at-point))
+    completion-at-point-functions '(+agent-shell-command-completion-at-point +agent-shell-file-completion-at-point))
   (setq agent-shell-anthropic-authentication
         (agent-shell-anthropic-make-authentication
          :api-key (lambda () (identity "unused")))
