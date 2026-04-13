@@ -849,9 +849,9 @@ the start of the line."
     :block "Navigate"
     :desc "Next item"                                             "C-j"       #'agent-shell-next-item
     :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
-    :desc "Forward block"                                         "C-n"       #'agent-shell-ui-forward-block
-    :desc "Backward block"                                        "C-p"       #'agent-shell-ui-backward-block
-    :desc "Toggle fragment"                              :n       "<tab>"     #'agent-shell-ui-toggle-fragment-at-point
+    :desc "Forward block"                                :n       "C-n"       #'agent-shell-ui-forward-block
+    :desc "Backward block"                               :n       "C-p"       #'agent-shell-ui-backward-block
+    :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment-at-point
     :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
 
     :block "Compose"
