@@ -493,7 +493,13 @@
 
 (define-derived-mode helm-mode yaml-mode "helm"
   "Major mode for editing kubernetes helm templates")
-(add-hook! helm-mode #'lsp!)
+
+;; restart the lsp when switching to helm-mode
+(add-hook! helm-mode
+  (when-let* ((server (eglot-current-server)))
+    (progn
+      (eglot-shutdown server)
+      (lsp!))))
 
 ;; projectile
 (add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))
