@@ -496,10 +496,13 @@
 
 ;; restart the lsp when switching to helm-mode
 (add-hook! helm-mode
-  (when-let* ((server (eglot-current-server)))
-    (progn
+  (lambda ()
+    (when-let* ((server (eglot-current-server)))
       (eglot-shutdown server)
-      (lsp!))))
+      (while (eglot-current-server)
+        (sit-for 1)))
+    (lsp!)
+    (font-lock-update)))
 
 ;; projectile
 (add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))

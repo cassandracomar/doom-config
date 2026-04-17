@@ -78,7 +78,8 @@
                                                     :rename (:config (:crossModule t)
                                                              :usePrepare :json-false
                                                              :diff t)))
-                                 :helm-ls (:yamlls (:enabled t
+                                 :helm-ls (:logLevel "debug"
+                                           :yamlls (:enabled t
                                                     :path "yaml-schema-router"
                                                     :config (:completion t
                                                              :hover t
