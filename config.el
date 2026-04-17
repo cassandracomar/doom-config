@@ -491,18 +491,8 @@
   :commands yaml-ts-mode
   :mode "\\.yaml\\(\\.j2\\)?\\'")
 
-(define-derived-mode helm-mode yaml-mode "helm"
+(define-derived-mode helm-ts-mode gotmpl-yaml-ts-mode "Helm"
   "Major mode for editing kubernetes helm templates")
-
-;; restart the lsp when switching to helm-mode
-(add-hook! helm-mode
-  (lambda ()
-    (when-let* ((server (eglot-current-server)))
-      (eglot-shutdown server)
-      (while (eglot-current-server)
-        (sit-for 1)))
-    (lsp!)
-    (font-lock-update)))
 
 ;; projectile
 (add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))

@@ -87,4 +87,4 @@
 (package! let-completion)
 (package! agent-shell-dispatch :recipe (:host github :repo "cassandracomar/agent-shell-dispatch") :pin "825e1a232c85d971c9ba5698fc15fc4e6c98b36a")
 (package! agent-shell-ediff :recipe (:host github :repo "cassandracomar/agent-shell-ediff") :pin "be0408270dea969dce50f1f183e4e5dcc34e65eb")
-(package! tree-sitter-gotmpl :recipe (:host github :repo "zellio/tree-sitter-gotmpl") :pin "5c91dafb003f4a63ff37853c958fc622fbf436e6")
+(package! gotmpl-ts-mode :recipe (:host github :repo "zellio/tree-sitter-gotmpl" :files ("extras/gotmpl-ts-mode/*.el")) :pin "5c91dafb003f4a63ff37853c958fc622fbf436e6")
