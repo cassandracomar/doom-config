@@ -493,6 +493,7 @@
 
 (define-derived-mode helm-ts-mode gotmpl-yaml-ts-mode "Helm"
   "Major mode for editing kubernetes helm templates")
+(add-hook! helm-ts-mode #'lsp!)
 
 ;; projectile
 (add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))
