@@ -491,8 +491,35 @@
   :commands yaml-ts-mode
   :mode "\\.yaml\\(\\.j2\\)?\\'")
 
+(defun helm-ts-mode--full-range-update (orig-fun &optional beg end)
+  "In helm-ts-mode, always update ranges for the full buffer.
+JIT font-lock calls `treesit-update-ranges' per-chunk, which gives the YAML
+parser incomplete ranges and produces broken parses.  Full-buffer range
+computation ensures the YAML parser always sees all text regions."
+  (if (eq major-mode 'helm-ts-mode)
+      (funcall orig-fun (point-min) (point-max))
+    (funcall orig-fun beg end)))
+(advice-add 'treesit-update-ranges :around #'helm-ts-mode--full-range-update)
+
 (define-derived-mode helm-ts-mode gotmpl-yaml-ts-mode "Helm"
-  "Major mode for editing kubernetes helm templates")
+  "Major mode for editing kubernetes helm templates.
+Uses tree-sitter with gotmpl as the host language and YAML injected into
+text regions between template blocks."
+  ;; Run yaml rules first, then gotmpl with :override t so template faces
+  ;; win over yaml string face inside block scalars (config: |)
+  (setq-local treesit-font-lock-settings
+              (let ((gotmpl (mapcar (lambda (s)
+                                      (let ((copy (copy-sequence s)))
+                                        (setf (nth 3 copy) t)
+                                        copy))
+                                    (seq-filter (lambda (s) (eq (nth 5 s) 'gotmpl)) treesit-font-lock-settings)))
+                    (yaml (seq-filter (lambda (s) (eq (nth 5 s) 'yaml)) treesit-font-lock-settings)))
+                (append yaml gotmpl)))
+  ;; Disable yaml error feature — yaml fragments between templates may
+  ;; produce ERROR roots, but child nodes still highlight correctly
+  (treesit-font-lock-recompute-features nil '(error))
+  (setq-local comment-start "# ")
+  (setq-local comment-start-skip "#+ *"))
 (add-hook! helm-ts-mode #'lsp!)
 
 ;; projectile
