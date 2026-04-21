@@ -847,9 +847,11 @@ the start of the line."
         (agent-shell-make-environment-variables
          "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
          "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
-         "CLAUDE_CODE_USE_FOUNDRY" "1")
+         "CLAUDE_CODE_USE_FOUNDRY" "1"
+         "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-7"
+         "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
-        agent-shell-anthropic-default-model-id "claude-opus-4-6[1m]"
+        agent-shell-anthropic-default-model-id "claude-opus-4-7[1m]"
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
           (mode . agent-shell-mode)
@@ -911,7 +913,34 @@ the start of the line."
   (load! "agent/+agent-shell-interrupt-fix")
   (load! "agent/agent-shell-vtable.el")
   (agent-shell-vtable-global-mode)
-  (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
+  (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1))
+
+  ;; fix Opus 4.7 adaptive thinking making it very stupid
+  (defun my/claude-acp-session-meta ()
+    "Return the _meta alist to inject into Claude Agent session requests."
+    '((claudeCode
+       . ((options . ((effort . "max")
+                      (thinking . ((type . "adaptive")
+                                   (display . "summarized")))))))))
+
+  (defun my/claude-acp-inject-session-meta (request)
+    "Mutate ACP session REQUEST alist to include Claude _meta.
+REQUEST looks like ((:method . STR) (:params . ALIST))."
+    (when-let* ((params-cell (assq :params request)))
+      (let ((meta-cell (assq '_meta (cdr params-cell)))
+            (claude-meta (my/claude-acp-session-meta)))
+        (if meta-cell
+            (setcdr meta-cell (append (cdr meta-cell) claude-meta))
+          (setcdr params-cell
+                  (cons (cons '_meta claude-meta) (cdr params-cell))))))
+    request)
+
+  (with-eval-after-load 'acp
+    (dolist (sym '(acp-make-session-new-request
+                   acp-make-session-load-request
+                   acp-make-session-resume-request
+                   acp-make-session-fork-request))
+      (advice-add sym :filter-return #'my/claude-acp-inject-session-meta))))
 
 (use-package! agent-shell-ediff
   :after agent-shell
