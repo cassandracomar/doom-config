@@ -870,7 +870,14 @@ the start of the line."
            (env . (((name . "GRAFANA_URL") (value . "https://grafana.drwholdings.com"))
                    ((name . "GRAFANA_SERVICE_ACCOUNT_TOKEN")
                     (value . (lambda () (auth-source-rbw-get "grafana-svc-token"))))
-                   ((name . "GRAFANA_ORG_ID") (value . "7")))))))
+                   ((name . "GRAFANA_ORG_ID") (value . "7")))))
+          ((name . "influxdb")
+           (command . (lambda () (format "%s/.npm-global/bin/influxdb-mcp-server" (getenv "HOME")) ))
+           (args . ())
+           (env . (((name . "INFLUXDB_TOKEN")
+                    (value . (lambda () (auth-source-rbw-get "influxdb-token"))))
+                   ((name . "INFLUXDB_URL") (value . "http://influxdb-2.production.tito.drw:8086"))
+                   ((name . "INFLUXDB_ORG") (value . "TI")))))))
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
     "Agent shell commands."
