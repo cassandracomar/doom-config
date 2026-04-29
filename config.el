@@ -419,13 +419,44 @@
 (add-hook! 'after-save-hook #'magit-after-save-refresh-status)
 
 (use-package! forge
-  :defer t
+  :after magit
   :config
   (push '("git.drwholdings.com"               ; GITHOST
           "git.drwholdings.com/api/v3"        ; APIHOST
           "git.drwholdings.com"               ; WEBHOST and INSTANCE-ID
           forge-github-repository)            ; CLASS
         forge-alist))
+(use-package! code-review
+  :after forge
+  :config
+  (define-advice code-review-forge-pr-at-point
+      (:before (&rest _) host-from-forge)
+    "Configure code-review GitHub host vars from the forge repo at point."
+    (require 'forge)
+    (when-let* ((pullreq (or (forge-pullreq-at-point) (forge-current-topic)))
+                (repo (forge-get-repository pullreq))
+                ((forge-github-repository-p repo))
+                (apihost (oref repo apihost)))
+      (setq code-review-github-host apihost
+            code-review-github-graphql-host
+            (if (string-suffix-p "/api/v3" apihost)
+                (substring apihost 0 (- (length apihost) 3))  ; "/api/v3" → "/api"
+              apihost))))
+
+  ;; ghub renamed `ghub-graphql' → `ghub-query' and changed the callback
+  ;; payload from ((data ...)) to (data . X). Restore the old shape.
+  (require 'ghub-graphql)
+  (defun ghub-graphql--wrap-callback (cb data &rest rest)
+    (apply cb (and data (list data)) rest))
+  (defun ghub-graphql (query &optional variables &rest args)
+    "Compat shim around `ghub-query' for code-review."
+    (let ((cb (plist-get args :callback)))
+      (when cb
+        (setq args (plist-put (copy-sequence args)
+                              :callback
+                              (apply-partially
+                               #'ghub-graphql--wrap-callback cb)))))
+    (apply #'ghub-query query variables args)))
 
 (use-package! terraform-mode
   :defer t
