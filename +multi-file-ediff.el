@@ -405,17 +405,39 @@
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-magit-source) path)
-  (let ((default-directory (multi-file-ediff-magit-source-default-directory source))
-        (base (multi-file-ediff-magit-source-base-ref source))
-        (head (multi-file-ediff-magit-source-head-ref source)))
-    (cons (multi-file-ediff--magit-file-buffer base path "old")
-          (multi-file-ediff--magit-file-buffer head path "new"))))
+  (let* ((default-directory (multi-file-ediff-magit-source-default-directory source))
+         (base (multi-file-ediff-magit-source-base-ref source))
+         (wt (multi-file-ediff--ensure-worktree source))
+         (old-buf (multi-file-ediff--magit-file-buffer base path "old"))
+         (new-buf (multi-file-ediff--worktree-file-buffer wt path)))
+    (with-current-buffer old-buf
+      (setq-local multi-file-ediff--source source)
+      (setq-local multi-file-ediff--path path)
+      (setq-local multi-file-ediff--side 'old))
+    (with-current-buffer new-buf
+      (setq-local multi-file-ediff--source source)
+      (setq-local multi-file-ediff--path path)
+      (setq-local multi-file-ediff--side 'new)
+      (multi-file-ediff-comment-mode 1))
+    (cons old-buf new-buf)))
 
 (defun multi-file-ediff--magit-file-buffer (rev path side)
   "Return a buffer with PATH at REV, or an empty stand-in if missing.
 SIDE is \"old\" or \"new\" — used for the empty-buffer name."
   (or (ignore-errors (magit-find-file-noselect rev path))
       (multi-file-ediff--empty-buffer path side)))
+
+(defun multi-file-ediff--worktree-file-buffer (worktree path)
+  "Return a read-only file-visiting buffer for PATH inside WORKTREE.
+File-visiting (rather than blob) so LSP / projectile / xref work natively."
+  (let ((full-path (expand-file-name path worktree)))
+    (if (file-exists-p full-path)
+        (let ((buf (find-file-noselect full-path)))
+          (with-current-buffer buf
+            (setq buffer-read-only t)
+            (set-buffer-modified-p nil))
+          buf)
+      (multi-file-ediff--empty-buffer path "new"))))
 
 (defun multi-file-ediff--empty-buffer (path side)
   "Create an empty stand-in buffer for PATH on SIDE."
@@ -775,9 +797,9 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
   (let* ((default-directory
           (multi-file-ediff-code-review-source-default-directory source))
          (base (multi-file-ediff-code-review-source-base-ref source))
-         (head (multi-file-ediff-code-review-source-head-ref source))
+         (wt (multi-file-ediff--ensure-worktree source))
          (old-buf (multi-file-ediff--magit-file-buffer base path "old"))
-         (new-buf (multi-file-ediff--magit-file-buffer head path "new")))
+         (new-buf (multi-file-ediff--worktree-file-buffer wt path)))
     (with-current-buffer old-buf
       (setq-local multi-file-ediff--source source)
       (setq-local multi-file-ediff--path path)
@@ -799,6 +821,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
 (defvar multi-file-ediff-comment-mode-map
   (let ((m (make-sparse-keymap)))
     (define-key m (kbd "C-c C-e") #'multi-file-ediff-add-comment)
+    (define-key m (kbd "C-c C-j") #'multi-file-ediff-jump-to-worktree)
     m)
   "Keymap for `multi-file-ediff-comment-mode'.")
 
@@ -1255,6 +1278,151 @@ tty falls back to integer alignment."
                                             number
                                             (or (oref pr title) "")))))
         (multi-file-ediff-start source)))))
+
+
+;;;; Worktrees for jump-to-code
+
+(defcustom multi-file-ediff-worktree-cache
+  (expand-file-name "multi-file-ediff/worktrees/" user-emacs-directory)
+  "Directory under which per-source worktrees live."
+  :type 'directory
+  :group 'multi-file-ediff)
+
+(defcustom multi-file-ediff-worktree-max 10
+  "Maximum number of cached worktrees; oldest are pruned on session start."
+  :type 'integer
+  :group 'multi-file-ediff)
+
+(cl-defgeneric multi-file-ediff--worktree-key (source)
+  "Return a stable per-branch identifier for SOURCE's worktree.")
+
+(cl-defgeneric multi-file-ediff--worktree-repo (source)
+  "Return the source repo's working directory.")
+
+(cl-defmethod multi-file-ediff--worktree-key
+  ((source multi-file-ediff-code-review-source))
+  (let* ((pr (multi-file-ediff-code-review-source-pullreq source))
+         (branch (and pr (slot-boundp pr 'head-ref-name)
+                      (oref pr head-ref-name))))
+    (format "%s_%s_%s"
+            (oref pr owner) (oref pr repo)
+            (or branch (concat "pr-" (oref pr number))))))
+
+(cl-defmethod multi-file-ediff--worktree-repo
+  ((source multi-file-ediff-code-review-source))
+  (multi-file-ediff-code-review-source-default-directory source))
+
+(cl-defmethod multi-file-ediff--worktree-key
+  ((source multi-file-ediff-magit-source))
+  (let* ((dir (multi-file-ediff-magit-source-default-directory source))
+         (name (file-name-nondirectory (directory-file-name dir))))
+    (format "%s_magit" name)))
+
+(cl-defmethod multi-file-ediff--worktree-repo
+  ((source multi-file-ediff-magit-source))
+  (multi-file-ediff-magit-source-default-directory source))
+
+(defun multi-file-ediff--sanitize-key (key)
+  "Make KEY safe to use as a directory name."
+  (replace-regexp-in-string "[^A-Za-z0-9._-]+" "_" key))
+
+(defun multi-file-ediff--worktree-path (source)
+  "Return absolute worktree path for SOURCE (does not create)."
+  (expand-file-name
+   (multi-file-ediff--sanitize-key (multi-file-ediff--worktree-key source))
+   multi-file-ediff-worktree-cache))
+
+(defun multi-file-ediff--head-sha (source)
+  "Return the resolved head SHA for SOURCE."
+  (let ((default-directory (multi-file-ediff--worktree-repo source))
+        (head (cond ((multi-file-ediff-code-review-source-p source)
+                     (multi-file-ediff-code-review-source-head-ref source))
+                    ((multi-file-ediff-magit-source-p source)
+                     (multi-file-ediff-magit-source-head-ref source)))))
+    (and head (magit-rev-parse head))))
+
+(defun multi-file-ediff--ensure-worktree (source)
+  "Ensure a worktree exists for SOURCE at its head SHA; return its path.
+Reuses an existing worktree (checking out to the new SHA if needed) instead
+of creating a new one each time."
+  (let* ((repo-dir (multi-file-ediff--worktree-repo source))
+         (target (multi-file-ediff--head-sha source))
+         (wt (multi-file-ediff--worktree-path source)))
+    (unless target
+      (user-error "Could not resolve head SHA for worktree"))
+    (make-directory multi-file-ediff-worktree-cache t)
+    (cond
+     ((file-exists-p wt)
+      (let* ((default-directory wt)
+             (current (magit-rev-parse "HEAD")))
+        (unless (equal current target)
+          (let ((default-directory wt))
+            (magit-call-git "checkout" "--detach" target)))))
+     (t
+      (let ((default-directory repo-dir))
+        (magit-call-git "worktree" "add" "--detach" wt target))))
+    ;; Touch mtime for LRU.
+    (set-file-times wt)
+    (multi-file-ediff--prune-worktrees-internal)
+    wt))
+
+(defun multi-file-ediff--worktree-list ()
+  "Return list of (PATH MTIME) for cached worktrees, newest first."
+  (when (file-directory-p multi-file-ediff-worktree-cache)
+    (sort
+     (cl-loop for f in (directory-files multi-file-ediff-worktree-cache t "^[^.]")
+              when (file-directory-p f)
+              collect (cons f (file-attribute-modification-time
+                               (file-attributes f))))
+     (lambda (a b) (time-less-p (cdr b) (cdr a))))))
+
+(defun multi-file-ediff--remove-worktree (wt)
+  "Remove worktree at WT (its parent repo is auto-detected)."
+  (when (file-exists-p wt)
+    (ignore-errors
+      (let ((default-directory wt))
+        (magit-call-git "worktree" "remove" "--force" ".")))
+    ;; If git didn't fully clean it, blow it away.
+    (when (file-exists-p wt)
+      (delete-directory wt t))))
+
+(defun multi-file-ediff--prune-worktrees-internal ()
+  "Drop worktrees beyond `multi-file-ediff-worktree-max', LRU first."
+  (let* ((entries (multi-file-ediff--worktree-list))
+         (excess (max 0 (- (length entries) multi-file-ediff-worktree-max))))
+    (when (> excess 0)
+      (dolist (e (last entries excess))
+        (multi-file-ediff--remove-worktree (car e))))))
+
+;;;###autoload
+(defun multi-file-ediff-prune-worktrees ()
+  "Prune cached multi-file-ediff worktrees down to the configured max."
+  (interactive)
+  (multi-file-ediff--prune-worktrees-internal)
+  (message "Worktrees pruned to %d entries"
+           (length (multi-file-ediff--worktree-list))))
+
+;;;###autoload
+(defun multi-file-ediff-clear-worktrees ()
+  "Remove all cached multi-file-ediff worktrees."
+  (interactive)
+  (when (y-or-n-p "Remove ALL cached multi-file-ediff worktrees? ")
+    (dolist (e (multi-file-ediff--worktree-list))
+      (multi-file-ediff--remove-worktree (car e)))))
+
+(defun multi-file-ediff-jump-to-worktree ()
+  "Open the file at point's path in this session's worktree."
+  (interactive)
+  (unless (and multi-file-ediff--source multi-file-ediff--path)
+    (user-error "Not in a multi-file-ediff buffer"))
+  (let* ((line (line-number-at-pos))
+         (col (current-column))
+         (wt (multi-file-ediff--ensure-worktree multi-file-ediff--source))
+         (file (expand-file-name multi-file-ediff--path wt)))
+    (find-file-other-window file)
+    (goto-char (point-min))
+    (forward-line (1- line))
+    (move-to-column col)))
 
 
 ;;;; winum integration
