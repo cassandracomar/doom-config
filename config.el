@@ -326,8 +326,7 @@
       "6" #'winum-select-window-6
       "7" #'winum-select-window-7
       "8" #'winum-select-window-8
-      "9" #'winum-select-window-9
-      "0" #'treemacs-select-window)
+      "9" #'winum-select-window-9)
 (map! :nv "J" #'+lookup/definition)
 (map! :nv "C-J" #'xref-go-back)
 (map! :nv "C-K" #'+lookup/references)
@@ -342,6 +341,7 @@
 (map! :nv "g l" #'consult-line)
 (map! :map transient-map
       "<escape>" #'transient-quit-one)
+(map! :map magit-mode-map :n "e" #'magit-ediff)
 
 ;; TRANSIENT STATES
 (use-package! hercules)
@@ -418,6 +418,17 @@
 ;; magit
 (add-hook! 'after-save-hook #'magit-after-save-refresh-status)
 
+(after! magit
+  (load! "+multi-file-ediff")
+
+  (with-eval-after-load 'magit-ediff
+    (when (transient-get-suffix 'magit-ediff "E")
+      (transient-remove-suffix 'magit-ediff "E"))
+    (unless (transient-get-suffix 'magit-ediff "e")
+      ;; Place after `s' so it's in the leftmost column.
+      (transient-append-suffix 'magit-ediff "s"
+        '("e" "Dwim" magit-ediff-dwim)))))
+
 (use-package! forge
   :after magit
   :config
@@ -456,7 +467,50 @@
                               :callback
                               (apply-partially
                                #'ghub-graphql--wrap-callback cb)))))
-    (apply #'ghub-query query variables args)))
+    (apply #'ghub-query query variables args))
+
+  (define-keys-and-transient! code-review-mode-map +code-review-menu
+    "Code Review commands."
+    :block "Review"
+    :desc "Approve"                     :n "a"     #'code-review-submit-approve
+    :desc "Request changes"             :n "r"     #'code-review-submit-request-changes
+    :desc "Comment review"              :n "c"     #'code-review-submit-comments
+    :desc "LGTM"                        :n "l"     #'code-review-submit-lgtm
+    :desc "ediff"                       :n "e"     #'multi-file-ediff-code-review
+
+    :block "Comments"
+    :desc "Add/edit at point"           :n "C"     #'code-review-comment-add-or-edit
+    :desc "Code suggestion"             :n "S"     #'code-review-comment-code-suggestion
+    :desc "Submit replies only"         :n "P"     #'code-review-submit-only-replies
+    :desc "Single diff comment"         :n "d"     #'code-review-submit-single-diff-comment-at-point
+    :desc "Next comment"                :n "C-n"   #'code-review-comment-jump-next
+    :desc "Prev comment"                :n "C-p"   #'code-review-comment-jump-previous
+
+    :block "Merge"
+    :desc "Merge"                       :n "m m"   #'code-review-merge-merge
+    :desc "Merge rebase"                :n "m r"   #'code-review-merge-rebase
+    :desc "Merge squash"                :n "m s"   #'code-review-merge-squash
+
+    :row
+    :block "Set"
+    :desc "Feedback"                    :n "s f"   #'code-review-set-feedback
+    :desc "Reviewers"                   :n "s r"   #'code-review-request-reviews
+    :desc "Assignee"                    :n "s a"   #'code-review-set-assignee
+    :desc "Self-assign"                 :n "s y"   #'code-review-set-yourself-assignee
+    :desc "Milestone"                   :n "s m"   #'code-review-set-milestone
+    :desc "Labels"                      :n "s l"   #'code-review-set-label
+    :desc "Title"                       :n "s t"   #'code-review-set-title
+    :desc "Description"                 :n "s d"   #'code-review-set-description
+
+    :block "Toggle"
+    :desc "All comments"                :n "t a"   #'code-review-toggle-display-all-comments
+    :desc "Diff comments"               :n "t d"   #'code-review-toggle-display-diff-comments
+    :desc "Top-level comments"          :n "t t"   #'code-review-toggle-display-top-level-comments
+
+    :block "Buffer"
+    :desc "Reload"                      :n "G"     #'code-review-reload)
+  (map! :map code-review-mode-map
+        :n "?" #'+code-review-menu))
 
 (use-package! terraform-mode
   :defer t
