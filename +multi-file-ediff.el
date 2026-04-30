@@ -1341,13 +1341,20 @@ tty falls back to integer alignment."
                      (multi-file-ediff-magit-source-head-ref source)))))
     (and head (magit-rev-parse head))))
 
+(defvar multi-file-ediff-after-worktree-hook nil
+  "Hook run after a multi-file-ediff worktree is created or its HEAD changes.
+Functions are called with `default-directory' bound to the worktree.
+Useful for running `envrc-allow' or similar per-worktree setup.")
+
 (defun multi-file-ediff--ensure-worktree (source)
   "Ensure a worktree exists for SOURCE at its head SHA; return its path.
 Reuses an existing worktree (checking out to the new SHA if needed) instead
-of creating a new one each time."
+of creating a new one each time.  Runs `multi-file-ediff-after-worktree-hook'
+in the worktree whenever it was created or its HEAD changed."
   (let* ((repo-dir (multi-file-ediff--worktree-repo source))
          (target (multi-file-ediff--head-sha source))
-         (wt (multi-file-ediff--worktree-path source)))
+         (wt (multi-file-ediff--worktree-path source))
+         (changed nil))
     (unless target
       (user-error "Could not resolve head SHA for worktree"))
     (make-directory multi-file-ediff-worktree-cache t)
@@ -1357,10 +1364,15 @@ of creating a new one each time."
              (current (magit-rev-parse "HEAD")))
         (unless (equal current target)
           (let ((default-directory wt))
-            (magit-call-git "checkout" "--detach" target)))))
+            (magit-call-git "checkout" "--detach" target))
+          (setq changed t))))
      (t
       (let ((default-directory repo-dir))
-        (magit-call-git "worktree" "add" "--detach" wt target))))
+        (magit-call-git "worktree" "add" "--detach" wt target))
+      (setq changed t)))
+    (when changed
+      (let ((default-directory (file-name-as-directory wt)))
+        (run-hooks 'multi-file-ediff-after-worktree-hook)))
     ;; Touch mtime for LRU.
     (set-file-times wt)
     (multi-file-ediff--prune-worktrees-internal)

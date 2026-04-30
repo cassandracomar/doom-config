@@ -427,7 +427,11 @@
     (unless (transient-get-suffix 'magit-ediff "e")
       ;; Place after `s' so it's in the leftmost column.
       (transient-append-suffix 'magit-ediff "s"
-        '("e" "Dwim" magit-ediff-dwim)))))
+        '("e" "Dwim" magit-ediff-dwim))))
+  (add-hook! 'multi-file-ediff-after-worktree-hook
+    (when (and (fboundp 'envrc-allow)
+               (file-exists-p ".envrc"))
+      (envrc-allow))))
 
 (use-package! forge
   :after magit
