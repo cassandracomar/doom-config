@@ -791,6 +791,7 @@ text regions between template blocks."
 
 (use-package! org-caldav
   :defer t
+  :commands org-caldav-sync
   :custom
   (org-caldav-save-directory (expand-file-name "org-caldav/" doom-cache-dir))
   (org-icalendar-timezone "America/New_York")
