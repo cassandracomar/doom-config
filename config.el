@@ -792,13 +792,19 @@ text regions between template blocks."
 (use-package! org-caldav
   :defer t
   :custom
-  (org-caldav-url "http://localhost:1080/users/ccomar@drwholdings.com")
-  (org-caldav-calendar-id "calendar")  ; default Exchange calendar
-  (org-caldav-inbox "~/todo/calendar.org")
-  (org-caldav-files nil)               ; no local files push events
-  (org-caldav-sync-direction 'cal->org)
   (org-caldav-save-directory (expand-file-name "org-caldav/" doom-cache-dir))
-  (org-icalendar-timezone "America/New_York"))
+  (org-icalendar-timezone "America/New_York")
+  (org-caldav-calendars
+   '((:calendar-id "calendar"
+      :url "http://127.0.0.32:1080/users/ccomar@drwholdings.com"
+      :files nil
+      :inbox (format "%s/todo/cal-personal.org" (getenv "HOME"))
+      :sync-direction cal->org)
+     (:calendar-id "calendar"
+      :url "http://127.0.0.32:1080/users/up-platform-infrastructure-calendar@drwholdings.com"
+      :files nil
+      :inbox (format "%s/todo/cal-team.org" (getenv "HOME"))
+      :sync-direction cal->org))))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
