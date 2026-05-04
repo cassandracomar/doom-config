@@ -795,6 +795,8 @@ text regions between template blocks."
   :custom
   (org-caldav-save-directory (expand-file-name "org-caldav/" doom-cache-dir))
   (org-icalendar-timezone "America/New_York")
+  (org-caldav-uuid-extension ".EML")    ; davmail uses .EML instead of .ics
+  (org-caldav-show-sync-results nil)    ; no popup or echoed result
   (org-caldav-calendars
    `((:calendar-id "calendar"
       :url "http://127.0.0.32:1080/users/ccomar@drwholdings.com"
@@ -805,7 +807,76 @@ text regions between template blocks."
       :url "http://127.0.0.32:1080/users/up-platform-infrastructure-calendar@drwholdings.com"
       :files nil
       :inbox ,(format "%s/todo/cal-team.org" (getenv "HOME"))
-      :sync-direction cal->org))))
+      :sync-direction cal->org)))
+  :config
+  ;; Stock org-caldav hashes only :calendar-id for the per-calendar state
+  ;; file. Both entries above use "calendar" (davmail's path segment), so
+  ;; their state files collide. Hash url+id instead.
+  (define-advice org-caldav-sync-state-filename
+      (:override (id) include-url)
+    (expand-file-name
+     (concat "org-caldav-"
+             (substring (md5 (concat (or org-caldav-url "") "/" id)) 1 8)
+             ".el")
+     org-caldav-save-directory)))
+
+(defun +org-caldav-davmail-up-p ()
+  "Return non-nil if davmail's CalDAV port is reachable on 127.0.0.32:1080."
+  (condition-case nil
+      (let ((proc (open-network-stream "davmail-probe" nil
+                                       "127.0.0.32" 1080
+                                       :type 'plain :nowait nil)))
+        (delete-process proc)
+        t)
+    (error nil)))
+
+(defvar +org-caldav-sync-thread nil
+  "Currently running org-caldav sync thread, if any.")
+
+(defvar +org-caldav-last-error nil
+  "Most recent org-caldav sync error, or nil if last sync succeeded.")
+
+(defun +org-caldav-sync-quietly ()
+  "Run `org-caldav-sync' in a worker thread when davmail is up.
+url-retrieve-synchronously yields to the main thread on
+accept-process-output, keeping the UI responsive. Skips if a
+previous sync thread is still alive. On failure, the error is
+recorded in `+org-caldav-last-error', logged to *Messages* (no
+echo), and surfaced as a modeline warning."
+  (when (and (+org-caldav-davmail-up-p)
+             (not (and +org-caldav-sync-thread
+                       (thread-live-p +org-caldav-sync-thread))))
+    (setq +org-caldav-sync-thread
+          (make-thread
+           (lambda ()
+             (condition-case err
+                 (progn
+                   (let ((inhibit-message t)
+                         (message-log-max nil))
+                     (org-caldav-sync))
+                   (setq +org-caldav-last-error nil)
+                   (force-mode-line-update t))
+               (error
+                (setq +org-caldav-last-error err)
+                (let ((inhibit-message t)) ; suppress echo, still logs
+                  (message "[org-caldav] sync failed: %s"
+                           (error-message-string err)))
+                (force-mode-line-update t))))
+           "org-caldav-sync"))))
+
+(add-to-list
+ 'global-mode-string
+ '(:eval (when (bound-and-true-p +org-caldav-last-error)
+           (propertize " ⚠ caldav"
+                       'face 'warning
+                       'help-echo
+                       (format "org-caldav last sync error: %s"
+                               (error-message-string +org-caldav-last-error)))))
+ t)
+
+(add-hook! 'doom-after-init-hook
+  (defun +org-caldav-start-timer ()
+    (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly)))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
