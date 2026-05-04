@@ -836,16 +836,40 @@ text regions between template blocks."
 (defvar +org-caldav-last-error nil
   "Most recent org-caldav sync error, or nil if last sync succeeded.")
 
+(defun +org-caldav-prime-auth-cache ()
+  "Pre-populate `url-http-real-basic-auth-storage' with davmail credentials.
+Run on the main thread so auth-source can decrypt .authinfo.gpg or
+call out to rbw without blocking. Without this, a sync thread that
+hits a 401 would fall back to interactive prompting and hang the
+minibuffer (reading input is main-thread-only)."
+  (require 'url-auth)
+  (when-let* ((entry (car (auth-source-search :host "127.0.0.32"
+                                              :port "1080" :max 1)))
+              (user (plist-get entry :user))
+              (secret (plist-get entry :secret))
+              (pass (if (functionp secret) (funcall secret) secret))
+              (encoded (base64-encode-string
+                        (encode-coding-string (format "%s:%s" user pass) 'utf-8)
+                        t)))
+    (setq url-http-real-basic-auth-storage
+          (cons (list "127.0.0.32:1080"
+                      (cons "DavMail Gateway" encoded))
+                (assoc-delete-all "127.0.0.32:1080"
+                                  url-http-real-basic-auth-storage)))
+    t))
+
 (defun +org-caldav-sync-quietly ()
   "Run `org-caldav-sync' in a worker thread when davmail is up.
-url-retrieve-synchronously yields to the main thread on
-accept-process-output, keeping the UI responsive. Skips if a
-previous sync thread is still alive. On failure, the error is
-recorded in `+org-caldav-last-error', logged to *Messages* (no
-echo), and surfaced as a modeline warning."
+Primes the url.el basic-auth cache from the main thread first so the
+worker thread never needs to consult auth-source (which may prompt
+interactively if rbw or gpg-agent is involved). Skips if a previous
+sync thread is still alive. On failure, the error is recorded in
+`+org-caldav-last-error', logged to *Messages* (no echo), and
+surfaced as a modeline warning."
   (when (and (+org-caldav-davmail-up-p)
              (not (and +org-caldav-sync-thread
                        (thread-live-p +org-caldav-sync-thread))))
+    (+org-caldav-prime-auth-cache)
     (setq +org-caldav-sync-thread
           (make-thread
            (lambda ()
@@ -874,13 +898,9 @@ echo), and surfaced as a modeline warning."
                                (error-message-string +org-caldav-last-error)))))
  t)
 
-;; Background timer disabled: thread-based sync hangs on the url.el auth
-;; prompt because reading minibuffer input is restricted to the main thread.
-;; Re-enable once credentials are pre-cached in `url-http-real-basic-auth-storage'
-;; or sync runs in a subprocess.
-;; (add-hook! 'doom-after-init-hook
-;;   (defun +org-caldav-start-timer ()
-;;     (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly)))
+(add-hook! 'doom-after-init-hook
+  (defun +org-caldav-start-timer ()
+    (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly)))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
