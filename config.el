@@ -795,15 +795,15 @@ text regions between template blocks."
   (org-caldav-save-directory (expand-file-name "org-caldav/" doom-cache-dir))
   (org-icalendar-timezone "America/New_York")
   (org-caldav-calendars
-   '((:calendar-id "calendar"
+   `((:calendar-id "calendar"
       :url "http://127.0.0.32:1080/users/ccomar@drwholdings.com"
       :files nil
-      :inbox (format "%s/todo/cal-personal.org" (getenv "HOME"))
+      :inbox ,(format "%s/todo/cal-personal.org" (getenv "HOME"))
       :sync-direction cal->org)
      (:calendar-id "calendar"
       :url "http://127.0.0.32:1080/users/up-platform-infrastructure-calendar@drwholdings.com"
       :files nil
-      :inbox (format "%s/todo/cal-team.org" (getenv "HOME"))
+      :inbox ,(format "%s/todo/cal-team.org" (getenv "HOME"))
       :sync-direction cal->org))))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
