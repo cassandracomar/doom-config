@@ -789,14 +789,16 @@ text regions between template blocks."
   :config
   (load! "+notmuch.el"))
 
-(use-package! excorporate
+(use-package! org-caldav
   :defer t
   :custom
-  (excorporate-calendar-show-day-function #'exco-calfw-show-day)
-  (excorporate-time-zone "Eastern Standard Time")
-  (excorporate-configuration
-   '("ccomar@drwholdings.com" . "https://webmail.drwholdings.com/EWS/Exchange.asmx"))
-  (org-agenda-include-diary t))
+  (org-caldav-url "http://localhost:1080/users/ccomar@drwholdings.com")
+  (org-caldav-calendar-id "calendar")  ; default Exchange calendar
+  (org-caldav-inbox "~/todo/calendar.org")
+  (org-caldav-files nil)               ; no local files push events
+  (org-caldav-sync-direction 'cal->org)
+  (org-caldav-save-directory (expand-file-name "org-caldav/" doom-cache-dir))
+  (org-icalendar-timezone "America/New_York"))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
