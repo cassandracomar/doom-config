@@ -789,15 +789,6 @@ text regions between template blocks."
   :config
   (load! "+notmuch.el"))
 
-(use-package! excorporate
-  :defer t
-  :custom
-  (excorporate-calendar-show-day-function #'exco-calfw-show-day)
-  (excorporate-time-zone "Eastern Standard Time")
-  (excorporate-configuration
-   '("ccomar@drwholdings.com" . "https://webmail.drwholdings.com/EWS/Exchange.asmx"))
-  (org-agenda-include-diary t))
-
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
