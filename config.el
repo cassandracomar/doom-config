@@ -874,9 +874,13 @@ echo), and surfaced as a modeline warning."
                                (error-message-string +org-caldav-last-error)))))
  t)
 
-(add-hook! 'doom-after-init-hook
-  (defun +org-caldav-start-timer ()
-    (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly)))
+;; Background timer disabled: thread-based sync hangs on the url.el auth
+;; prompt because reading minibuffer input is restricted to the main thread.
+;; Re-enable once credentials are pre-cached in `url-http-real-basic-auth-storage'
+;; or sync runs in a subprocess.
+;; (add-hook! 'doom-after-init-hook
+;;   (defun +org-caldav-start-timer ()
+;;     (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly)))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
