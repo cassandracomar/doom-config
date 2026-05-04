@@ -900,7 +900,10 @@ surfaced as a modeline warning."
 
 (add-hook! 'doom-after-init-hook
   (defun +org-caldav-start-timer ()
-    (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly)))
+    ;; Only the daemon runs the periodic sync; secondary Emacs instances
+    ;; (e.g. for config testing) would otherwise race on state files.
+    (when (daemonp)
+      (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly))))
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
