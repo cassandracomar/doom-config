@@ -1225,6 +1225,7 @@ the start of the line."
 
   (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
+  (load! "agent/+agent-shell-title-fix")
   (load! "agent/agent-shell-vtable.el")
   (agent-shell-vtable-global-mode)
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1))
