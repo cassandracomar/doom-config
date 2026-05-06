@@ -60,6 +60,39 @@
                                                  :typing (:triggerChars "=.{(><")
                                                  :workspace (:symbol (:search (:scope "workspace_and_dependencies"
                                                                                :kind "all_symbols"))))
+                                 :gopls (:usePlaceholders t
+                                         :completeUnimported t
+                                         :gofumpt t                          ;; stricter gofmt; drop if you don't want it
+                                         :staticcheck t                      ;; runs staticcheck via gopls; needs gopls >= 0.15
+                                         :semanticTokens t
+                                         :hoverKind "FullDocumentation"
+                                         :linkTarget "pkg.go.dev"
+                                         :experimentalPostfixCompletions t
+                                         :directoryFilters ["-**/node_modules" "-**/vendor"]
+                                         :analyses (:fieldalignment t        ;; warn on bad struct layout; noisy, optional
+                                                    :nilness t
+                                                    :shadow t
+                                                    :unusedparams t
+                                                    :unusedwrite t
+                                                    :useany t
+                                                    :unusedvariable t)
+                                         :codelenses (:gc_details t
+                                                      :generate t
+                                                      :regenerate_cgo t
+                                                      :run_govulncheck t     ;; surfaces CVEs in deps
+                                                      :test t
+                                                      :tidy t
+                                                      :upgrade_dependency t
+                                                      :vendor t)
+                                         :hints (:assignVariableTypes t
+                                                 :compositeLiteralFields t
+                                                 :compositeLiteralTypes t
+                                                 :constantValues t
+                                                 :functionTypeParameters t
+                                                 :parameterNames t
+                                                 :rangeVariableTypes t)
+                                         :buildFlags []                      ;; add e.g. ["-tags=integration"] per-project via .dir-locals.el
+                                         :env (:GOFLAGS ""))
                                  :nixd (:formatting (:command ["nix" "fmt" "--"])
                                         :nixpkgs (:expr "import (builtins.getFlake \"github:nixos/nixpkgs\") {}")
                                         :options
