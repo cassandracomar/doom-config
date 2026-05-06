@@ -885,7 +885,9 @@ mode 0600 because it contains a base64-encoded password."
                         org-caldav-save-directory ,org-caldav-save-directory
                         org-caldav-uuid-extension ,org-caldav-uuid-extension
                         org-caldav-show-sync-results nil
-                        org-icalendar-timezone ,org-icalendar-timezone)
+                        org-icalendar-timezone ,org-icalendar-timezone
+                        org-id-locations-file ,org-id-locations-file
+                        org-id-track-globally t)
                   (advice-add 'org-caldav-sync-state-filename :override
                               (lambda (id)
                                 (expand-file-name
@@ -937,6 +939,20 @@ and surfaced as a modeline warning."
            :noquery t
            :sentinel #'+org-caldav--sentinel))))
 
+(defun +org-caldav-restart-sync ()
+  "Clear the caldav modeline warning and trigger a fresh sync.
+Kills any stuck subprocess, resets `+org-caldav-last-error',
+regenerates the batch script (so credential or config changes
+take effect), and calls `+org-caldav-sync-quietly'."
+  (interactive)
+  (when (and +org-caldav-sync-process (process-live-p +org-caldav-sync-process))
+    (delete-process +org-caldav-sync-process))
+  (setq +org-caldav-sync-process nil
+        +org-caldav-last-error nil)
+  (force-mode-line-update t)
+  (+org-caldav-write-batch-script)
+  (+org-caldav-sync-quietly))
+
 (add-to-list
  'global-mode-string
  '(:eval (when (bound-and-true-p +org-caldav-last-error)
@@ -954,7 +970,9 @@ and surfaced as a modeline warning."
     (when (daemonp)
       (+org-caldav-write-batch-script)
       (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly))))
-(map! :leader "o c" #'calfw-org-open-calendar)
+(map! :leader
+      "o c" #'calfw-org-open-calendar
+      "o C" #'+org-caldav-restart-sync)
 
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
