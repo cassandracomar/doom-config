@@ -1152,13 +1152,12 @@ the start of the line."
          :api-key (lambda () (identity "unused")))
         agent-shell-anthropic-claude-environment
         (agent-shell-make-environment-variables
-         "ANTHROPIC_FOUNDRY_API_KEY" (auth-source-rbw-get "anthropic-api-key")
-         "ANTHROPIC_FOUNDRY_BASE_URL" "https://drw-azureai.drwcloud.com/"
-         "CLAUDE_CODE_USE_FOUNDRY" "1"
+         "ANTHROPIC_AUTH_KEY" (auth-source-rbw-get "anthropic-api-key")
+         "ANTHROPIC_CUSTOM_HEADERS" (format "x-portkey-api-key: %s\nx-portkey-config: pc-bedroc-55aa53\nx-portkey-metadata: {\"service\": \"claude-code\", \"os\": \"linux\"}" (auth-source-rbw-get "anthropic-api-key"))
          "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-7"
          "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
-        agent-shell-anthropic-default-model-id "claude-opus-4-7[1m]"
+        agent-shell-anthropic-default-model-id "claude-opus-4-7"
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
           (mode . agent-shell-mode)
