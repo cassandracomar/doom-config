@@ -472,13 +472,6 @@ Based on `so-long-detected-long-line-p'."
 (after! magit
   (load! "+multi-file-ediff")
 
-  (with-eval-after-load 'magit-ediff
-    (when (transient-get-suffix 'magit-ediff "E")
-      (transient-remove-suffix 'magit-ediff "E"))
-    (unless (transient-get-suffix 'magit-ediff "e")
-      ;; Place after `s' so it's in the leftmost column.
-      (transient-append-suffix 'magit-ediff "s"
-        '("e" "Dwim" magit-ediff-dwim))))
   (add-hook! 'multi-file-ediff-after-worktree-hook
     (when (and (fboundp 'envrc-allow)
                (file-exists-p ".envrc"))
@@ -1201,7 +1194,11 @@ the start of the line."
            (env . (((name . "INFLUXDB_TOKEN")
                     (value . (lambda () (auth-source-rbw-get "influxdb-token"))))
                    ((name . "INFLUXDB_URL") (value . "http://influxdb-2.production.tito.drw:8086"))
-                   ((name . "INFLUXDB_ORG") (value . "TI")))))))
+                   ((name . "INFLUXDB_ORG") (value . "TI")))))
+          ((name . "slack")
+           (type . "http")
+           (headers . (((name . "x-portkey-api-key") (value . (lambda () (auth-source-rbw-get "anthropic-api-key"))))))
+           (url . "https://mcp.ai.drwcloud.com/slack/mcp"))))
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
     "Agent shell commands."
