@@ -472,6 +472,9 @@ Based on `so-long-detected-long-line-p'."
 (after! magit
   (load! "+multi-file-ediff")
 
+  (transient-append-suffix 'magit-ediff "E"
+    '("e" "Dwim" magit-ediff-dwim))
+
   (add-hook! 'multi-file-ediff-after-worktree-hook
     (when (and (fboundp 'envrc-allow)
                (file-exists-p ".envrc"))
