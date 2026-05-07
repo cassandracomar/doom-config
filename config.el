@@ -879,6 +879,7 @@ mode 0600 because it contains a base64-encoded password."
                   (setq url-http-real-basic-auth-storage '(("127.0.0.32:1080" ("DavMail Gateway" . ,cred)))
                         org-caldav-calendars ',org-caldav-calendars
                         org-caldav-save-directory ,org-caldav-save-directory
+                        org-caldav-backup-file ,org-caldav-backup-file
                         org-caldav-uuid-extension ,org-caldav-uuid-extension
                         org-caldav-show-sync-results nil
                         org-icalendar-timezone ,org-icalendar-timezone
