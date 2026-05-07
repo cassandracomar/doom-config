@@ -1199,7 +1199,7 @@ the start of the line."
                     (value . (lambda () (auth-source-rbw-get "influxdb-token"))))
                    ((name . "INFLUXDB_URL") (value . "http://influxdb-2.production.tito.drw:8086"))
                    ((name . "INFLUXDB_ORG") (value . "TI")))))
-          ((name . "slack")
+          ((name . "up-slack")
            (type . "http")
            (headers . (((name . "x-portkey-api-key") (value . (lambda () (auth-source-rbw-get "anthropic-api-key"))))))
            (url . "https://mcp.ai.drwcloud.com/slack/mcp"))))
