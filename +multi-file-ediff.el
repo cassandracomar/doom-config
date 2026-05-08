@@ -49,7 +49,15 @@
   "Return a list of (PATH . META) for SOURCE.")
 
 (cl-defgeneric multi-file-ediff--make-buffers (source path)
-  "Return (OLD-BUFFER . NEW-BUFFER) for PATH from SOURCE.")
+  "Return a list of buffers for PATH from SOURCE.
+A 2-element list (A B) drives a 2-way `ediff-buffers';
+a 3-element list (A B C) drives a 3-way `ediff-buffers3'.")
+
+(cl-defgeneric multi-file-ediff--commit-buffers (source bufs)
+  "Persist any modifications in BUFS for SOURCE before ediff cleanup.
+Default is a no-op.  Sources whose ediff has a writable side
+\(e.g. staged/unstaged with a magit index buffer\) override this."
+  (ignore source bufs))
 
 
 ;;;; Session group
@@ -269,11 +277,13 @@
   (multi-file-ediff--kill-tracked-buffers group)
   (let* ((source (multi-file-ediff-group-source group))
          (bufs (multi-file-ediff--make-buffers source path))
-         (old-buf (car bufs))
-         (new-buf (cdr bufs))
+         (buf-a (nth 0 bufs))
+         (buf-b (nth 1 bufs))
+         (buf-c (nth 2 bufs))
+         (all-bufs (delq nil (list buf-a buf-b buf-c)))
          startup-hook-fn before-setup-hook-fn)
-    (multi-file-ediff--track-buffer group old-buf)
-    (multi-file-ediff--track-buffer group new-buf)
+    (dolist (b all-bufs)
+      (multi-file-ediff--track-buffer group b))
     (setf (multi-file-ediff-group-current-file group) path)
     (puthash path t (multi-file-ediff-group-visited group))
     (multi-file-ediff--render-sidebar group)
@@ -297,8 +307,9 @@
               (setq-local ediff-quit-hook
                           (list
                            (lambda ()
-                             (when (buffer-live-p old-buf) (kill-buffer old-buf))
-                             (when (buffer-live-p new-buf) (kill-buffer new-buf)))
+                             (multi-file-ediff--commit-buffers source bufs)
+                             (dolist (b all-bufs)
+                               (when (buffer-live-p b) (kill-buffer b))))
                            #'ediff-cleanup-mess
                            (lambda ()
                              (setf (multi-file-ediff-group-ctl-buffer group) nil)
@@ -311,12 +322,14 @@
     (condition-case err
         (let ((ediff-window-setup-function 'ediff-setup-windows-plain)
               (ediff-split-window-function 'split-window-horizontally))
-          (ediff-buffers old-buf new-buf))
+          (if buf-c
+              (ediff-buffers3 buf-a buf-b buf-c)
+            (ediff-buffers buf-a buf-b)))
       (error
        (remove-hook 'ediff-before-setup-hook before-setup-hook-fn)
        (remove-hook 'ediff-startup-hook startup-hook-fn)
-       (when (buffer-live-p old-buf) (kill-buffer old-buf))
-       (when (buffer-live-p new-buf) (kill-buffer new-buf))
+       (dolist (b all-bufs)
+         (when (buffer-live-p b) (kill-buffer b)))
        (signal (car err) (cdr err))))))
 
 
@@ -419,7 +432,7 @@
       (setq-local multi-file-ediff--path path)
       (setq-local multi-file-ediff--side 'new)
       (multi-file-ediff-comment-mode 1))
-    (cons old-buf new-buf)))
+    (list old-buf new-buf)))
 
 (defun multi-file-ediff--magit-file-buffer (rev path side)
   "Return a buffer with PATH at REV, or an empty stand-in if missing.
@@ -468,11 +481,24 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-magit-staged-source) path)
-  (let ((default-directory
-         (multi-file-ediff-magit-staged-source-default-directory source)))
-    (cons (multi-file-ediff--magit-file-buffer "HEAD" path "old")
-          (or (ignore-errors (magit-find-file-index-noselect path))
-              (multi-file-ediff--empty-buffer path "index")))))
+  "Return (HEAD INDEX WORKTREE) buffers for staged review."
+  (let* ((default-directory
+          (multi-file-ediff-magit-staged-source-default-directory source))
+         (full-path (expand-file-name path))
+         (head-buf (multi-file-ediff--magit-file-buffer "HEAD" path "old"))
+         (index-buf (or (ignore-errors (magit-find-file-index-noselect path))
+                        (multi-file-ediff--empty-buffer path "index")))
+         (wt-buf (if (file-exists-p full-path)
+                     (find-file-noselect full-path)
+                   (multi-file-ediff--empty-buffer path "worktree"))))
+    (when (buffer-live-p index-buf)
+      (with-current-buffer index-buf
+        (setq buffer-read-only nil)))
+    (list head-buf index-buf wt-buf)))
+
+(cl-defmethod multi-file-ediff--commit-buffers
+  ((_ multi-file-ediff-magit-staged-source) bufs)
+  (multi-file-ediff--commit-staging-bufs bufs))
 
 (cl-defstruct (multi-file-ediff-magit-unstaged-source
                (:constructor multi-file-ediff-magit-unstaged-source-make))
@@ -491,11 +517,43 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-magit-unstaged-source) path)
-  (let ((default-directory
-         (multi-file-ediff-magit-unstaged-source-default-directory source)))
-    (cons (or (ignore-errors (magit-find-file-index-noselect path))
-              (multi-file-ediff--empty-buffer path "index"))
-          (find-file-noselect (expand-file-name path)))))
+  "Return (HEAD INDEX WORKTREE) buffers for unstaged review."
+  (let* ((default-directory
+          (multi-file-ediff-magit-unstaged-source-default-directory source))
+         (full-path (expand-file-name path))
+         (head-buf (multi-file-ediff--magit-file-buffer "HEAD" path "old"))
+         (index-buf (or (ignore-errors (magit-find-file-index-noselect path))
+                        (multi-file-ediff--empty-buffer path "index")))
+         (wt-buf (if (file-exists-p full-path)
+                     (find-file-noselect full-path)
+                   (multi-file-ediff--empty-buffer path "worktree"))))
+    (when (buffer-live-p index-buf)
+      (with-current-buffer index-buf
+        (setq buffer-read-only nil)))
+    (list head-buf index-buf wt-buf)))
+
+(cl-defmethod multi-file-ediff--commit-buffers
+  ((_ multi-file-ediff-magit-unstaged-source) bufs)
+  (multi-file-ediff--commit-staging-bufs bufs))
+
+(defun multi-file-ediff--commit-staging-bufs (bufs)
+  "If BUFS is (HEAD INDEX WORKTREE), persist modifications.
+INDEX modifications go through `magit-update-index'; WORKTREE
+modifications prompt to save."
+  (let ((index-buf (nth 1 bufs))
+        (wt-buf (nth 2 bufs)))
+    (when (and index-buf
+               (buffer-live-p index-buf)
+               (buffer-modified-p index-buf))
+      (with-current-buffer index-buf
+        (magit-update-index)))
+    (when (and wt-buf
+               (buffer-live-p wt-buf)
+               (buffer-modified-p wt-buf))
+      (with-current-buffer wt-buf
+        (when (and buffer-file-name
+                   (y-or-n-p (format "Save file %s? " buffer-file-name)))
+          (save-buffer))))))
 
 (cl-defstruct (multi-file-ediff-magit-working-tree-source
                (:constructor multi-file-ediff-magit-working-tree-source-make))
@@ -516,7 +574,7 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
   ((source multi-file-ediff-magit-working-tree-source) path)
   (let ((default-directory
          (multi-file-ediff-magit-working-tree-source-default-directory source)))
-    (cons (multi-file-ediff--magit-file-buffer "HEAD" path "old")
+    (list (multi-file-ediff--magit-file-buffer "HEAD" path "old")
           (find-file-noselect (expand-file-name path)))))
 
 
@@ -610,7 +668,8 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
 
 (defun multi-file-ediff-magit--advice-dwim (orig &rest args)
   "Around-advice for `magit-ediff-dwim': route the multi-file cases through
-our entry points so we don't get the single-file prompt for PRs / ranges."
+our entry points so we don't get the single-file prompt for PRs / ranges
+or get dispatched to `magit-ediff-stage' for staged/unstaged sections."
   (let* ((section (magit-current-section))
          (range (and section (magit-diff--dwim))))
     (cond
@@ -619,6 +678,10 @@ our entry points so we don't get the single-file prompt for PRs / ranges."
      ((stringp range)
       (pcase-let ((`(,a ,b) (magit-ediff-compare--read-revisions range)))
         (multi-file-ediff-magit-range a b)))
+     ((eq range 'staged)
+      (multi-file-ediff-magit-show-staged))
+     ((eq range 'unstaged)
+      (multi-file-ediff-magit-show-unstaged))
      (t (apply orig args)))))
 
 
@@ -813,7 +876,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
           (multi-file-ediff--render-comments-in-buffer)
         (error
          (message "multi-file-ediff: comment overlay render failed: %S" err))))
-    (cons old-buf new-buf)))
+    (list old-buf new-buf)))
 
 
 ;;;; Comment minor mode (in new-side ediff buffer)

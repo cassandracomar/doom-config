@@ -473,6 +473,7 @@ Based on `so-long-detected-long-line-p'."
   (load! "+multi-file-ediff")
   (multi-file-ediff-magit-setup)
 
+
   (transient-append-suffix 'magit-ediff "E"
     '("e" "Dwim" magit-ediff-dwim))
   (transient-remove-suffix 'magit-ediff "E")
