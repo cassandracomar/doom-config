@@ -475,6 +475,7 @@ Based on `so-long-detected-long-line-p'."
 
   (transient-append-suffix 'magit-ediff "E"
     '("e" "Dwim" magit-ediff-dwim))
+  (transient-remove-suffix 'magit-ediff "E")
 
   (add-hook! 'multi-file-ediff-after-worktree-hook
     (when (and (fboundp 'envrc-allow)
