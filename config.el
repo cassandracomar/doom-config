@@ -963,13 +963,13 @@ take effect), and calls `+org-caldav-sync-quietly'."
                                (error-message-string +org-caldav-last-error)))))
  t)
 
-(add-hook! 'doom-after-init-hook
-  (defun +org-caldav-start-timer ()
-    ;; Only the daemon runs the periodic sync; secondary Emacs instances
-    ;; (e.g. for config testing) would otherwise race on state files.
-    (when (daemonp)
-      (+org-caldav-write-batch-script)
-      (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly))))
+;; (add-hook! 'doom-after-init-hook
+;;   (defun +org-caldav-start-timer ()
+;;     ;; Only the daemon runs the periodic sync; secondary Emacs instances
+;;     ;; (e.g. for config testing) would otherwise race on state files.
+;;     (when (daemonp)
+;;       (+org-caldav-write-batch-script)
+;;       (run-with-timer 60 (* 15 60) #'+org-caldav-sync-quietly))))
 (map! :leader
       "o c" #'calfw-org-open-calendar
       "o C" #'+org-caldav-restart-sync)
