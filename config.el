@@ -469,19 +469,19 @@ Based on `so-long-detected-long-line-p'."
 ;; magit
 (add-hook! 'after-save-hook #'magit-after-save-refresh-status)
 
-(after! magit
-  (load! "+multi-file-ediff")
-  (multi-file-ediff-magit-setup)
+;; (after! magit
+;;   (load! "+multi-file-ediff")
+;;   (multi-file-ediff-magit-setup)
 
 
-  (transient-append-suffix 'magit-ediff "E"
-    '("e" "Dwim" magit-ediff-dwim))
-  (transient-remove-suffix 'magit-ediff "E")
+;;   (transient-append-suffix 'magit-ediff "E"
+;;     '("e" "Dwim" magit-ediff-dwim))
+;;   (transient-remove-suffix 'magit-ediff "E")
 
-  (add-hook! 'multi-file-ediff-after-worktree-hook
-    (when (and (fboundp 'envrc-allow)
-               (file-exists-p ".envrc"))
-      (envrc-allow))))
+;;   (add-hook! 'multi-file-ediff-after-worktree-hook
+;;     (when (and (fboundp 'envrc-allow)
+;;                (file-exists-p ".envrc"))
+;;       (envrc-allow))))
 
 (use-package! forge
   :after magit
