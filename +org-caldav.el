@@ -79,6 +79,7 @@ mode 0600 because it contains a base64-encoded password."
                         org-caldav-backup-file ,org-caldav-backup-file
                         org-caldav-uuid-extension ,org-caldav-uuid-extension
                         org-caldav-show-sync-results nil
+                        org-caldav-delete-org-entries 'never
                         org-icalendar-timezone ,org-icalendar-timezone
                         org-id-locations-file ,org-id-locations-file
                         org-id-track-globally t)

@@ -825,6 +825,23 @@ text regions between template blocks."
       "o c" #'calfw-org-open-calendar
       "o C" #'+org-caldav-restart-sync)
 
+(use-package! khalel
+  :defer t
+  :commands khalel-import-events khalel-run-vdirsyncer khalel-edit-calendar-event
+  :config
+  (setq khalel-khal-command (executable-find "khal")
+        khalel-vdirsyncer-command (executable-find "vdirsyncer")
+        khalel-default-calendar "ccomar-personal"
+        khalel-import-org-file (expand-file-name "todo/calendar.org" (getenv "HOME"))
+        khalel-import-org-file-confirm-overwrite nil
+        khalel-import-time-delta "30d"
+        khalel-import-start-date "today"
+        khalel-import-end-date "+30d"))
+
+(map! :leader
+      "o k" #'khalel-import-events
+      "o K" #'khalel-run-vdirsyncer)
+
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 
