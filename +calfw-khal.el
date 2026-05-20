@@ -51,15 +51,32 @@ naive line-by-line parser works.")
           (string-to-number (match-string 2 s)))))
 
 (defun +calfw-khal--parse-output-buffer (buf)
-  "Parse khal-list output in BUF into a list of calfw-events."
-  (let (events)
+  "Parse khal-list output in BUF into a calfw source result.
+Returns a list of single-day `calfw-event' structs, optionally with a
+`(periods . LIST)' tail holding multi-day events.
+
+Dedup key is (UID . START-DATE):
+  - Multi-day events: khal lists the same row once per day in range with
+    the same DTSTART, so they collapse to one entry.
+  - Recurring events: each expanded occurrence has a different
+    START-DATE, so they survive dedup as distinct entries.
+
+Multi-day events (where START != END) are moved into the `periods'
+list so calfw draws them as bars spanning their full range, rather
+than stacking on the start day."
+  (let (single-day
+        periods
+        (seen (make-hash-table :test 'equal)))
     (with-current-buffer buf
       (goto-char (point-min))
       (while (not (eobp))
+        ;; OMIT-NULLS=nil — empty start-time/end-time fields are real and
+        ;; must keep their positional slots; otherwise all-day events
+        ;; slide every subsequent field two columns to the left.
         (let ((parts (split-string
                       (buffer-substring-no-properties
                        (line-beginning-position) (line-end-position))
-                      "\t" t)))
+                      "\t")))
           (when (>= (length parts) 7)
             (let* ((sd (+calfw-khal--parse-iso-date (nth 0 parts)))
                    (st (+calfw-khal--parse-hhmm (nth 1 parts)))
@@ -69,26 +86,32 @@ naive line-by-line parser works.")
                    (cal (nth 5 parts))
                    (title (nth 6 parts))
                    (location (or (nth 7 parts) ""))
-                   (organizer (or (nth 8 parts) "")))
-              (when (and sd ed)
-                ;; Location is intentionally NOT set on the calfw-event
-                ;; struct — keeping it off keeps *calfw-details* compact.
-                ;; The location is still stashed on the title's text property
-                ;; so the click popup can show it.
-                (push (make-calfw-event
-                       :title (propertize title
-                                          '+calfw-khal-event
-                                          (list :uid uid :calendar cal
-                                                :title title
-                                                :location location
-                                                :organizer organizer
-                                                :start-date sd :start-time st
-                                                :end-date ed :end-time et))
-                       :start-date sd :start-time st
-                       :end-date ed :end-time et)
-                      events)))))
+                   (organizer (or (nth 8 parts) ""))
+                   (key (cons uid sd)))
+              (when (and sd ed (not (gethash key seen)))
+                (puthash key t seen)
+                ;; Location stays off the calfw-event struct (keeps
+                ;; *calfw-details* compact) but is stashed on the title's
+                ;; text property for the click popup.
+                (let ((ev (make-calfw-event
+                           :title (propertize title
+                                              '+calfw-khal-event
+                                              (list :uid uid :calendar cal
+                                                    :title title
+                                                    :location location
+                                                    :organizer organizer
+                                                    :start-date sd :start-time st
+                                                    :end-date ed :end-time et))
+                           :start-date sd :start-time st
+                           :end-date ed :end-time et)))
+                  (if (equal sd ed)
+                      (push ev single-day)
+                    (push ev periods)))))))
         (forward-line 1)))
-    (nreverse events)))
+    (let ((result (nreverse single-day)))
+      (if periods
+          (append result (list (cons 'periods (nreverse periods))))
+        result))))
 
 (defun +calfw-khal--query-all (calendars begin end)
   "Run khal list for each entry in CALENDARS concurrently between BEGIN and END.
