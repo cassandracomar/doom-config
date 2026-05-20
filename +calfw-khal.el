@@ -332,7 +332,7 @@ Opens in week view by default; press `M' for month, `T' for two-weeks,
 `D' for day."
   (interactive)
   (calfw-open-calendar-buffer
-   :view 'week
+   :view 'two-weeks
    :contents-sources
    (mapcar (lambda (entry)
              (let* ((name (car entry))
