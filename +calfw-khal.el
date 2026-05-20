@@ -324,6 +324,21 @@ find the `cfw:event' struct whose title carries our data)."
     (evil-define-key 'motion calfw-details-mode-map
       (kbd "RET") #'+calfw-khal-event-onclick)))
 
+;; Calfw's calendar and details buffers are read-only views with their
+;; own dense keymap (n/p/b/f for navigation, W/M/D/T to switch view,
+;; RET to open an event, etc.). Without intervention evil's normal-state
+;; bindings shadow them. `evil-make-overriding-map' tells evil to defer
+;; to the major-mode map for keys it actually binds, while leaving evil
+;; bindings (and crucially the SPC leader) intact for everything else.
+(after! evil
+  (evil-make-overriding-map calfw-calendar-mode-map 'normal)
+  (evil-make-overriding-map calfw-details-mode-map 'normal)
+  ;; recompute precedence in any already-open buffers
+  (dolist (buf '("*cfw-calendar*" "*calfw-details*"))
+    (when-let ((b (get-buffer buf)))
+      (with-current-buffer b
+        (evil-normalize-keymaps)))))
+
 (defun +calfw-multi-calendar ()
   "Open calfw with one color-coded source per entry in `+khalel-calendars'.
 Each source queries khal directly for the rendered date range, avoiding
