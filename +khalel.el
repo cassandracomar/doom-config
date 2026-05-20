@@ -13,11 +13,12 @@
 ;;   - `+khalel-import-events-per-calendar' (called by the systemd unit)
 ;;
 ;; Shared data (`+khalel-calendars', `+khalel-calendar-colors') lives in
-;; config.el because `+calfw-khal.el' needs the same mapping without
-;; requiring this file.
+;; `+khalel-vars.el' so this file, `+calfw-khal.el', and the systemd
+;; batch import script can all pull from one source.
 ;;
 ;;; Code:
 
+(require '+khalel-vars)
 (require 'khalel)
 
 (setq khalel-khal-command (executable-find "khal")

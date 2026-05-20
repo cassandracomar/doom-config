@@ -16,10 +16,11 @@
 ;; popup without re-querying khal.
 ;;
 ;; Depends on the shared `+khalel-calendars' / `+khalel-calendar-colors'
-;; defvars from config.el.
+;; defvars from `+khalel-vars.el'.
 ;;
 ;;; Code:
 
+(require '+khalel-vars)
 (require 'calfw)
 (require 'calfw-org)
 

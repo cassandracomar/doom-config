@@ -795,20 +795,6 @@ text regions between template blocks."
   :config
   (load! "+khalel"))
 
-(defvar +khalel-calendars
-  '(("personal"  . "~/todo/calendar-personal.org")
-    ("team"      . "~/todo/calendar-team.org")
-    ("pagerduty" . "~/todo/calendar-pagerduty.org"))
-  "Mapping of khal calendar name to per-calendar org file path.
-Read by both `+khalel-import-events-per-calendar' (in `+khalel.el')
-and `+calfw-multi-calendar' (in `+calfw-khal.el').")
-
-(defvar +khalel-calendar-colors
-  '(("personal"  . "deep sky blue")
-    ("team"      . "spring green")
-    ("pagerduty" . "gold"))
-  "Per-calendar colors for calfw display, keyed by khal calendar name.")
-
 (defun +khalel-import-events-per-calendar ()
   "Per-calendar khalel import (lazy-loaded via `+khalel.el')."
   (interactive)
