@@ -831,7 +831,7 @@ text regions between template blocks."
   :config
   (setq khalel-khal-command (executable-find "khal")
         khalel-vdirsyncer-command (executable-find "vdirsyncer")
-        khalel-default-calendar "ccomar-personal"
+        khalel-default-calendar "ccomar_personal"
         khalel-import-org-file (expand-file-name "todo/calendar.org" (getenv "HOME"))
         khalel-import-org-file-confirm-overwrite nil
         khalel-import-time-delta "30d"
