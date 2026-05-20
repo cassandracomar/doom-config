@@ -814,6 +814,19 @@ text regions between template blocks."
       "o k" #'+khalel-import-events-per-calendar
       "o K" #'khalel-run-vdirsyncer)
 
+;; calfw ships with j/k inverted from vim convention
+(map! :after calfw :map calfw-calendar-mode-map
+      "j" #'calfw-navi-next-week-command
+      "k" #'calfw-navi-previous-week-command)
+;; revert arrow keys to moving point and hjkl to moving between days
+(map! :after calfw :map calfw-details-mode-map
+      "<left>"  #'left-char
+      "<right>" #'right-char
+      "h"       #'calfw-details-navi-prev-command
+      "l"       #'calfw-details-navi-next-command
+      "j"       #'calfw-details-navi-next-item-command
+      "k"       #'calfw-details-navi-prev-item-command)
+
 (add-hook! eshell-mode #'eat-eshell-mode)
 (add-hook! eshell-mode #'eat-eshell-visual-command-mode)
 

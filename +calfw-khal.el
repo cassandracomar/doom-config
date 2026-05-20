@@ -23,6 +23,20 @@
 (require '+khalel-vars)
 (require 'calfw)
 (require 'calfw-org)
+(require 'filenotify)
+;; Make `after!' (from doom-lib) and the evil API visible at compile time
+;; so the byte-compiler doesn't flag them. `doom-keybinds' (which provides
+;; `map!') intentionally is *not* loaded here — it depends on an internal
+;; `doom--system-*' var that's only set during full doom startup, and
+;; trying to require it standalone errors out. flymake's isolated env
+;; will keep flagging `map!' as undefined; that warning is a noisy false
+;; positive when the file is actually loaded inside doom.
+(eval-when-compile
+  (require 'doom-lib)
+  (require 'evil))
+(declare-function evil-make-overriding-map "evil-core")
+(declare-function evil-normalize-keymaps "evil-core")
+(declare-function evil-define-key* "evil-core")
 
 ;; Default is "%s%e%t%l%d" (start, end, title, location, description). The
 ;; back-to-back times in `- 09:30 - 10:00 Title' are hard to scan at a
@@ -37,14 +51,14 @@ Avoids `{description}' to keep each event on a single line so the
 naive line-by-line parser works.")
 
 (defun +calfw-khal--parse-iso-date (s)
-  "Parse YYYY-MM-DD into calfw date (MONTH DAY YEAR)."
+  "Parse YYYY-MM-DD string S into calfw date (MONTH DAY YEAR)."
   (when (and (stringp s) (>= (length s) 10))
     (list (string-to-number (substring s 5 7))
           (string-to-number (substring s 8 10))
           (string-to-number (substring s 0 4)))))
 
 (defun +calfw-khal--parse-hhmm (s)
-  "Parse HH:MM into (HOUR MIN), nil if empty."
+  "Parse HH:MM string S into (HOUR MIN), or nil if empty."
   (when (and (stringp s) (>= (length s) 5)
              (string-match "^\\([0-9]\\{2\\}\\):\\([0-9]\\{2\\}\\)" s))
     (list (string-to-number (match-string 1 s))
@@ -159,7 +173,7 @@ already visited within the session. Invalidated wholesale when the vdir
 changes (see `+calfw-khal--vdir-watcher').")
 
 (defvar +calfw-khal--vdir-watcher nil
-  "file-notify watch descriptor on `+khalel-vdir-root', or nil.")
+  "File-notify watch descriptor on `+khalel-vdir-root', or nil.")
 
 (defun +calfw-khal--invalidate-cache (&rest _)
   "Clear `+calfw-khal--cache'. Called by the vdir watcher on data change."
@@ -246,8 +260,9 @@ previous buffer surfaces back in the same window."
     (switch-to-buffer buf)))
 
 (defun +calfw-khal--event-on-line ()
-  "Return the `+calfw-khal-event' data for the calfw event on the current line,
-or nil. Scans the line for the first position carrying the property."
+  "Return the `+calfw-khal-event' data for the calfw event on the current line.
+Returns nil if none.  Scans the line for the first position carrying
+the property."
   (save-excursion
     (let ((line-end (line-end-position))
           data)
@@ -261,7 +276,7 @@ or nil. Scans the line for the first position carrying the property."
       data)))
 
 (defun +calfw-khal-event-onclick ()
-  "Render the khal event at point into a transient org-mode popup.
+  "Render the khal event at point into a transient `org-mode' popup.
 Works in both the calfw grid (point on the propertized title) and in
 *calfw-details* (point anywhere on an event line — we walk the line to
 find the `cfw:event' struct whose title carries our data)."
@@ -335,7 +350,7 @@ find the `cfw:event' struct whose title carries our data)."
   (evil-make-overriding-map calfw-details-mode-map 'normal)
   ;; recompute precedence in any already-open buffers
   (dolist (buf '("*cfw-calendar*" "*calfw-details*"))
-    (when-let ((b (get-buffer buf)))
+    (when-let* ((b (get-buffer buf)))
       (with-current-buffer b
         (evil-normalize-keymaps)))))
 
@@ -343,8 +358,8 @@ find the `cfw:event' struct whose title carries our data)."
   "Open calfw with one color-coded source per entry in `+khalel-calendars'.
 Each source queries khal directly for the rendered date range, avoiding
 a full scan of the multi-MB per-calendar org files on every navigation.
-Opens in week view by default; press `M' for month, `T' for two-weeks,
-`D' for day."
+Opens in two-week view by default with point on today; press `M' for
+month, `W' for week, `D' for day."
   (interactive)
   (calfw-open-calendar-buffer
    :view 'two-weeks
@@ -354,7 +369,54 @@ Opens in week view by default; press `M' for month, `T' for two-weeks,
                     (color (or (cdr (assoc name +khalel-calendar-colors))
                                "Seagreen4")))
                (+calfw-khal-create-source name color)))
-           +khalel-calendars)))
+           +khalel-calendars))
+  (when (get-buffer "*cfw-calendar*")
+    (with-current-buffer "*cfw-calendar*"
+      (calfw-navi-goto-today-command))))
+
+;; calfw renders to the width of the window at creation time and doesn't
+;; reflow on resize — until you close and reopen the buffer, the grid
+;; stays its original width. We hook `window-size-change-functions' to
+;; re-render on resize, but ONLY while a calfw buffer exists — the hook
+;; is installed in `calfw-calendar-mode-hook' (per-buffer kill-hook
+;; uninstalls when the last calfw buffer goes away). This keeps the
+;; global hook list clean when calfw isn't open.
+(defvar-local +calfw-khal--last-window-width nil
+  "Last `window-total-width' of the window showing this calfw buffer.
+Buffer-local so multiple calfw buffers don't clobber each other's
+last-width and so a killed-and-reopened buffer starts fresh.")
+
+(defun +calfw-khal--maybe-refresh (&rest _)
+  "Refresh `*cfw-calendar*' if its window width changed since last render."
+  (when-let* ((buf (get-buffer "*cfw-calendar*"))
+              (win (get-buffer-window buf t))
+              (w (window-total-width win)))
+    (with-current-buffer buf
+      (unless (eql w +calfw-khal--last-window-width)
+        (setq +calfw-khal--last-window-width w)
+        (calfw-refresh-calendar-buffer)
+        (calfw-navi-goto-today-command)))))
+
+(defun +calfw-khal--any-other-calfw-buffer-p ()
+  "Return non-nil if any calfw-calendar-mode buffer exists besides the current one."
+  (cl-some (lambda (b)
+             (and (not (eq b (current-buffer)))
+                  (buffer-live-p b)
+                  (with-current-buffer b
+                    (derived-mode-p 'calfw-calendar-mode))))
+           (buffer-list)))
+
+(defun +calfw-khal--uninstall-resize-hook ()
+  "Remove the global resize hook if no other calfw buffer is alive."
+  (unless (+calfw-khal--any-other-calfw-buffer-p)
+    (remove-hook 'window-size-change-functions #'+calfw-khal--maybe-refresh)))
+
+(defun +calfw-khal--install-resize-hook ()
+  "Install the global resize hook + buffer-local kill hook."
+  (add-hook 'window-size-change-functions #'+calfw-khal--maybe-refresh)
+  (add-hook 'kill-buffer-hook #'+calfw-khal--uninstall-resize-hook nil 'local))
+
+(add-hook 'calfw-calendar-mode-hook #'+calfw-khal--install-resize-hook)
 
 (provide '+calfw-khal)
 ;;; +calfw-khal.el ends here
