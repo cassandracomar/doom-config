@@ -253,6 +253,43 @@ find the `cfw:event' struct whose title carries our data)."
 
 (advice-add 'calfw-org-onclick :override #'+calfw-khal-event-onclick)
 
+;; Iosevka Nerd Font renders U+2026 (`…') at 2 cells wide, but
+;; `string-width' assumes 1. That causes calfw's truncated cells to
+;; visually overflow by one cell each, drifting the column borders.
+;; Override `char-width-table' so `string-width' matches the font, which
+;; lets calfw's existing `truncate-string-to-width' calls compute correct
+;; widths and the ellipsis ends up aligned. The width is detected from
+;; the live font so this stays correct if a future font draws `…' at one
+;; cell — we just store whichever value the font actually uses.
+(when (and (display-graphic-p)
+           ;; with-temp-buffer because string-pixel-width needs a buffer
+           (with-temp-buffer (> (string-pixel-width "x") 0)))
+  (let* ((default-pw (with-temp-buffer (string-pixel-width "x")))
+         (ellipsis-pw (with-temp-buffer (string-pixel-width "…")))
+         (width-cells (max 1 (round (/ (float ellipsis-pw) default-pw)))))
+    (set-char-table-range char-width-table ?… width-cells)))
+
+;; doom-molokai (and most doom themes) makes calfw's toolbar-button faces
+;; inherit from `variable-pitch' AND ships an unreadable gray-on-steelblue
+;; default. Force monospace inheritance (so the toolbar lines up with the
+;; grid below) and recolor against the doom palette for legible contrast.
+(after! calfw
+  (dolist (face '(calfw-toolbar-button-off-face
+                  calfw-toolbar-button-on-face
+                  calfw-toolbar-face))
+    (set-face-attribute face nil :inherit nil))
+  (when (fboundp 'doom-color)
+    (set-face-attribute 'calfw-toolbar-face nil
+                        :background (doom-color 'bg-alt)
+                        :foreground (doom-color 'fg))
+    (set-face-attribute 'calfw-toolbar-button-off-face nil
+                        :background (doom-color 'bg-alt)
+                        :foreground (doom-color 'fg))
+    (set-face-attribute 'calfw-toolbar-button-on-face nil
+                        :background (doom-color 'bg-alt)
+                        :foreground (doom-color 'orange)
+                        :weight 'bold)))
+
 ;; calfw-details-mode-map binds RET to `calfw-details-kill-buffer-command'
 ;; by default, which kills the whole details buffer. We want RET to open the
 ;; event under point; `q' in the popup then dismisses the popup window and
@@ -267,9 +304,12 @@ find the `cfw:event' struct whose title carries our data)."
 (defun +calfw-multi-calendar ()
   "Open calfw with one color-coded source per entry in `+khalel-calendars'.
 Each source queries khal directly for the rendered date range, avoiding
-a full scan of the multi-MB per-calendar org files on every navigation."
+a full scan of the multi-MB per-calendar org files on every navigation.
+Opens in week view by default; press `M' for month, `T' for two-weeks,
+`D' for day."
   (interactive)
   (calfw-open-calendar-buffer
+   :view 'week
    :contents-sources
    (mapcar (lambda (entry)
              (let* ((name (car entry))
