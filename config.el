@@ -100,6 +100,8 @@
 
 (add-to-list 'trusted-content "~/src/github.com/cassandracomar/doom-config/")
 
+(add-to-list 'load-path doom-user-dir)
+
 (igc-start-idle-timer)
 (add-hook 'emacs-startup-hook
           (lambda ()
