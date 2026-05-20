@@ -224,6 +224,85 @@ cleared whenever vdirsyncer modifies the vdir."
   "Return a buffer name `*khal: TITLE*' for the event DATA plist."
   (format "*khal: %s*" (or (plist-get data :title) "event")))
 
+(defvar-local +calfw-khal--current-event nil
+  "DATA plist of the event currently displayed in this popup buffer.
+Buffer-local so `+calfw-khal-event-next'/`-prev' know where to step from.")
+
+(defun +calfw-khal--date+time-key (ev)
+  "Return a comparable (Y M D H M) integer-tuple for calfw-event EV."
+  (let ((sd (calfw-event-start-date ev))
+        (st (calfw-event-start-time ev)))
+    (list (nth 2 sd) (nth 0 sd) (nth 1 sd)
+          (if st (car st) 0)
+          (if st (cadr st) 0))))
+
+(defun +calfw-khal--event< (a b)
+  "Return non-nil if calfw-event A is earlier than B."
+  (let ((ka (+calfw-khal--date+time-key a))
+        (kb (+calfw-khal--date+time-key b)))
+    (catch 'done
+      (cl-loop for x in ka for y in kb
+               do (cond ((< x y) (throw 'done t))
+                        ((> x y) (throw 'done nil))))
+      nil)))
+
+(defun +calfw-khal--all-cached-events ()
+  "Flatten every cached event across calendars and ranges, sorted by start."
+  (let (acc)
+    (maphash
+     (lambda (_range cal-alist)
+       (dolist (cal-entry cal-alist)
+         (dolist (item (cdr cal-entry))
+           (cond
+            ((calfw-event-p item) (push item acc))
+            ((and (consp item) (eq (car item) 'periods))
+             (dolist (p (cdr item)) (push p acc)))))))
+     +calfw-khal--cache)
+    (sort acc #'+calfw-khal--event<)))
+
+(defun +calfw-khal--event-data (ev)
+  "Pull the `+calfw-khal-event' text-property data off EV's title."
+  (let ((title (calfw-event-title ev)))
+    (and (stringp title) (get-text-property 0 '+calfw-khal-event title))))
+
+(defun +calfw-khal--step-event (direction)
+  "Show the event neighboring the current one. DIRECTION is +1 or -1.
+Kills the current popup before showing the next, so the window history
+doesn't accumulate stepped-through popups and `q' returns straight to
+*calfw-details* (or whatever opened the popup originally)."
+  (let* ((all (+calfw-khal--all-cached-events))
+         (current-uid (plist-get +calfw-khal--current-event :uid))
+         (idx (cl-position current-uid all
+                           :key (lambda (e)
+                                  (plist-get (+calfw-khal--event-data e) :uid))
+                           :test #'string=))
+         (target-idx (and idx (+ idx direction))))
+    (cond
+     ((null all)
+      (message "No events in calfw cache — open the calendar first"))
+     ((null idx)
+      (message "Current event isn't in the cache anymore"))
+     ((or (< target-idx 0) (>= target-idx (length all)))
+      (message "No %s event in cache" (if (> direction 0) "next" "previous")))
+     (t
+      (let ((data (+calfw-khal--event-data (nth target-idx all)))
+            (old-buf (current-buffer)))
+        (when data
+          (+calfw-khal--popup-event data)
+          (when (and (buffer-live-p old-buf)
+                     (not (eq old-buf (current-buffer))))
+            (kill-buffer old-buf))))))))
+
+(defun +calfw-khal-event-next ()
+  "Show the next event (chronologically) in the current popup buffer."
+  (interactive)
+  (+calfw-khal--step-event +1))
+
+(defun +calfw-khal-event-prev ()
+  "Show the previous event (chronologically) in the current popup buffer."
+  (interactive)
+  (+calfw-khal--step-event -1))
+
 (defun +calfw-khal--fetch-description (uid)
   "Return the DESCRIPTION for the event with UID, or nil if not found.
 Reads the .ics file directly from the vdir. We tried `khal search'
@@ -252,6 +331,11 @@ the filename, so we can locate it without scanning the file body."
             (setq s (replace-regexp-in-string "\\\\\\\\" "\\\\" s))
             (when (> (length s) 0) s)))))))
 
+(defun +calfw-khal-quit ()
+  "Kill the current popup buffer and restore the previous window content."
+  (interactive)
+  (quit-window 'kill))
+
 (defun +calfw-khal--popup-event (data)
   "Render the khal event DATA plist into a per-event buffer in the current window.
 Layout (reading order):
@@ -266,8 +350,11 @@ and a table reads more naturally than colon-prefixed lines.
 
 Uses `switch-to-buffer' rather than `pop-to-buffer' so the buffer
 replaces whatever was in the calling window (typically *calfw-details*).
-Pressing `q' (`View-quit' via `view-mode') buries the event buffer; the
-previous buffer surfaces back in the same window."
+We avoid `view-mode' because its `View-quit' only buries the buffer
+and toggles itself off; once toggled off, evil-normal's `q' wins and
+becomes `evil-record-macro'. Instead we set `read-only-mode' and bind
+`q' buffer-locally to `+calfw-khal-quit', which always kills the popup
+and restores the previous window content."
   (let ((buf (get-buffer-create (+calfw-khal--event-buffer-name data)))
         (sd (plist-get data :start-date))
         (st (plist-get data :start-time))
@@ -316,7 +403,15 @@ previous buffer surfaces back in the same window."
         (when (re-search-forward "^:PROPERTIES:$" nil t)
           (org-fold-hide-drawer-toggle))
         (goto-char (point-min))
-        (view-mode 1)))
+        (read-only-mode 1)
+        ;; Buffer-local nav + quit. Remember which event this buffer is
+        ;; showing; override n/p to step through events; bind q to a kill-
+        ;; and-restore that always works (unlike view-mode's View-quit).
+        (setq-local +calfw-khal--current-event data)
+        (when (fboundp 'evil-local-set-key)
+          (evil-local-set-key 'normal (kbd "n") #'+calfw-khal-event-next)
+          (evil-local-set-key 'normal (kbd "p") #'+calfw-khal-event-prev)
+          (evil-local-set-key 'normal (kbd "q") #'+calfw-khal-quit))))
     (switch-to-buffer buf)))
 
 (defun +calfw-khal--event-on-line ()
