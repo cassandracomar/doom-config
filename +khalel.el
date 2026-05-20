@@ -44,8 +44,7 @@
 {description}
 ")
 
-(defvar +khalel-vdir-root "~/.local/share/calendars/"
-  "Root of vdirsyncer's local calendar storage.")
+;; `+khalel-vdir-root' is defined in `+khalel-vars.el' (required above).
 
 (defun +khalel-earliest-event-date ()
   "Earliest DTSTART inside a VEVENT block across all .ics in `+khalel-vdir-root'.

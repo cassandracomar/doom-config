@@ -24,5 +24,10 @@
     ("pagerduty" . "gold"))
   "Per-calendar colors for calfw display, keyed by khal calendar name.")
 
+(defvar +khalel-vdir-root "~/.local/share/calendars/"
+  "Root of vdirsyncer's local calendar storage.
+Shared between `+khalel.el' (for the earliest-event scan) and
+`+calfw-khal.el' (for the per-event description lookup).")
+
 (provide '+khalel-vars)
 ;;; +khalel-vars.el ends here

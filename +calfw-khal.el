@@ -224,11 +224,49 @@ cleared whenever vdirsyncer modifies the vdir."
   "Return a buffer name `*khal: TITLE*' for the event DATA plist."
   (format "*khal: %s*" (or (plist-get data :title) "event")))
 
+(defun +calfw-khal--fetch-description (uid)
+  "Return the DESCRIPTION for the event with UID, or nil if not found.
+Reads the .ics file directly from the vdir. We tried `khal search'
+first, but its free-text matcher silently drops long Exchange UIDs
+(those start with a long base64-ish prefix), so we'd miss most of
+the calendar. vdirsyncer writes one .ics per UID with the UID as
+the filename, so we can locate it without scanning the file body."
+  (when-let* ((path (car (directory-files-recursively
+                          (expand-file-name +khalel-vdir-root)
+                          (concat "\\`" (regexp-quote uid) "\\.ics\\'")))))
+    (with-temp-buffer
+      (insert-file-contents-literally path)
+      ;; ICS folds long lines by inserting CRLF + single whitespace; undo
+      ;; that so the DESCRIPTION value is on one logical line.
+      (goto-char (point-min))
+      (while (re-search-forward "\r?\n[ \t]" nil t)
+        (replace-match ""))
+      (goto-char (point-min))
+      (when (re-search-forward "^BEGIN:VEVENT" nil t)
+        (when (re-search-forward "^DESCRIPTION\\(?:;[^:]*\\)?:\\(.*\\)$" nil t)
+          (let ((s (match-string 1)))
+            ;; ICS escapes inside text values: \n, \, \; \\
+            (setq s (replace-regexp-in-string "\\\\n" "\n" s))
+            (setq s (replace-regexp-in-string "\\\\," "," s))
+            (setq s (replace-regexp-in-string "\\\\;" ";" s))
+            (setq s (replace-regexp-in-string "\\\\\\\\" "\\\\" s))
+            (when (> (length s) 0) s)))))))
+
 (defun +calfw-khal--popup-event (data)
   "Render the khal event DATA plist into a per-event buffer in the current window.
-Uses `switch-to-buffer' rather than `pop-to-buffer' so the buffer replaces
-whatever was in the calling window (typically *calfw-details*). Pressing
-`q' (bound to `View-quit' via `view-mode') buries the event buffer; the
+Layout (reading order):
+  * Title :calendar:
+  <timestamp>
+  | Field     | Value |
+  | ...                |
+
+Properties live in a plain org table rather than a `:PROPERTIES:'
+drawer — the popup is a transient view, not source for `org-id-find',
+and a table reads more naturally than colon-prefixed lines.
+
+Uses `switch-to-buffer' rather than `pop-to-buffer' so the buffer
+replaces whatever was in the calling window (typically *calfw-details*).
+Pressing `q' (`View-quit' via `view-mode') buries the event buffer; the
 previous buffer surfaces back in the same window."
   (let ((buf (get-buffer-create (+calfw-khal--event-buffer-name data)))
         (sd (plist-get data :start-date))
@@ -240,21 +278,43 @@ previous buffer surfaces back in the same window."
         (read-only-mode -1)
         (erase-buffer)
         (org-mode)
+        ;; Heading
         (insert (format "* %s :%s:\n" (plist-get data :title)
                         (plist-get data :calendar)))
-        (insert ":PROPERTIES:\n"
-                (format ":CALENDAR: %s\n" (plist-get data :calendar))
-                (format ":ID: %s\n" (plist-get data :uid)))
-        (when (> (length (plist-get data :location)) 0)
-          (insert (format ":LOCATION: %s\n" (plist-get data :location))))
-        (when (> (length (plist-get data :organizer)) 0)
-          (insert (format ":ORGANIZER: %s\n" (plist-get data :organizer))))
-        (insert ":END:\n"
-                (format "<%04d-%02d-%02d%s>--<%04d-%02d-%02d%s>\n"
+        ;; Property drawer with just the UID — folded by default, not
+        ;; useful in the human-readable view but kept available so org-id
+        ;; lookups / future tooling can still find the event.
+        (insert (format ":PROPERTIES:\n:ID: %s\n:END:\n"
+                        (plist-get data :uid)))
+        ;; Timestamp under heading (and drawer)
+        (insert (format "<%04d-%02d-%02d%s>--<%04d-%02d-%02d%s>\n\n"
                         (nth 2 sd) (nth 0 sd) (nth 1 sd)
                         (if st (format " %02d:%02d" (nth 0 st) (nth 1 st)) "")
                         (nth 2 ed) (nth 0 ed) (nth 1 ed)
                         (if et (format " %02d:%02d" (nth 0 et) (nth 1 et)) "")))
+        ;; Property table — skip rows with empty values
+        (let ((rows (delq nil
+                          (list
+                           (cons "Calendar"  (plist-get data :calendar))
+                           (and (> (length (plist-get data :location)) 0)
+                                (cons "Location"  (plist-get data :location)))
+                           (and (> (length (plist-get data :organizer)) 0)
+                                (cons "Organizer" (plist-get data :organizer)))))))
+          (dolist (row rows)
+            (insert (format "| %s | %s |\n" (car row) (cdr row))))
+          (when rows
+            ;; Align the table we just inserted
+            (forward-line -1)
+            (org-table-align)
+            (goto-char (point-max))))
+        ;; Event body — fetched via `khal search' by UID. Keep this last so
+        ;; long descriptions don't push the structured info off-screen.
+        (when-let* ((desc (+calfw-khal--fetch-description (plist-get data :uid))))
+          (insert "\n" desc (if (string-suffix-p "\n" desc) "" "\n")))
+        ;; Collapse the :PROPERTIES: drawer so the ID is hidden by default
+        (goto-char (point-min))
+        (when (re-search-forward "^:PROPERTIES:$" nil t)
+          (org-fold-hide-drawer-toggle))
         (goto-char (point-min))
         (view-mode 1)))
     (switch-to-buffer buf)))
