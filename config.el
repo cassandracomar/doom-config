@@ -789,57 +789,41 @@ text regions between template blocks."
   :config
   (load! "+notmuch.el"))
 
-(use-package! org-caldav
-  :defer t
-  :commands org-caldav-sync
-  :custom
-  (org-caldav-save-directory (expand-file-name "org-caldav/" doom-cache-dir))
-  (org-icalendar-timezone "America/New_York")
-  (org-caldav-uuid-extension ".EML")    ; davmail uses .EML instead of .ics
-  (org-caldav-show-sync-results nil)    ; no popup or echoed result
-  (org-caldav-calendars
-   `((:calendar-id "calendar"
-      :url "http://127.0.0.32:1080/users/ccomar@drwholdings.com"
-      :files nil
-      :inbox ,(format "%s/todo/cal-personal.org" (getenv "HOME"))
-      :sync-direction cal->org)
-     (:calendar-id "calendar"
-      :url "http://127.0.0.32:1080/users/up-platform-infrastructure-calendar@drwholdings.com"
-      :files nil
-      :inbox ,(format "%s/todo/cal-team.org" (getenv "HOME"))
-      :sync-direction cal->org)))
-  :config
-  ;; Stock org-caldav hashes only :calendar-id for the per-calendar state
-  ;; file. Both entries above use "calendar" (davmail's path segment), so
-  ;; their state files collide. Hash url+id instead.
-  (define-advice org-caldav-sync-state-filename
-      (:override (id) include-url)
-    (expand-file-name
-     (concat "org-caldav-"
-             (substring (md5 (concat (or org-caldav-url "") "/" id)) 1 8)
-             ".el")
-     org-caldav-save-directory)))
-
-(load! "+org-caldav")
-(map! :leader
-      "o c" #'calfw-org-open-calendar
-      "o C" #'+org-caldav-restart-sync)
-
 (use-package! khalel
   :defer t
   :commands khalel-import-events khalel-run-vdirsyncer khalel-edit-calendar-event
   :config
-  (setq khalel-khal-command (executable-find "khal")
-        khalel-vdirsyncer-command (executable-find "vdirsyncer")
-        khalel-default-calendar "ccomar_personal"
-        khalel-import-org-file (expand-file-name "todo/calendar.org" (getenv "HOME"))
-        khalel-import-org-file-confirm-overwrite nil
-        khalel-import-time-delta "30d"
-        khalel-import-start-date "today"
-        khalel-import-end-date "+30d"))
+  (load! "+khalel"))
+
+(defvar +khalel-calendars
+  '(("personal"  . "~/todo/calendar-personal.org")
+    ("team"      . "~/todo/calendar-team.org")
+    ("pagerduty" . "~/todo/calendar-pagerduty.org"))
+  "Mapping of khal calendar name to per-calendar org file path.
+Read by both `+khalel-import-events-per-calendar' (in `+khalel.el')
+and `+calfw-multi-calendar' (in `+calfw-khal.el').")
+
+(defvar +khalel-calendar-colors
+  '(("personal"  . "deep sky blue")
+    ("team"      . "spring green")
+    ("pagerduty" . "gold"))
+  "Per-calendar colors for calfw display, keyed by khal calendar name.")
+
+(defun +khalel-import-events-per-calendar ()
+  "Per-calendar khalel import (lazy-loaded via `+khalel.el')."
+  (interactive)
+  (require 'khalel)
+  (call-interactively '+khalel-import-events-per-calendar))
+
+(defun +calfw-multi-calendar ()
+  "Open calfw with per-calendar color-coded sources (lazy-loaded)."
+  (interactive)
+  (load! "+calfw-khal")
+  (call-interactively '+calfw-multi-calendar))
 
 (map! :leader
-      "o k" #'khalel-import-events
+      "o c" #'+calfw-multi-calendar
+      "o k" #'+khalel-import-events-per-calendar
       "o K" #'khalel-run-vdirsyncer)
 
 (add-hook! eshell-mode #'eat-eshell-mode)
