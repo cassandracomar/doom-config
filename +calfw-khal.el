@@ -23,6 +23,7 @@
 (require '+khalel-vars)
 (require 'calfw)
 (require 'calfw-org)
+(require 'khalel)
 (require 'filenotify)
 ;; Make `after!' (from doom-lib) and the evil API visible at compile time
 ;; so the byte-compiler doesn't flag them. `doom-keybinds' (which provides
@@ -38,10 +39,31 @@
 (declare-function evil-normalize-keymaps "evil-core")
 (declare-function evil-define-key* "evil-core")
 
+;; khalel's `khalel--make-temp-window' splits the frame root window
+;; unconditionally, which fails with "Window too small for splitting"
+;; when calfw is in a side window or otherwise space-constrained. Route
+;; through `display-buffer' so doom's popup rule below places the comint
+;; cleanly regardless of frame layout.
+(define-advice khalel--make-temp-window
+    (:override (buf _height) +calfw-khal/display-buffer)
+  (or (get-buffer-window buf 'visible)
+      (display-buffer buf)))
+
+(with-no-warnings
+  (set-popup-rule! "^\\*khal-edit\\*$"
+    :side 'bottom :size 16 :select t :quit t :modeline t
+    :ttl nil :autosave nil))
+
 ;; Default is "%s%e%t%l%d" (start, end, title, location, description). The
 ;; back-to-back times in `- 09:30 - 10:00 Title' are hard to scan at a
 ;; glance — drop the end time and the empty trailing fields.
 (setq calfw-event-format-detail "%s%t")
+
+;; Hide weekends across all views (month/week/two-weeks/day). Each renderer
+;; sizes columns from `(length calfw-week-days-list)' and the week-builder
+;; filters days by membership, so dropping 0/6 just removes those columns.
+;; `(car ...)' becoming Monday also makes the week views start on Monday.
+(setq calfw-week-days-list '(1 2 3 4 5))
 
 (defvar +calfw-khal-list-format
   (concat "{start-date}\t{start-time}\t{end-date}\t{end-time}\t"
@@ -307,7 +329,7 @@ doesn't accumulate stepped-through popups and `q' returns straight to
   "Return the DESCRIPTION for the event with UID, or nil if not found.
 Reads the .ics file directly from the vdir. We tried `khal search'
 first, but its free-text matcher silently drops long Exchange UIDs
-(those start with a long base64-ish prefix), so we'd miss most of
+\(those start with a long base64-ish prefix), so we'd miss most of
 the calendar. vdirsyncer writes one .ics per UID with the UID as
 the filename, so we can locate it without scanning the file body."
   (when-let* ((path (car (directory-files-recursively
@@ -411,7 +433,13 @@ and restores the previous window content."
         (when (fboundp 'evil-local-set-key)
           (evil-local-set-key 'normal (kbd "n") #'+calfw-khal-event-next)
           (evil-local-set-key 'normal (kbd "p") #'+calfw-khal-event-prev)
-          (evil-local-set-key 'normal (kbd "q") #'+calfw-khal-quit))))
+          (evil-local-set-key 'normal (kbd "q") #'+calfw-khal-quit)
+          ;; khalel-edit-calendar-event spawns `khal edit <uid>' in a
+          ;; comint popup; our :PROPERTIES: drawer has the :ID: property
+          ;; it needs, so it just works. Modifications hit the .ics, the
+          ;; vdir file-notify watcher fires, and calfw's cache invalidates
+          ;; automatically.
+          (evil-local-set-key 'normal (kbd "e") #'khalel-edit-calendar-event))))
     (switch-to-buffer buf)))
 
 (defun +calfw-khal--event-on-line ()
@@ -553,7 +581,7 @@ last-width and so a killed-and-reopened buffer starts fresh.")
         (calfw-navi-goto-today-command)))))
 
 (defun +calfw-khal--any-other-calfw-buffer-p ()
-  "Return non-nil if any calfw-calendar-mode buffer exists besides the current one."
+  "Return non-nil if another `calfw-calendar-mode' buffer is alive besides current."
   (cl-some (lambda (b)
              (and (not (eq b (current-buffer)))
                   (buffer-live-p b)
