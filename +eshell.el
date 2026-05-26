@@ -304,10 +304,11 @@
 (add-hook! eshell-mode
            #'with-editor-export-git-editor
            #'with-editor-export-editor
-           #'fish-completion-mode
+           #'global-fish-completion-mode
            #'solaire-mode
            ;; #'awscli-capf-add
-           #'(lambda () (eshell/alias "git")))
+           #'(lambda () (eshell/alias "git"))
+           (mode-line-invisible-mode -1))
 
 (defun algernon/git-grep (&rest args)
   (interactive)
