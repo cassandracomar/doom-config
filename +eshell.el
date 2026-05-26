@@ -178,7 +178,141 @@
         str)))
 
   (advice-add 'esh-help-man-string :override #'+esh-help/async-man-string)
-  (advice-add 'eshell/async-command-to-string :around #'envrc-propagate-environment))
+  (advice-add 'eshell/async-command-to-string :around #'envrc-propagate-environment)
+
+  (defun +eshell-bypass-pcomplete-cmd-a (orig-fn command)
+    "Bypass global `pcomplete/<cmd>' shims in eshell with fish-completion-mode on,
+but allow eshell-specific `pcomplete/eshell-mode/<cmd>' overrides."
+    (if (and (eq major-mode 'eshell-mode) fish-completion-mode)
+        (let ((sym (intern-soft (concat "pcomplete/eshell-mode/" command))))
+          (and sym (fboundp sym) sym))
+      (funcall orig-fn command)))
+  (advice-add 'pcomplete-find-completion-function :around #'+eshell-bypass-pcomplete-cmd-a)
+
+  (defvar +nix--cli-spec-cache nil
+    "Cached parse of `nix __dump-cli' JSON, keyed by `nix' executable path.")
+
+  (defun +nix--cli-spec ()
+    "Return parsed `nix __dump-cli' as a hash-table tree, lazily cached."
+    (let ((path (executable-find "nix")))
+      (unless (equal path (car +nix--cli-spec-cache))
+        (setq +nix--cli-spec-cache
+              (cons path
+                    (with-temp-buffer
+                      (when (zerop (call-process "nix" nil t nil "__dump-cli"))
+                        (goto-char (point-min))
+                        (ignore-errors
+                          (json-parse-buffer :object-type 'hash-table)))))))
+      (cdr +nix--cli-spec-cache)))
+
+  (defun +nix--subcommand-description (subcommand-path candidate)
+    "Look up CANDIDATE's description in nix's CLI spec under SUBCOMMAND-PATH.
+SUBCOMMAND-PATH is the list of resolved subcommands preceding CANDIDATE."
+    (when-let* ((spec (+nix--cli-spec))
+                (node (gethash "args" spec)))
+      (catch 'done
+        (dolist (cmd subcommand-path)
+          (let ((cmds (gethash "commands" node)))
+            (unless (and cmds (gethash cmd cmds))
+              (throw 'done nil))
+            (setq node (gethash cmd cmds))))
+        (let ((cmds (gethash "commands" node)))
+          (when (and cmds (gethash candidate cmds))
+            (gethash "description" (gethash candidate cmds)))))))
+
+  (defun pcomplete/eshell-mode/nix ()
+    "Complete `nix' via NIX_GET_COMPLETIONS, honoring the `filenames' hint
+so flake refs (e.g. `nixpkgs#hello') don't get a trailing space.
+Descriptions are attached as `pcomplete-annotation' for corfu/etc., falling
+back to `nix __dump-cli' for subcommands that nix doesn't describe inline."
+    (let* ((args pcomplete-args)
+           (n (1- (length args)))
+           (process-environment
+            (cons (format "NIX_GET_COMPLETIONS=%d" n) process-environment))
+           (output (with-output-to-string
+                     (apply #'call-process "nix" nil (list standard-output nil) nil
+                            (cdr args))))
+           (lines (split-string output "\n" t))
+           (header (car lines))
+           (subcommand-path (cl-subseq args 1 n))
+           (completions
+            (mapcar (lambda (line)
+                      (let* ((parts (split-string line "\t"))
+                             (name (car parts))
+                             (desc (or (and (cadr parts)
+                                            (not (string-empty-p (cadr parts)))
+                                            (cadr parts))
+                                       (+nix--subcommand-description
+                                        subcommand-path name))))
+                        (if desc
+                            (propertize name
+                                        'pcomplete-annotation (concat " " desc)
+                                        'pcomplete-help desc)
+                          name)))
+                    (cdr lines))))
+      (when (member header '("filenames" "attrs"))
+        ;; `pcomplete-exit-function' is let-bound by
+        ;; `pcomplete-completions-at-point'; override it locally so we don't
+        ;; mutate the global `pcomplete-termination-string'.
+        (setq pcomplete-exit-function (lambda (&rest _) nil)))
+      (dolist (_ (cddr args))
+        (pcomplete-here))
+      (pcomplete-here completions nil t)))
+
+  (defvar +pcomplete-doc-cache (make-hash-table :test 'equal)
+    "Session-local cache of completion documentation by candidate string.")
+
+  (defun +nix--fetch-meta-description (ref)
+    "Fetch `<REF>.meta.description' via `nix eval --raw'.
+Returns nil on failure or empty result.  Cached in `+pcomplete-doc-cache'."
+    (let ((cached (gethash ref +pcomplete-doc-cache 'miss)))
+      (if (not (eq cached 'miss))
+          cached
+        (let ((desc (with-temp-buffer
+                      (when (zerop (call-process
+                                    "nix" nil (list (current-buffer) nil) nil
+                                    "eval" "--raw"
+                                    (format "%s.meta.description" ref)))
+                        (let ((s (string-trim (buffer-string))))
+                          (and (not (string-empty-p s)) s))))))
+          (puthash ref desc +pcomplete-doc-cache)
+          desc))))
+
+  (defvar +pcomplete-doc--last-buffer nil
+    "Most recent buffer returned by `+pcomplete-doc-buffer', killed on next call.")
+
+  (defun +pcomplete-doc-buffer (cand)
+    "Return a doc buffer for CAND, used as `:company-doc-buffer' for pcomplete.
+Checks `pcomplete-help' text property first; for `flake#attr'-style candidates
+without an inline description, lazily fetches `.meta.description' via nix.
+
+Uses a freshly-generated buffer per call (with `inhibit-buffer-hooks') so that
+`erase-buffer'/`insert' side-effects don't leak into corfu's render pipeline.
+The previous buffer is killed when a new one is created to avoid leaks."
+    (when (stringp cand)
+      (when-let ((doc (or (get-text-property 0 'pcomplete-help cand)
+                          (and (string-match-p "#" cand)
+                               (+nix--fetch-meta-description cand)))))
+        (when (buffer-live-p +pcomplete-doc--last-buffer)
+          (kill-buffer +pcomplete-doc--last-buffer))
+        (let ((buf (generate-new-buffer " *pcomplete-doc*" t)))
+          (with-current-buffer buf
+            (insert doc))
+          (setq +pcomplete-doc--last-buffer buf)
+          buf))))
+
+  (defun +pcomplete-add-doc-buffer-a (result)
+    "Append `:company-doc-buffer' to `pcomplete-completions-at-point' result
+in eshell-mode with fish-completion-mode active, so corfu-popupinfo can
+lazily fetch per-candidate descriptions."
+    (when (and result (listp result)
+               (eq major-mode 'eshell-mode)
+               (bound-and-true-p fish-completion-mode))
+      (setq result (append result (list :company-doc-buffer
+                                        #'+pcomplete-doc-buffer))))
+    result)
+  (advice-add 'pcomplete-completions-at-point :filter-return
+              #'+pcomplete-add-doc-buffer-a))
 
 (use-package! tramp
   :defer t
@@ -221,7 +355,26 @@
   :commands global-fish-completion-mode fish-completion-mode
   :defer t
   :config
-  (setq fish-completion-fallback-on-bash-p nil))
+  (setq fish-completion-fallback-on-bash-p nil)
+
+  (defun +fish-completion--list-completions-a (raw-prompt)
+    "Like `fish-completion--list-completions' but preserve fish's per-completion
+descriptions as `pcomplete-annotation' / `pcomplete-help' text properties so
+corfu and friends can display them."
+    (let ((candidates (fish-completion--list-completions-with-desc raw-prompt)))
+      (when candidates
+        (mapcar (lambda (e)
+                  (let* ((parts (split-string e "\t"))
+                         (name (car parts))
+                         (desc (cadr parts)))
+                    (if (and desc (not (string-empty-p desc)))
+                        (propertize name
+                                    'pcomplete-annotation (concat " " desc)
+                                    'pcomplete-help desc)
+                      name)))
+                (split-string candidates "\n" t)))))
+  (advice-add 'fish-completion--list-completions :override
+              #'+fish-completion--list-completions-a))
 ;; (use-package! eshell-git-prompt
 ;;   :after eshell
 ;;   :config
