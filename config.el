@@ -910,7 +910,43 @@ text regions between template blocks."
   (keymap-set eat-mode-map "<normal-state> C-k" #'eat-previous-shell-prompt)
 
   (keymap-set eat-mode-map "<insert-state> <tab>" #'completion-at-point)
-  (keymap-set eat-mode-map "<normal-state> <tab>" #'completion-at-point))
+  (keymap-set eat-mode-map "<normal-state> <tab>" #'completion-at-point)
+
+  (advice-add 'eat-term-process-output :filter-args
+              #'+eat/csi-ef-swap-output))
+
+(defvar +eat/csi-ef-swap-pending (make-hash-table :test 'eq :weakness 'key)
+  "Per-terminal tail of `\\e[<params>' awaiting a terminator across chunks.")
+
+(defun +eat/csi-ef-swap-output (args)
+  "Swap CSI E/F bytes in ARGS before eat parses them.
+ARGS is (TERMINAL OUTPUT).  Returns a new list with OUTPUT rewritten:
+every `\\e[<params>E' becomes `\\e[<params>F' and vice versa.  Any
+trailing partial CSI introducer (`\\e' optionally followed by `[' and
+parameter bytes) is held back and prepended to the next chunk so a
+split sequence is still caught."
+  (pcase-let* ((`(,terminal ,output) args))
+    (if (not (stringp output))
+        args
+      (let* ((pending (gethash terminal +eat/csi-ef-swap-pending ""))
+             (buf (concat pending output))
+             (tail (and (string-match
+                         (rx "\e" (zero-or-one
+                                   (seq "[" (zero-or-more (any "0-9;?>"))))
+                             string-end)
+                         buf)
+                        (match-beginning 0)))
+             (live (if tail (substring buf 0 tail) buf))
+             (carry (if tail (substring buf tail) "")))
+        (puthash terminal carry +eat/csi-ef-swap-pending)
+        (list terminal
+              (replace-regexp-in-string
+               (rx "\e[" (zero-or-more (any "0-9;")) (any "EF"))
+               (lambda (m)
+                 (let ((letter (aref m (1- (length m)))))
+                   (concat (substring m 0 -1)
+                           (if (eq letter ?E) "F" "E"))))
+               live t t))))))
 
 (defun +eat/nu-open (&rest args)
   (interactive)
