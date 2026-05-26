@@ -430,7 +430,12 @@ Based on `so-long-detected-long-line-p'."
   corfu-auto t)
 (use-package! corfu-auto
   :config
-  (setq! corfu-auto-prefix 0))
+  (setq! corfu-auto-prefix 0)
+  ;; The default regex `"delete-backward-char\\'"' requires the command name
+  ;; to END with that string, so evil's `evil-delete-backward-char-and-join'
+  ;; (and other delete-* variants) don't trigger auto re-completion. Use an
+  ;; unanchored pattern that matches anywhere in the command name.
+  (add-to-list 'corfu-auto-commands "delete-backward-char"))
 
 (use-package! orderless
   :config

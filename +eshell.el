@@ -224,31 +224,52 @@ SUBCOMMAND-PATH is the list of resolved subcommands preceding CANDIDATE."
     "Complete `nix' via NIX_GET_COMPLETIONS, honoring the `filenames' hint
 so flake refs (e.g. `nixpkgs#hello') don't get a trailing space.
 Descriptions are attached as `pcomplete-annotation' for corfu/etc., falling
-back to `nix __dump-cli' for subcommands that nix doesn't describe inline."
+back to `nix __dump-cli' for subcommands that nix doesn't describe inline.
+
+To allow corfu to filter as the user types or backspaces within a path
+segment, we ask nix for the FULL sibling set at the parent level (by
+truncating the current arg at the last `#'/`.'/`:'/`?' before sending) and
+report the partial as the pcomplete stub.  Backspacing past that boundary
+exits completion-in-region and triggers a fresh CAPF call for the next
+parent level.  The full installable is preserved on each candidate as the
+`nix-full-ref' text property so `+pcomplete-doc-buffer' can fetch
+`.meta.description' lazily."
     (let* ((args pcomplete-args)
            (n (1- (length args)))
+           (current-arg (or (car (last args)) ""))
+           (stub-start (let ((p (string-match "[#.:?][^#.:?]*\\'" current-arg)))
+                         (if p (1+ p) 0)))
+           (stub-prefix (substring current-arg 0 stub-start))
+           (stub (substring current-arg stub-start))
+           ;; Send the parent path (with partial stripped) so nix returns the
+           ;; full sibling set, letting corfu filter dynamically.
+           (query-args (append (butlast (cdr args)) (list stub-prefix)))
            (process-environment
             (cons (format "NIX_GET_COMPLETIONS=%d" n) process-environment))
            (output (with-output-to-string
                      (apply #'call-process "nix" nil (list standard-output nil) nil
-                            (cdr args))))
+                            query-args)))
            (lines (split-string output "\n" t))
            (header (car lines))
            (subcommand-path (cl-subseq args 1 n))
            (completions
             (mapcar (lambda (line)
                       (let* ((parts (split-string line "\t"))
-                             (name (car parts))
+                             (full-name (car parts))
+                             (short-name (if (and (not (string-empty-p stub-prefix))
+                                                  (string-prefix-p stub-prefix full-name))
+                                             (substring full-name (length stub-prefix))
+                                           full-name))
                              (desc (or (and (cadr parts)
                                             (not (string-empty-p (cadr parts)))
                                             (cadr parts))
                                        (+nix--subcommand-description
-                                        subcommand-path name))))
-                        (if desc
-                            (propertize name
-                                        'pcomplete-annotation (concat " " desc)
-                                        'pcomplete-help desc)
-                          name)))
+                                        subcommand-path short-name))))
+                        (apply #'propertize short-name
+                               'nix-full-ref full-name
+                               (when desc
+                                 (list 'pcomplete-annotation (concat " " desc)
+                                       'pcomplete-help desc)))))
                     (cdr lines))))
       (when (member header '("filenames" "attrs"))
         ;; `pcomplete-exit-function' is let-bound by
@@ -257,7 +278,7 @@ back to `nix __dump-cli' for subcommands that nix doesn't describe inline."
         (setq pcomplete-exit-function (lambda (&rest _) nil)))
       (dolist (_ (cddr args))
         (pcomplete-here))
-      (pcomplete-here completions nil t)))
+      (pcomplete-here completions stub t)))
 
   (defvar +pcomplete-doc-cache (make-hash-table :test 'equal)
     "Session-local cache of completion documentation by candidate string.")
@@ -290,9 +311,10 @@ Uses a freshly-generated buffer per call (with `inhibit-buffer-hooks') so that
 `erase-buffer'/`insert' side-effects don't leak into corfu's render pipeline.
 The previous buffer is killed when a new one is created to avoid leaks."
     (when (stringp cand)
-      (when-let ((doc (or (get-text-property 0 'pcomplete-help cand)
-                          (and (string-match-p "#" cand)
-                               (+nix--fetch-meta-description cand)))))
+      (when-let* ((full-ref (or (get-text-property 0 'nix-full-ref cand) cand))
+                  (doc (or (get-text-property 0 'pcomplete-help cand)
+                           (and (string-match-p "#" full-ref)
+                                (+nix--fetch-meta-description full-ref)))))
         (when (buffer-live-p +pcomplete-doc--last-buffer)
           (kill-buffer +pcomplete-doc--last-buffer))
         (let ((buf (generate-new-buffer " *pcomplete-doc*" t)))
