@@ -218,6 +218,7 @@
     (_  (progn (eshell-wait-for-processes (list (eshell-external-command "git" (cons command args)))) nil))))
 
 (use-package! fish-completion
+  :commands global-fish-completion-mode fish-completion-mode
   :defer t
   :config
   (setq fish-completion-fallback-on-bash-p nil))
