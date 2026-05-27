@@ -920,6 +920,7 @@ text regions between template blocks."
   (add-hook 'eat--semi-char-mode-hook #'+eat/use-emacs-state-for-tui)
   (add-hook 'eat--char-mode-hook #'+eat/use-emacs-state-for-tui)
   (add-hook 'eat--line-mode-hook #'+eat/restore-evil-state-for-line-mode)
+  (add-hook 'eat--line-mode-hook #'+eat/setup-line-mode-nu-highlight)
 
   ;; Bind <escape> directly in eat-semi-char-mode-map so it shortcircuits
   ;; function-key-map's translation to the meta-prefix byte -- without
@@ -948,6 +949,73 @@ text regions between template blocks."
   ;; ever reaching the NEXT prompt.  Walk past the current run before the
   ;; real navigation runs so each invocation actually moves to a new prompt.
   (advice-add 'eat-next-shell-prompt :before #'+eat/skip-current-prompt-end))
+
+(defvar-local +eat/-nu-parser nil
+  "Nushell tree-sitter parser scoped to eat-line-mode input region.")
+
+(defun +eat/-line-input-region ()
+  "Return (BEG . END) of the live eat line-mode input region, or nil.
+The input region is everything between `eat-term-end' (where the
+rendered prompt finishes) and `point-max' (where the user is typing).
+Returns nil if line-mode isn't active or the user hasn't typed anything."
+  (when (and (bound-and-true-p eat--line-mode)
+             (bound-and-true-p eat-terminal))
+    (let* ((beg-m (eat-term-end eat-terminal))
+           (beg (and beg-m (marker-position beg-m))))
+      (when (and beg (< beg (point-max)))
+        (cons beg (point-max))))))
+
+(defun +eat/-sync-nu-parser-ranges (&rest _)
+  "Keep `+eat/-nu-parser' aligned with the live input region.
+When the user hasn't typed anything yet (or line-mode isn't active),
+park the parser on `(point-min . point-min)' so it stays alive but
+doesn't fontify anything."
+  (when (and +eat/-nu-parser
+             (treesit-parser-p +eat/-nu-parser)
+             (memq +eat/-nu-parser (treesit-parser-list)))
+    (let ((region (+eat/-line-input-region)))
+      (treesit-parser-set-included-ranges
+       +eat/-nu-parser
+       (if region
+           (list region)
+         (list (cons (point-min) (point-min))))))))
+
+(defun +eat/setup-line-mode-nu-highlight ()
+  "Wire nushell tree-sitter highlighting onto the eat line-mode input.
+Creates a single nu parser whose included ranges track the input
+region, so the rendered prompt and earlier terminal output are left
+alone -- only the user's pending input gets fontified.  Relies on
+nu-ts-mode being available for `nu-ts-mode--font-lock-settings'."
+  (when (and (treesit-ready-p 'nu)
+             (boundp 'nu-ts-mode--font-lock-settings))
+    (unless (and +eat/-nu-parser
+                 (treesit-parser-p +eat/-nu-parser)
+                 (memq +eat/-nu-parser (treesit-parser-list)))
+      (setq +eat/-nu-parser (treesit-parser-create 'nu)))
+    ;; `treesit-primary-parser' is what `treesit-font-lock-fontify-region'
+    ;; uses to compute its fast-mode heuristic -- without it, fontifying
+    ;; signals (wrong-type-argument treesit-parser-p nil).
+    (setq-local treesit-primary-parser +eat/-nu-parser
+                treesit-font-lock-settings nu-ts-mode--font-lock-settings
+                treesit-font-lock-feature-list
+                '((comment definition)
+                  (keyword type string)
+                  (variable literal)
+                  (function builtin identifier operator punctuation error))
+                treesit-language-at-point-function (lambda (_pos) 'nu)
+                font-lock-fontify-region-function #'treesit-font-lock-fontify-region)
+    ;; eat-mode leaves font-lock-mode/jit-lock-mode off by default and
+    ;; doesn't set `font-lock-defaults', so the usual font-lock <-> JIT
+    ;; handshake (which registers `font-lock-fontify-region' with JIT via
+    ;; `font-lock-set-defaults') never runs.  Turn JIT on AND register
+    ;; treesit's fontifier directly so visible changes in the input region
+    ;; actually get colored as the user types.
+    (jit-lock-mode 1)
+    (jit-lock-register #'treesit-font-lock-fontify-region)
+    (+eat/-sync-nu-parser-ranges)
+    (add-hook 'after-change-functions #'+eat/-sync-nu-parser-ranges nil t)
+    (add-hook 'eat-update-hook #'+eat/-sync-nu-parser-ranges nil t)
+    (font-lock-flush)))
 
 (defun +eat/use-emacs-state-for-tui ()
   "Use evil emacs-state in eat's raw-input modes.

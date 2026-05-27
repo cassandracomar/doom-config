@@ -23,6 +23,98 @@
               carapace-nushell-quoted-arg-chars
               carapace-nushell-quoted-arg-chars))
 
+(defvar +eat-nushell--commands nil
+  "Hash table mapping nushell command name -> plist with command details.
+Populated once via a background `nu -c \"scope commands | to json\"' call.
+Each entry mirrors a row from `scope commands' (name, signatures,
+description, examples, type, etc.) so we can drive command, flag, and
+argument completion off a single source.")
+
+(defvar +eat-nushell--commands-loading nil
+  "Live process while the command cache is being populated, or nil.")
+
+(defun +eat-nushell--escape-control-chars-in-strings ()
+  "Repair JSON in the current buffer by escaping in-string control bytes.
+nushell's `to json' emits raw 0x00-0x1F bytes (e.g. ESC inside OSC 8
+hyperlinks in command descriptions) which Emacs's `json-parse-buffer'
+rejects.  Walk the buffer, track whether we're inside a quoted string,
+and rewrite any control byte found inside one as its `\\uXXXX' escape."
+  (goto-char (point-min))
+  (let ((in-string nil))
+    (while (not (eobp))
+      (let ((c (char-after)))
+        (cond
+         ((and in-string (eq c ?\\))
+          (forward-char 2))
+         ((eq c ?\")
+          (setq in-string (not in-string))
+          (forward-char 1))
+         ((and in-string (<= c #x1f))
+          (delete-char 1)
+          (insert (format "\\u%04x" c)))
+         (t (forward-char 1)))))))
+
+(defun +eat-nushell--ingest-commands (proc-buf)
+  "Parse `scope commands | to json' output in PROC-BUF into the cache.
+Uses :keyword keys so callers can `(plist-get cmd :name)' etc."
+  (with-current-buffer proc-buf
+    (+eat-nushell--escape-control-chars-in-strings)
+    (goto-char (point-min))
+    (let* ((cmds (ignore-errors
+                   (json-parse-buffer
+                    :object-type 'plist
+                    :array-type 'list
+                    :null-object nil
+                    :false-object nil))))
+      (when cmds
+        (let ((tbl (make-hash-table :test 'equal :size (length cmds))))
+          (dolist (c cmds)
+            (puthash (plist-get c :name) c tbl))
+          (setq +eat-nushell--commands tbl))))))
+
+(defcustom +eat-nushell-commands-source-files
+  '("~/.config/nushell/eat-config.nu")
+  "Nushell files to `source' before sampling `scope commands'.
+These should expose any user-defined commands (e.g. `git status',
+`eat tee') we want surfaced in eat-line-mode completion.  Files that
+need a TTY (e.g. `enable_integration's `term query') will detect
+`$nu.is-interactive' as false and short-circuit, so listing them here
+is safe."
+  :type '(repeat string)
+  :group '+eat-nushell)
+
+(defun +eat-nushell-load-commands (&optional callback)
+  "Load `scope commands' into `+eat-nushell--commands'.
+Pre-sources `+eat-nushell-commands-source-files' so user-defined
+commands (aliases, defs from your `~/.config/nushell/eat-config.nu')
+end up in the cache.  Runs synchronously -- the nushell call typically
+finishes in ~50ms, far cheaper than the bookkeeping for async.
+Interactively (or with prefix arg) forces a refresh even if the cache
+is already populated.  CALLBACK is invoked at the end if non-nil
+(matches the old async signature so existing callers keep working)."
+  (interactive)
+  (unless (and (not current-prefix-arg) +eat-nushell--commands)
+    (let* ((source-stmts
+            (mapconcat (lambda (f) (format "source %s" (expand-file-name f)))
+                       +eat-nushell-commands-source-files
+                       "; "))
+           (nu-cmd (if (string-empty-p source-stmts)
+                       "scope commands | to json"
+                     (format "%s; scope commands | to json" source-stmts))))
+      (with-temp-buffer
+        (let ((exit (call-process (executable-find "nu") nil
+                                  (current-buffer) nil "-c" nu-cmd)))
+          (when (and (eq exit 0) (> (buffer-size) 0))
+            (+eat-nushell--ingest-commands (current-buffer)))))
+      (when callback (funcall callback)))))
+
+;; Kick the cache off as soon as this file loads -- it takes ~50ms so we
+;; lose nothing by starting at startup, and the result is ready by the
+;; time the user has an eat buffer to complete in.  Safe to call again
+;; via `M-x +eat-nushell-load-commands' with a prefix arg to refresh.
+(when (executable-find "nu")
+  (+eat-nushell-load-commands))
+
 (setq carapace-completion-command (executable-find "carapace"))
 (defun carapace-completion--fish-fallback (raw-prompt)
   "Return a hash-table of fish completions for RAW-PROMPT.
@@ -32,7 +124,13 @@ Two sources are checked, in order:
 1. The `pcomplete-help' text property, set by `+fish-completion--list-completions-a'
    in `+eshell.el' when that override is loaded.
 2. A literal `name<TAB>description' split, in case the override isn't active
-   yet (e.g. fish-completion hasn't been required by the eshell side)."
+   yet (e.g. fish-completion hasn't been required by the eshell side).
+
+Candidates beginning with `$' are dropped: those are bash-style env-var
+references (`$PATH', `$HOME', ...) that don't exist in nushell, where env
+access is via `$env.PATH'.  Our own `+eat-nushell-env-capf' supplies the
+correct names; letting fish polute the completion table here just
+confuses corfu."
   (let* ((prompt (if (equal raw-prompt "")
                      " "
                    raw-prompt))
@@ -49,11 +147,12 @@ Two sources are checked, in order:
                         ;; other fish completions (flags, files, commands)
                         ;; get the default space terminator.
                         (terminator (if (string-suffix-p "/" name) "" " ")))
-                   (puthash (concat name " ")
-                            `(:display ,name :value ,name :terminator ,terminator
-                              ,@(and desc (not (string-empty-p desc))
-                                     (list :description desc)))
-                            table))
+                   (unless (string-prefix-p "$" name)
+                     (puthash (concat name " ")
+                              `(:display ,name :value ,name :terminator ,terminator
+                                ,@(and desc (not (string-empty-p desc))
+                                       (list :description desc)))
+                              table)))
                  table)
                completions
                :initial-value (make-hash-table :test #'equal :size (length completions)))))
@@ -108,13 +207,98 @@ Two sources are checked, in order:
   (let ((end (or eol (pos-eol))))
     (buffer-substring-no-properties (comint-line-beginning-position) end)))
 
+(defun +eat-nushell--active-segment-via-ast ()
+  "Return (BEG . END) of the active pipe_element using the live nu AST.
+END is point.  BEG is the start of the innermost enclosing
+`pipe_element'; if no `pipe_element' contains point yet (e.g. the user
+just typed `{' or `|' and the parser inserted a MISSING node), falls
+back to the innermost `block' / `val_closure' / `nu_script' so command
+completion still anchors at the right scope.  nil when the parser
+isn't ready.
+
+Looking up the node at point fails when point sits at the END of the
+input, because the parser tends to anchor MISSING nodes there
+(closing brace not yet typed).  Falling back to `(1- pt)' gets the
+node for the character we just typed, which is what we actually want."
+  (when (and (bound-and-true-p +eat/-nu-parser)
+             (treesit-parser-p +eat/-nu-parser)
+             (memq +eat/-nu-parser (treesit-parser-list)))
+    (let* ((pt (point))
+           (lookup-pos (if (> pt (point-min)) (1- pt) pt))
+           (cur (treesit-node-at lookup-pos 'nu))
+           best)
+      (while cur
+        (let ((type (treesit-node-type cur)))
+          (cond
+           ((equal type "pipe_element")
+            (setq best (treesit-node-start cur))
+            (setq cur nil))
+           ((and (not best) (member type '("block" "val_closure" "nu_script")))
+            (setq best (treesit-node-start cur))
+            (setq cur (treesit-node-parent cur)))
+           (t
+            (setq cur (treesit-node-parent cur))))))
+      (when best
+        (cons best pt)))))
+
+(defun +eat-nushell--active-pipeline-segment (raw-prompt)
+  "Return the substring of RAW-PROMPT for the active command position.
+Prefer the tree-sitter AST when available (see
+`+eat-nushell--active-segment-via-ast'); fall back to a string scan
+that splits on `|', `&&', `;', `{', `(' outside quotes.  Leading
+whitespace is trimmed; trailing is preserved so a trailing space still
+signals a fresh-arg position."
+  (let ((ast-region (+eat-nushell--active-segment-via-ast)))
+    (cond
+     ((and ast-region
+           ;; Sanity: only trust the AST if its beg fits inside this
+           ;; raw-prompt's line.  Raw-prompt comes from
+           ;; `(comint-line-beginning-position)' upwards, AST coordinates
+           ;; are absolute buffer positions -- map them through.
+           (>= (car ast-region) (comint-line-beginning-position)))
+      (let* ((line-beg (comint-line-beginning-position))
+             (offset (- (car ast-region) line-beg)))
+        (when (<= offset (length raw-prompt))
+          (replace-regexp-in-string
+           "\\`[ \t]+" "" (substring raw-prompt offset)))))
+     (t
+      (let ((len (length raw-prompt))
+            (i 0)
+            (in-quote nil)
+            (seg-start 0))
+        (while (< i len)
+          (let ((c (aref raw-prompt i)))
+            (cond
+             (in-quote
+              (cond
+               ((eq c ?\\) (cl-incf i 2))
+               ((eq c in-quote) (setq in-quote nil) (cl-incf i))
+               (t (cl-incf i))))
+             ((memq c '(?\' ?\" ?\`))
+              (setq in-quote c)
+              (cl-incf i))
+             ((memq c '(?| ?\; ?\{ ?\())
+              (setq seg-start (1+ i))
+              (cl-incf i))
+             ((and (eq c ?&)
+                   (< (1+ i) len)
+                   (eq (aref raw-prompt (1+ i)) ?&))
+              (setq seg-start (+ i 2))
+              (cl-incf i 2))
+             (t (cl-incf i)))))
+        (replace-regexp-in-string
+         "\\`[ \t]+" "" (substring raw-prompt seg-start)))))))
+
 (defun +eat-nushell--parse-args (raw-prompt)
   "Return the list of args parsed from RAW-PROMPT.
 Splits on whitespace, dropping leading/trailing whitespace; if RAW-PROMPT
 ends in whitespace, appends \"\" so the caller can treat the position
-after that whitespace as a fresh arg under completion."
-  (let ((tokens (split-string raw-prompt "[ \t]+" t)))
-    (if (string-match-p "[ \t]\\'" raw-prompt)
+after that whitespace as a fresh arg under completion.  Pipeline
+separators (`|', `&&', `;') reset the parse: only the active segment
+contributes args, so `ls | from <cursor>' yields `(\"from\" \"\")'."
+  (let* ((segment (+eat-nushell--active-pipeline-segment raw-prompt))
+         (tokens (split-string segment "[ \t]+" t)))
+    (if (string-match-p "[ \t]\\'" segment)
         (append tokens (list ""))
       tokens)))
 
@@ -162,6 +346,213 @@ corfu/orderless filter cleanly against the user-typed prefix."
                  table)))
     table))
 
+(defun +eat-nushell--head-command (args)
+  "Return the longest prefix of ARGS (a list of strings) that is a known
+nu command name, joined with spaces.  Falls back to (car args) if no
+multi-word name matches; nil if the cache isn't ready or args is empty."
+  (when (and +eat-nushell--commands args)
+    (let* ((max-len (length args))
+           (found nil))
+      ;; Walk from longest possible prefix down to 1-word.  Multi-word names
+      ;; in scope commands look like `git status', `from json' etc.
+      (cl-loop for n downfrom max-len to 1
+               for candidate = (mapconcat #'identity (cl-subseq args 0 n) " ")
+               when (gethash candidate +eat-nushell--commands)
+               return (setq found candidate))
+      (or found (car args)))))
+
+(defun +eat-nushell--subcommand-candidates (head)
+  "Return alist of (suffix . cmd-plist) for nu commands starting with HEAD + \" \".
+Each suffix is the part after HEAD; e.g. for HEAD=\"git\" you get
+\"status\", \"log\", \"cc\".  Empty list when nothing matches."
+  (when +eat-nushell--commands
+    (let ((prefix (concat head " "))
+          out)
+      (maphash (lambda (name cmd)
+                 (when (and (string-prefix-p prefix name)
+                            (not (string-match-p " " (substring name (length prefix)))))
+                   (push (cons (substring name (length prefix)) cmd) out)))
+               +eat-nushell--commands)
+      out)))
+
+(defun +eat-nushell--flag-candidates (head)
+  "Return alist of (FLAG-STRING . cmd-plist) for the named/switch params of HEAD.
+HEAD must be a known nu command name; missing or unknown returns nil.
+Each FLAG-STRING is `--<long>' (or `-<short>' if no long form exists).
+The returned plist for the entry is a fresh plist containing the
+parameter's :description so the completion UI can surface it; the full
+cmd is fetched lazily by callers via `+eat-nushell--commands' if needed."
+  (when-let* ((+eat-nushell--commands)
+              (cmd (gethash head +eat-nushell--commands))
+              (sigs (plist-get cmd :signatures)))
+    (let (out)
+      ;; Each value under :signatures is a list of parameter plists; iterate
+      ;; them all in case different input shapes expose different flags.
+      (cl-loop for (_input-shape params) on sigs by #'cddr
+               do (dolist (param params)
+                    (let ((kind (plist-get param :parameter_type))
+                          (long (plist-get param :parameter_name))
+                          (short (plist-get param :short_flag))
+                          (desc  (plist-get param :description)))
+                      (when (member kind '("named" "switch"))
+                        (cond
+                         ((and long (> (length long) 0))
+                          (push (cons (concat "--" long)
+                                      (list :description desc :short short))
+                                out))
+                         ((and short (> (length short) 0))
+                          (push (cons (concat "-" short)
+                                      (list :description desc))
+                                out))))))
+               finally return (cl-delete-duplicates out :key #'car :test #'equal)))))
+
+(defun +eat-nushell--root-prefixes ()
+  "Return list of distinct first-word prefixes used by multi-word commands.
+E.g. \"git\", \"eat\", \"from\", \"to\" for `git status', `eat tee', etc."
+  (when +eat-nushell--commands
+    (let (set)
+      (maphash (lambda (name _)
+                 (when-let ((sp (string-match " " name)))
+                   (push (substring name 0 sp) set)))
+               +eat-nushell--commands)
+      (cl-delete-duplicates set :test #'equal))))
+
+(defun +eat-nushell--flag-value-completions (head flag-name)
+  "Return the list of value candidates declared for HEAD's FLAG-NAME.
+Each `scope commands' parameter can carry a `:completion' field listing
+enum-style values (e.g. `--theme' for `table' has [basic compact ...]).
+Returns nil when HEAD isn't a known command or the flag has no enum."
+  (when-let* ((cmd (gethash head +eat-nushell--commands))
+              (sigs (plist-get cmd :signatures)))
+    (catch 'found
+      (cl-loop for (_input params) on sigs by #'cddr do
+               (dolist (p params)
+                 (when (equal (plist-get p :parameter_name) flag-name)
+                   (when-let ((vals (plist-get p :completion)))
+                     (throw 'found vals))))))))
+
+(defun +eat-nushell--previous-flag-name (args)
+  "If the arg before the current one looks like `--flag', return the flag name.
+Returns the stripped name (no leading dashes); nil otherwise.  Used to
+detect `cmd --flag <cursor>' positions where the next argument is a
+named-parameter value."
+  (when (>= (length args) 2)
+    (let ((prev (nth (- (length args) 2) args)))
+      (cond
+       ((and (string-prefix-p "--" prev) (> (length prev) 2))
+        (substring prev 2))
+       ((and (string-prefix-p "-" prev) (= (length prev) 2)
+             ;; Map short flag back to long via flag-candidates -- we don't
+             ;; have a short->long index, so skip for now; named values are
+             ;; almost always invoked with --long form anyway.
+             nil)
+        nil)))))
+
+(defun +eat-nushell--add-var-candidates (table)
+  "Add `$name' candidates to TABLE for the nu built-ins + in-scope locals.
+Variables are syntactically valid wherever a value is expected -- both
+command and argument positions -- so we surface them in both pools and
+let orderless filter on the typed prefix.  Skips entries that already
+exist in TABLE so earlier (more authoritative) candidates win."
+  (cl-flet ((add (name desc)
+              (let ((display (concat "$" name)))
+                (unless (gethash (concat display " ") table)
+                  (puthash (concat display " ")
+                           `(:display ,display :value ,display :terminator " "
+                             :description ,desc)
+                           table)))))
+    (dolist (v +eat-nushell--builtin-vars)
+      (add v "nu built-in variable"))
+    (dolist (v (+eat-nushell--local-var-names))
+      (add v "local variable"))))
+
+(defun +eat-nushell--builtin-completions (prompt)
+  "Compute completion candidates contributed by the nu builtin cache.
+Returns a hashtable shaped like `carapace-completion--fish-fallback' --
+keys are `\"<value> \"' (display + trailing space), values are plists
+with :display :value :terminator :description.  Empty hashtable if the
+cache is cold or the prompt position doesn't admit builtin completions.
+
+Local + built-in nu variables (`$foo', `$env', `$in', `$it', `$nu')
+are added to both command and argument positions so they show up
+alongside command/path candidates without requiring a `$' prefix to
+trigger; orderless does the visual filtering as the user types."
+  (let ((table (make-hash-table :test #'equal))
+        (args (+eat-nushell--parse-args prompt))
+        (current-arg (or (car (last (+eat-nushell--parse-args prompt))) "")))
+    (when (and +eat-nushell--commands (> (length args) 0))
+      (cond
+       ;; Flag position: `cmd ... -<cursor>' or `cmd ... --<cursor>'.  Look up
+       ;; the longest command prefix that's a builtin and offer its flags.
+       ((string-prefix-p "-" current-arg)
+        (let* ((cmd-args (butlast args))
+               (head (+eat-nushell--head-command cmd-args)))
+          (dolist (flag (+eat-nushell--flag-candidates head))
+            (puthash (concat (car flag) " ")
+                     `(:display ,(car flag) :value ,(car flag)
+                       :terminator " "
+                       ,@(when-let ((d (plist-get (cdr flag) :description)))
+                           (list :description d)))
+                     table))))
+       ;; Flag-value position: `cmd --flag <cursor>'.  If the previous arg is
+       ;; a known long flag with `:completion' enum values, offer them.
+       ((when-let* ((flag-name (+eat-nushell--previous-flag-name args))
+                    (cmd-args (butlast args 2))
+                    (head (+eat-nushell--head-command cmd-args))
+                    (values (+eat-nushell--flag-value-completions
+                             head flag-name)))
+          (dolist (v values)
+            (puthash (concat v " ")
+                     `(:display ,v :value ,v :terminator " "
+                       :description ,(format "value for --%s" flag-name))
+                     table))
+          t))
+       ;; First-arg position: still completing the head command.  Offer
+       ;; single-word builtins plus root prefixes of multi-word commands
+       ;; (e.g. `git', `eat') so the user can drill into subcommands, AND
+       ;; in-scope variables (locals + nu builtins) -- a value reference
+       ;; is syntactically valid here (`$x | ...').
+       ((= (length args) 1)
+        (maphash
+         (lambda (name cmd)
+           (unless (string-match-p " " name)
+             (puthash (concat name " ")
+                      `(:display ,name :value ,name :terminator " "
+                        ,@(when-let ((d (plist-get cmd :description)))
+                            (list :description d)))
+                      table)))
+         +eat-nushell--commands)
+        (dolist (root (+eat-nushell--root-prefixes))
+          (unless (gethash (concat root " ") table)
+            (puthash (concat root " ")
+                     `(:display ,root :value ,root :terminator " ")
+                     table)))
+        (+eat-nushell--add-var-candidates table))
+       ;; Subcommand / positional-argument position: `cmd <cursor>' where
+       ;; `cmd' has multi-word children OR positional args.  Offer
+       ;; subcommands AND in-scope vars (variables are valid args).
+       (t
+        (let* ((cmd-args (butlast args))
+               (head (+eat-nushell--head-command cmd-args)))
+          (dolist (sub (+eat-nushell--subcommand-candidates head))
+            (puthash (concat (car sub) " ")
+                     `(:display ,(car sub) :value ,(car sub) :terminator " "
+                       ,@(when-let ((d (plist-get (cdr sub) :description)))
+                           (list :description d)))
+                     table)))
+        (+eat-nushell--add-var-candidates table))))
+    table))
+
+(defun +eat-nushell--merge-tables (primary secondary)
+  "Merge SECONDARY into PRIMARY (a hash table), returning PRIMARY.
+Entries already in PRIMARY win; missing keys are filled in from SECONDARY.
+Used to layer nu builtins on top of fish-completion fallback results."
+  (maphash (lambda (k v)
+             (unless (gethash k primary)
+               (puthash k v primary)))
+           secondary)
+  primary)
+
 (defvar-local carapace-nushell--active-completions nil)
 (defun carapace-nushell--completions (prompt &optional no-refresh)
   (if no-refresh
@@ -186,6 +577,11 @@ corfu/orderless filter cleanly against the user-typed prefix."
               (+eat-nushell--nix-completions prompt))
              (t
               (carapace-completion--list-completions-with-desc 'nushell prompt)))))
+      ;; Layer nu-builtin candidates on top: fish wins where it has an entry
+      ;; (it knows external commands, paths, etc.); we add nu's commands,
+      ;; subcommands, and flags where fish has nothing.
+      (+eat-nushell--merge-tables candidates
+                                  (+eat-nushell--builtin-completions prompt))
       (setq-local carapace-nushell--active-completions candidates))))
 
 (defvar +eat-nushell-doc--last-buffer nil
@@ -267,24 +663,26 @@ each call to avoid leaking buffers across corfu-popupinfo invocations."
                                   (s-wrap unquoted-arg "`")
                                 unquoted-arg)))
            (insert requoted-arg)
-           ;; Re-route boundary chars that open a new completion context
-           ;; through `unread-command-events' so the next command-loop
-           ;; tick runs `self-insert-command' on them -- that's what
-           ;; `corfu-auto-commands' matches, so the popup at the new
-           ;; level fires naturally.  Direct `insert' would skip the
-           ;; trigger.  Two flavors:
-           ;;   - `terminator' is `#': we never inserted it (flake refs
-           ;;     have no `#' in the candidate), just push it.
+           ;; Re-route the terminator through `unread-command-events' so
+           ;; the next command-loop tick runs `self-insert-command' on it
+           ;; -- that's what `corfu-auto-commands' matches, so the popup
+           ;; at the next level fires naturally.  Direct `insert' skips
+           ;; the trigger and leaves the user without subcommand/arg
+           ;; completion until they type another char.  Three flavors:
            ;;   - candidate already ends in `/' (fish directory): pop
            ;;     the slash back off so the synthetic self-insert can
-           ;;     re-add it.
+           ;;     re-add it and trigger completion.
+           ;;   - `terminator' is `#': never inserted (flake refs don't
+           ;;     have `#' in the candidate), so just push it.
+           ;;   - everything else (including the default space): push
+           ;;     the terminator char so corfu re-triggers for the next
+           ;;     argument / subcommand position.
            (cond
             ((string-suffix-p "/" requoted-arg)
              (delete-char -1)
              (push ?/ unread-command-events))
-            ((member terminator '("#"))
-             (push (aref terminator 0) unread-command-events))
-            (t (insert terminator)))))))))
+            ((> (length terminator) 0)
+             (push (aref terminator 0) unread-command-events)))))))))
 
 (defun +eat-nushell-empty-arg-capf ()
   "Capf that handles the empty-arg position (e.g. `nix build ').
@@ -332,16 +730,164 @@ visible subset, changes.  Examples that should invalidate:
                 (if p (substring s 0 (1+ p)) ""))))
     (equal (parent old) (parent new))))
 
+(defun +eat-nushell--shell-pid ()
+  "Return the PID of the live nu process in this eat buffer, or nil."
+  (when-let* ((term (bound-and-true-p eat-terminal))
+              (proc (eat-term-parameter term 'eat--process)))
+    (and (process-live-p proc) (process-id proc))))
+
+(defun +eat-nushell--env-names ()
+  "Return the env-var names set in this eat buffer's live nu process.
+Reads /proc/<pid>/environ; on Linux the kernel refreshes that file
+when the process mutates its environment (e.g. `$env.X = ...',
+`load-env'), so `cd' + direnv changes show up between completions."
+  (when-let* ((pid (+eat-nushell--shell-pid))
+              (path (format "/proc/%s/environ" pid))
+              ((file-readable-p path)))
+    (with-temp-buffer
+      (insert-file-contents path)
+      (let (out)
+        (dolist (e (split-string (buffer-string) "\0" t))
+          (when-let ((eq-pos (string-search "=" e)))
+            (push (substring e 0 eq-pos) out)))
+        (nreverse out)))))
+
+(defun +eat-nushell--local-var-names ()
+  "Collect nu var names in scope at point inside the line-mode input.
+Walks ancestors of point and gathers binders by lexical scope:
+  - `let' / `mut' / `const' declared earlier in the same enclosing block
+  - `parameter' names (closure / def args) when point is inside the body
+  - `for' loop var when point is inside the for body
+Returns nil if the parser isn't ready or no bindings are in scope."
+  (when (and (bound-and-true-p +eat/-nu-parser)
+             (treesit-parser-p +eat/-nu-parser)
+             (memq +eat/-nu-parser (treesit-parser-list)))
+    (let ((pt (point))
+          (names nil))
+      (cl-labels
+          ((collect-id (node)
+             (when node
+               (push (treesit-node-text node t) names)))
+           (collect-params-of (parent)
+             (when-let ((params (treesit-node-child-by-field-name
+                                 parent "parameters")))
+               (dolist (p (treesit-node-children params))
+                 (when (equal (treesit-node-type p) "parameter")
+                   (collect-id (treesit-node-child-by-field-name
+                                p "param_name"))))))
+           (point-in (node field)
+             (when-let ((b (treesit-node-child-by-field-name node field)))
+               (and (>= pt (treesit-node-start b))
+                    (<= pt (treesit-node-end b))))))
+        (let ((cur (treesit-node-at pt 'nu)))
+          (while cur
+            (pcase (treesit-node-type cur)
+              ;; Top-level script or any block: collect let/mut/const that
+              ;; ended before point at this level.
+              ((or "nu_script" "block")
+               (dolist (child (treesit-node-children cur))
+                 (when (and (member (treesit-node-type child)
+                                    '("stmt_let" "stmt_mut" "stmt_const"))
+                            (< (treesit-node-end child) pt))
+                   (collect-id (treesit-node-child-by-field-name
+                                child "var_name")))))
+              ;; Closure: params bind only inside the body (the body is a
+              ;; child block; we already walk into it via `treesit-node-at',
+              ;; so being inside this val_closure means point is in body).
+              ("val_closure"
+               (collect-params-of cur))
+              ;; `for x in ... { ... }': bind `x' only when point is in body.
+              ("ctrl_for"
+               (when (point-in cur "body")
+                 (collect-id (treesit-node-child-by-field-name cur "var_name"))))
+              ;; `def foo [a b] { ... }': bind params only in body.
+              ("decl_def"
+               (when (point-in cur "body")
+                 (collect-params-of cur))))
+            (setq cur (treesit-node-parent cur)))))
+      (cl-delete-duplicates (cl-remove nil names) :test #'equal))))
+
+(defconst +eat-nushell--builtin-vars '("env" "in" "it" "nu")
+  "Nushell built-in variables that are always valid wherever `$x' is.
+`$env' is the env-var table, `$in' is the input pipeline value,
+`$it' is the legacy single-element shorthand still accepted in some
+contexts, `$nu' is the process metadata record.  Surfaced alongside
+lexically-scoped locals so the user doesn't have to remember which
+class a name belongs to.")
+
+(defun +eat-nushell-local-var-capf ()
+  "Capf for `$var' completions: nu locals plus the built-in `$env'/`$in'/...
+Fires whenever the partial starts with `$' -- works in both command
+position (e.g. `($local<TAB>)') and argument position (e.g. `cmd
+$local<TAB>'), since either is a valid use site for a variable
+reference.  Skips when the partial is `$env.X' (that case is owned by
+`+eat-nushell-env-capf' which sees the live process env)."
+  (let ((line-beg (comint-line-beginning-position)))
+    (save-excursion
+      (let* ((end (point))
+             (name-beg (save-excursion
+                         (skip-chars-backward "A-Za-z0-9_-" line-beg)
+                         (point))))
+        (when (and (> name-beg line-beg)
+                   (eq (char-before name-beg) ?$)
+                   ;; Skip `$env.X' -- env-capf handles it.
+                   (not (save-excursion
+                          (goto-char name-beg)
+                          (looking-at "env\\."))))
+          (let* ((locals (+eat-nushell--local-var-names))
+                 (candidates
+                  (append +eat-nushell--builtin-vars
+                          (cl-set-difference
+                           locals +eat-nushell--builtin-vars
+                           :test #'equal))))
+            (list name-beg end candidates
+                  :exclusive 'no
+                  :annotation-function
+                  (lambda (c)
+                    (if (member c +eat-nushell--builtin-vars) " nu-builtin" " local"))
+                  :company-kind (lambda (_) 'variable))))))))
+
+(defun +eat-nushell-env-capf ()
+  "Capf that completes env-var names after `$env.'.
+Reads the live nu process's environment via `/proc/<pid>/environ', so
+runtime env mutations (assignments, hook-driven loads, direnv) are
+reflected.  The capf is non-exclusive: when the user is mid-name,
+`completion-at-point' will also consult downstream capfs, but env
+matches sort first because we own the local region."
+  (let ((line-beg (comint-line-beginning-position)))
+    (save-excursion
+      ;; Walk back from point until we leave the current identifier.
+      (let* ((end (point))
+             (name-beg (save-excursion
+                         (skip-chars-backward "A-Za-z0-9_" line-beg)
+                         (point))))
+        (when (and (>= name-beg (+ line-beg 5))
+                   (string= (buffer-substring-no-properties
+                             (- name-beg 5) name-beg)
+                            "$env."))
+          (when-let ((names (+eat-nushell--env-names)))
+            (list name-beg end names
+                  :exclusive 'no
+                  :annotation-function (lambda (_) " env")
+                  :company-kind (lambda (_) 'variable))))))))
+
 (defun replace-eat-completions ()
   (fish-completion-mode -1)
   (corfu-mode +1)
   (setq-local completion-at-point-functions
-              ;; Two capfs in order:
-              ;; 1. `+eat-nushell-empty-arg-capf' fires only when the partial
+              ;; Four capfs in order:
+              ;; 1. `+eat-nushell-env-capf' completes `$env.X' from the live
+              ;;    process's `/proc/<pid>/environ'.
+              ;; 2. `+eat-nushell-local-var-capf' completes `$var' from the
+              ;;    input region's let/mut/const/def/closure-param names,
+              ;;    plus `env' so `$env.<X>' is always reachable in one go.
+              ;; 3. `+eat-nushell-empty-arg-capf' fires only when the partial
               ;;    arg is empty (e.g. `nix build ') -- cape's dynamic table
               ;;    won't help us there because it guards on `(< beg end)'.
-              ;; 2. The cape-wrapped company backend handles everything else,
-              ;;    with descriptions and lazy doc-buffer.
-              (list #'+eat-nushell-empty-arg-capf
+              ;; 4. The cape-wrapped company backend handles everything else,
+              ;;    layering fish externals + nu builtins/subcommands/flags.
+              (list #'+eat-nushell-env-capf
+                    #'+eat-nushell-local-var-capf
+                    #'+eat-nushell-empty-arg-capf
                     (cape-company-to-capf #'carapace-nushell-backend
                                           #'+eat-nushell--cache-valid-p))))
