@@ -889,7 +889,15 @@ text regions between template blocks."
         eat-enable-directory-tracking t
         eat-enable-shell-prompt-annotation t
         eat-enable-blinking-text nil)
-  (add-to-list 'consult-mode-histories '(eat-mode eat--line-input-ring eat--line-input-ring-index comint-bol))
+  ;; `consult-mode-histories' is defined by `consult', which may not be
+  ;; loaded yet when eat's :config block runs (the daemon-startup path hits
+  ;; it before any consult command has fired).  Without this guard the
+  ;; void-variable error aborts the rest of the :config block, which left
+  ;; us with a half-configured eat -- no hook setup, no advice, no helper
+  ;; bindings.  Defer to whenever consult actually loads.
+  (after! consult
+    (add-to-list 'consult-mode-histories
+                 '(eat-mode eat--line-input-ring eat--line-input-ring-index comint-bol)))
   (add-to-list 'eat-semi-char-non-bound-keys [C-r])
   (add-to-list 'eat-message-handler-alist '("open" . +eat/nu-open))
   (add-to-list 'eat-message-handler-alist '("git" . eshell/git))
@@ -985,7 +993,10 @@ doesn't fontify anything."
 Creates a single nu parser whose included ranges track the input
 region, so the rendered prompt and earlier terminal output are left
 alone -- only the user's pending input gets fontified.  Relies on
-nu-ts-mode being available for `nu-ts-mode--font-lock-settings'."
+nu-ts-mode being available for `nu-ts-mode--font-lock-settings';
+explicitly require it (nu-ts-mode is `:defer t :mode \"\\\\.nu\\\\'\"' so
+it isn't autoloaded by eat alone)."
+  (require 'nu-ts-mode nil t)
   (when (and (treesit-ready-p 'nu)
              (boundp 'nu-ts-mode--font-lock-settings))
     (unless (and +eat/-nu-parser
