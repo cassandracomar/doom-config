@@ -18,30 +18,27 @@
 ;;   - filter-return advice on `pcomplete-completions-at-point' that appends
 ;;     `:company-doc-buffer' so corfu-popupinfo can pull per-candidate docs.
 
-(use-package! fish-completion
-  :commands global-fish-completion-mode fish-completion-mode
-  :defer t
-  :config
-  (setq fish-completion-fallback-on-bash-p nil)
+;; `fish-completion' package setup lives in `config.el' (Doom macro
+;; territory: `use-package!').  This file holds the pure-elisp pieces
+;; that the package config calls into, plus the eshell/nix completion
+;; helpers shared with eat-nushell.
 
-  (defun +fish-completion--list-completions-a (raw-prompt)
-    "Like `fish-completion--list-completions' but preserve fish's per-completion
+(defun +fish-completion--list-completions-a (raw-prompt)
+  "Like `fish-completion--list-completions' but preserve fish's per-completion
 descriptions as `pcomplete-annotation' / `pcomplete-help' text properties so
 corfu and friends can display them."
-    (let ((candidates (fish-completion--list-completions-with-desc raw-prompt)))
-      (when candidates
-        (mapcar (lambda (e)
-                  (let* ((parts (split-string e "\t"))
-                         (name (car parts))
-                         (desc (cadr parts)))
-                    (if (and desc (not (string-empty-p desc)))
-                        (propertize name
-                                    'pcomplete-annotation (concat " " desc)
-                                    'pcomplete-help desc)
-                      name)))
-                (split-string candidates "\n" t)))))
-  (advice-add 'fish-completion--list-completions :override
-              #'+fish-completion--list-completions-a))
+  (let ((candidates (fish-completion--list-completions-with-desc raw-prompt)))
+    (when candidates
+      (mapcar (lambda (e)
+                (let* ((parts (split-string e "\t"))
+                       (name (car parts))
+                       (desc (cadr parts)))
+                  (if (and desc (not (string-empty-p desc)))
+                      (propertize name
+                                  'pcomplete-annotation (concat " " desc)
+                                  'pcomplete-help desc)
+                    name)))
+              (split-string candidates "\n" t)))))
 
 (defun +eshell-bypass-pcomplete-cmd-a (orig-fn command)
   "Bypass global `pcomplete/<cmd>' shims in eshell with fish-completion-mode on,

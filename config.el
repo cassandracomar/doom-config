@@ -867,6 +867,15 @@ text regions between template blocks."
   :init
   (setq sideline-backends-right '(sideline-flymake sideline-eglot)))
 
+(use-package! fish-completion
+  :commands global-fish-completion-mode fish-completion-mode
+  :defer t
+  :config
+  (require '+completions)
+  (setq fish-completion-fallback-on-bash-p nil)
+  (advice-add 'fish-completion--list-completions :override
+              #'+fish-completion--list-completions-a))
+
 (use-package! eat
   :defer t
   :commands +eat/here eat
