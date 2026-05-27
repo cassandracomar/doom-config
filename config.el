@@ -905,6 +905,7 @@ text regions between template blocks."
   (add-to-list 'eat-message-handler-alist '("open" . +eat/nu-open))
   (add-to-list 'eat-message-handler-alist '("git" . eshell/git))
   (add-to-list 'eat-message-handler-alist '("tee" . +eat/tee))
+  (add-to-list 'eat-message-handler-alist '("cat" . +eat/cat))
 
   (keymap-set eat-mode-map "<insert-state> C-r" #'consult-history)
   (keymap-set eat-mode-map "<normal-state> C-r" #'consult-history)
@@ -1122,6 +1123,21 @@ across PTY chunks are still handled correctly."
 (defun +eat/nu-open (&rest args)
   (interactive)
   (apply #'eshell/find-file args))
+
+(defun +eat/cat (buffer-name)
+  "Send BUFFER-NAME's contents back to the eat-launched shell as an OSC reply.
+Invoked from nushell via `eat cat <buffer>' -- inverse of `eat tee'.
+The shell uses `term query' to send the request OSC and block reading
+the reply, so we send the contents as `OSC 51 e;K;<base64> ST'.  When
+the buffer doesn't exist (or isn't readable as text) we send an empty
+payload, which the shell sees as a zero-length string."
+  (let* ((content (if-let ((b (get-buffer buffer-name)))
+                      (with-current-buffer b
+                        (buffer-substring-no-properties (point-min) (point-max)))
+                    ""))
+         (b64 (base64-encode-string (encode-coding-string content 'utf-8) t)))
+    (eat-term-send-string eat-terminal
+                          (format "\e]51;e;K;%s\e\\" b64))))
 
 (defun +eat/tee (buffer-name mode data)
   "Write DATA into BUFFER-NAME, creating it if necessary.
