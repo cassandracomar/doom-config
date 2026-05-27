@@ -977,7 +977,13 @@ Returns nil if line-mode isn't active or the user hasn't typed anything."
   "Keep `+eat/-nu-parser' aligned with the live input region.
 When the user hasn't typed anything yet (or line-mode isn't active),
 park the parser on `(point-min . point-min)' so it stays alive but
-doesn't fontify anything."
+doesn't fontify anything.
+
+Also flushes font-lock over the whole input region, so JIT re-fontifies
+*every* character of the active token on each keystroke -- otherwise
+tree-sitter's view of `l' (single-char identifier) and then `ls' (known
+builtin) get different highlight faces, but JIT only re-runs over the
+just-typed `s', leaving `l' with its stale face."
   (when (and +eat/-nu-parser
              (treesit-parser-p +eat/-nu-parser)
              (memq +eat/-nu-parser (treesit-parser-list)))
@@ -986,7 +992,18 @@ doesn't fontify anything."
        +eat/-nu-parser
        (if region
            (list region)
-         (list (cons (point-min) (point-min))))))))
+         (list (cons (point-min) (point-min)))))
+      ;; Invalidate the whole input region's fontification on every
+      ;; keystroke so JIT-lock re-runs across the FULL active token.
+      ;; Without this, tree-sitter's view of `l' (one-char identifier ->
+      ;; function-call face) survives even after `s' is typed and the
+      ;; node becomes the builtin `ls' -- JIT only re-fontifies the
+      ;; just-changed `s' position.  `font-lock-flush' is a no-op here
+      ;; because eat-mode doesn't bind `font-lock-defaults', so we
+      ;; clear the `fontified' text property directly.
+      (when region
+        (with-silent-modifications
+          (put-text-property (car region) (cdr region) 'fontified nil))))))
 
 (defun +eat/setup-line-mode-nu-highlight ()
   "Wire nushell tree-sitter highlighting onto the eat line-mode input.
