@@ -307,15 +307,18 @@
       :i
       "<tab>" #'completion-at-point
       "TAB" #'completion-at-point)
-(map! :mode eat-mode
-      :gni
+;; History navigation belongs on the line-mode map -- in semi-char-mode
+;; the arrows must be forwarded to the underlying TUI program via
+;; `eat-self-input', which is the default in `eat-semi-char-mode-map'.
+(map! :map eat-line-mode-map
+      :ni
       "<up>" #'eat-line-previous-input
       "<down>" #'eat-line-next-input
+      "<tab>" #'completion-at-point
+      "TAB" #'completion-at-point
       "C-k" #'eat-previous-shell-prompt
       "C-j" #'eat-next-shell-prompt
-      "C-r" #'consult-history
-      "<tab>" #'completion-at-point
-      "TAB" #'completion-at-point)
+      "C-r" #'consult-history)
 (map! :map vertico-map
       "<tab>" #'vertico-insert
       [backtab] #'vertico-previous)
@@ -906,7 +909,76 @@ text regions between template blocks."
   (keymap-set eat-line-mode-map "<normal-state> <return>" #'eat-line-send-input)
 
   (advice-add 'eat-term-process-output :filter-args
-              #'+eat/csi-ef-swap-output))
+              #'+eat/csi-ef-swap-output)
+
+  ;; Semi-char and char modes are "raw input" -- keystrokes get forwarded
+  ;; to the underlying TUI.  Evil's modal editing (normal-state's `:'/`q'
+  ;; etc., insert-state's ESC->normal transition) would intercept those
+  ;; keys, so switch to evil emacs-state in those modes -- it passes the
+  ;; whole keymap stack through unfiltered.
+  (add-hook 'eat--semi-char-mode-hook #'+eat/use-emacs-state-for-tui)
+  (add-hook 'eat--char-mode-hook #'+eat/use-emacs-state-for-tui)
+  (add-hook 'eat--line-mode-hook #'+eat/restore-evil-state-for-line-mode)
+
+  ;; Bind <escape> directly in eat-semi-char-mode-map so it shortcircuits
+  ;; function-key-map's translation to the meta-prefix byte -- without
+  ;; this, ESC in a TUI (vim's normal-mode entry, less's quit) would be
+  ;; swallowed as the start of an M-... key sequence.
+  (define-key eat-semi-char-mode-map [escape] #'eat-self-input)
+
+  ;; eat's `eat--prepare-semi-char-mode-map' only forwards `:ascii :arrow
+  ;; :navigation' to `eat-self-input', so function keys fall through to
+  ;; Emacs's global bindings (e.g. F1=help, F10=menu-bar-open) and never
+  ;; reach the underlying TUI (htop's F6, midnight commander, etc.).
+  ;; Bind F1-F63 + every modifier combination to `eat-self-input' so they
+  ;; get sent to the program.
+  (dolist (i (number-sequence 1 63))
+    (let ((base (intern (format "f%d" i))))
+      (dolist (mod '("" "C-" "M-" "S-" "C-M-" "C-S-" "M-S-" "C-M-S-"))
+        (define-key eat-semi-char-mode-map
+                    (vector (intern (concat mod (symbol-name base))))
+                    #'eat-self-input))))
+
+  ;; `eat-next-shell-prompt' uses `next-single-property-change' from point,
+  ;; but if point already sits on an `eat--shell-prompt-end' character
+  ;; (which happens in evil normal-state, where the block cursor lives on
+  ;; the property-bearing byte), the first change it finds is just the end
+  ;; of the current property run -- it advances one char and stops without
+  ;; ever reaching the NEXT prompt.  Walk past the current run before the
+  ;; real navigation runs so each invocation actually moves to a new prompt.
+  (advice-add 'eat-next-shell-prompt :before #'+eat/skip-current-prompt-end))
+
+(defun +eat/use-emacs-state-for-tui ()
+  "Use evil emacs-state in eat's raw-input modes.
+Semi-char and char modes forward keystrokes to the TUI; evil's normal-state
+bindings (`:', `q', `i', ...) and insert-state's ESC->normal transition
+would intercept those keys.  emacs-state passes everything through to the
+underlying keymap stack, which is what we want."
+  (when (and (bound-and-true-p evil-mode)
+             (or (bound-and-true-p eat--semi-char-mode)
+                 (bound-and-true-p eat--char-mode))
+             (not (eq evil-state 'emacs)))
+    (evil-emacs-state)))
+
+(defun +eat/restore-evil-state-for-line-mode ()
+  "Return to evil insert-state when eat enters line-mode.
+Line-mode behaves like a regular Emacs buffer where modal editing makes
+sense; `+eat/use-emacs-state-for-tui' flips to emacs-state during
+semi-char/char-mode sessions, so flip back here so the user can submit
+input in evil insert (and switch to normal-state if they want)."
+  (when (and (bound-and-true-p evil-mode)
+             (bound-and-true-p eat--line-mode)
+             (eq evil-state 'emacs))
+    (evil-insert-state)))
+
+(defun +eat/skip-current-prompt-end (&rest _)
+  "If point is on an `eat--shell-prompt-end' character, walk past the run.
+Lets `eat-next-shell-prompt' continue past the current prompt instead of
+stopping at the property-change one position over."
+  (when (get-text-property (point) 'eat--shell-prompt-end)
+    (goto-char (or (next-single-property-change
+                    (point) 'eat--shell-prompt-end)
+                   (point-max)))))
 
 (defvar +eat/csi-ef-swap-pending (make-hash-table :test 'eq :weakness 'key)
   "Per-terminal tail of `\\e[<params>' awaiting a terminator across chunks.")
