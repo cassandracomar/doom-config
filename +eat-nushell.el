@@ -73,13 +73,19 @@ Uses :keyword keys so callers can `(plist-get cmd :name)' etc."
           (setq +eat-nushell--commands tbl))))))
 
 (defcustom +eat-nushell-commands-source-files
-  '("~/.config/nushell/eat-config.nu")
+  '("~/.config/nushell/emacs-config.nu")
   "Nushell files to `source' before sampling `scope commands'.
 These should expose any user-defined commands (e.g. `git status',
-`eat tee') we want surfaced in eat-line-mode completion.  Files that
-need a TTY (e.g. `enable_integration's `term query') will detect
-`$nu.is-interactive' as false and short-circuit, so listing them here
-is safe."
+`alias ls = eza', `nh os upgrade') that the eat-launched nushell would
+see, so completion offers them too.  Defaults to `emacs-config.nu',
+the same entry point eat passes via `--config' -- it chains in
+`config.nu', `default-config.nu', and `eat-config.nu', so every alias
+and def in your interactive shell is also in the cache.
+
+Anything that needs a TTY (e.g. `eat enable_integration's
+`term query') will detect `$nu.is-interactive' as false in this
+non-interactive `nu -c' invocation and short-circuit, so listing the
+full chain here is safe."
   :type '(repeat string)
   :group '+eat-nushell)
 
@@ -91,7 +97,13 @@ end up in the cache.  Runs synchronously -- the nushell call typically
 finishes in ~50ms, far cheaper than the bookkeeping for async.
 Interactively (or with prefix arg) forces a refresh even if the cache
 is already populated.  CALLBACK is invoked at the end if non-nil
-(matches the old async signature so existing callers keep working)."
+(matches the old async signature so existing callers keep working).
+
+Spawns nu under a PTY (`:connection-type 'pty') so `tty' and other
+TTY-dependent forms in `config.nu' (`gpg-connect-agent', etc.) don't
+abort the source chain.  Without a PTY they fail silently and skip
+the rest of the config -- losing the `default-config.nu' defs/aliases
+(`git cc', `nh os upgrade', `alias ls = eza', ...) we want cached."
   (interactive)
   (unless (and (not current-prefix-arg) +eat-nushell--commands)
     (let* ((source-stmts
@@ -100,12 +112,22 @@ is already populated.  CALLBACK is invoked at the end if non-nil
                        "; "))
            (nu-cmd (if (string-empty-p source-stmts)
                        "scope commands | to json"
-                     (format "%s; scope commands | to json" source-stmts))))
-      (with-temp-buffer
-        (let ((exit (call-process (executable-find "nu") nil
-                                  (current-buffer) nil "-c" nu-cmd)))
-          (when (and (eq exit 0) (> (buffer-size) 0))
-            (+eat-nushell--ingest-commands (current-buffer)))))
+                     (format "%s; scope commands | to json" source-stmts)))
+           (proc-buf (generate-new-buffer " *eat-nushell-commands*" t))
+           (proc (make-process
+                  :name "eat-nushell-commands"
+                  :buffer proc-buf
+                  :command (list (executable-find "nu") "-c" nu-cmd)
+                  :connection-type 'pty
+                  :noquery t)))
+      (unwind-protect
+          (progn
+            (while (process-live-p proc)
+              (accept-process-output proc 0.1))
+            (when (and (eq (process-exit-status proc) 0)
+                       (> (with-current-buffer proc-buf (buffer-size)) 0))
+              (+eat-nushell--ingest-commands proc-buf)))
+        (when (buffer-live-p proc-buf) (kill-buffer proc-buf)))
       (when callback (funcall callback)))))
 
 ;; Kick the cache off as soon as this file loads -- it takes ~50ms so we
@@ -346,34 +368,71 @@ corfu/orderless filter cleanly against the user-typed prefix."
                  table)))
     table))
 
+(defun +eat-nushell--has-descendants-p (head)
+  "Return non-nil if any cached command starts with HEAD + a space.
+Used to recognise multi-level prefixes like `nh home' even when the
+prefix itself isn't a real command -- only `nh home upgrade' is in the
+cache, but `nh home' is still a meaningful subcommand position to
+complete from."
+  (when +eat-nushell--commands
+    (let ((prefix (concat head " "))
+          (found nil))
+      (catch 'done
+        (maphash (lambda (name _)
+                   (when (string-prefix-p prefix name)
+                     (setq found t)
+                     (throw 'done nil)))
+                 +eat-nushell--commands))
+      found)))
+
 (defun +eat-nushell--head-command (args)
-  "Return the longest prefix of ARGS (a list of strings) that is a known
-nu command name, joined with spaces.  Falls back to (car args) if no
-multi-word name matches; nil if the cache isn't ready or args is empty."
+  "Return the longest prefix of ARGS that's a recognised nu command head.
+A prefix counts as recognised if it's a real entry in
+`+eat-nushell--commands' OR if any cached command starts with that
+prefix (multi-level case: `nh home' isn't itself a command, but
+`nh home upgrade' is, so `nh home' is still a valid completion anchor).
+Falls back to (car args) when nothing matches; nil if the cache
+isn't ready or args is empty."
   (when (and +eat-nushell--commands args)
-    (let* ((max-len (length args))
-           (found nil))
-      ;; Walk from longest possible prefix down to 1-word.  Multi-word names
-      ;; in scope commands look like `git status', `from json' etc.
-      (cl-loop for n downfrom max-len to 1
+    (let ((found nil))
+      (cl-loop for n downfrom (length args) to 1
                for candidate = (mapconcat #'identity (cl-subseq args 0 n) " ")
-               when (gethash candidate +eat-nushell--commands)
+               when (or (gethash candidate +eat-nushell--commands)
+                        (+eat-nushell--has-descendants-p candidate))
                return (setq found candidate))
       (or found (car args)))))
 
 (defun +eat-nushell--subcommand-candidates (head)
   "Return alist of (suffix . cmd-plist) for nu commands starting with HEAD + \" \".
-Each suffix is the part after HEAD; e.g. for HEAD=\"git\" you get
-\"status\", \"log\", \"cc\".  Empty list when nothing matches."
+Each suffix is the FIRST word after HEAD; e.g. for HEAD=\"git\" you get
+\"status\", \"log\", \"cc\".  For commands nested deeper (\"nh os
+upgrade\"), the intermediate prefix (\"os\") is offered too so
+completion can drill down stepwise -- the plist for an intermediate is
+a fresh prefix marker rather than a real `scope commands' entry.
+Empty list when nothing matches."
   (when +eat-nushell--commands
     (let ((prefix (concat head " "))
-          out)
-      (maphash (lambda (name cmd)
-                 (when (and (string-prefix-p prefix name)
-                            (not (string-match-p " " (substring name (length prefix)))))
-                   (push (cons (substring name (length prefix)) cmd) out)))
-               +eat-nushell--commands)
-      out)))
+          (table (make-hash-table :test #'equal)))
+      (maphash
+       (lambda (name cmd)
+         (when (string-prefix-p prefix name)
+           (let* ((tail (substring name (length prefix)))
+                  (space (string-match " " tail)))
+             (if space
+                 ;; Multi-word descendant: surface the first-word prefix once.
+                 (let ((first-word (substring tail 0 space)))
+                   (unless (gethash first-word table)
+                     (puthash first-word
+                              (list :description
+                                    (format "%s subcommand prefix"
+                                            (concat prefix first-word)))
+                              table)))
+               ;; Direct child: use the real cmd plist.
+               (puthash tail cmd table)))))
+       +eat-nushell--commands)
+      (let (out)
+        (maphash (lambda (k v) (push (cons k v) out)) table)
+        out))))
 
 (defun +eat-nushell--flag-candidates (head)
   "Return alist of (FLAG-STRING . cmd-plist) for the named/switch params of HEAD.
