@@ -893,6 +893,7 @@ text regions between template blocks."
   (add-to-list 'eat-semi-char-non-bound-keys [C-r])
   (add-to-list 'eat-message-handler-alist '("open" . +eat/nu-open))
   (add-to-list 'eat-message-handler-alist '("git" . eshell/git))
+  (add-to-list 'eat-message-handler-alist '("tee" . +eat/tee))
 
   (keymap-set eat-mode-map "<insert-state> C-r" #'consult-history)
   (keymap-set eat-mode-map "<normal-state> C-r" #'consult-history)
@@ -1062,6 +1063,23 @@ across PTY chunks are still handled correctly."
 (defun +eat/nu-open (&rest args)
   (interactive)
   (apply #'eshell/find-file args))
+
+(defun +eat/tee (buffer-name mode data)
+  "Write DATA into BUFFER-NAME, creating it if necessary.
+Invoked from nushell via `eat tee [-a] <buffer>' -- mirrors eshell's
+`>#<buffer>' redirection but tee-style (the data continues down the
+pipeline).  MODE is the string \"append\" (accumulate across calls,
+matching `tee -a') or \"replace\" (clear the buffer first, matching the
+default POSIX `tee').  In both cases the buffer is displayed in another
+window so the user can see the output land."
+  (let ((buf (get-buffer-create buffer-name)))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (when (equal mode "replace")
+          (erase-buffer))
+        (goto-char (point-max))
+        (insert data)))
+    (display-buffer buf)))
 
 (defun +eat/here (&optional program)
   (interactive)
