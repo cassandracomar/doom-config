@@ -872,22 +872,13 @@ text regions between template blocks."
   (setq process-adaptive-read-buffering t)
   :config
   (setq-hook! 'eat-mode-hook consult-preview-key nil)
-  (add-hook 'eat-exec-hook
-            (lambda (&rest _)
-              (eat-line-mode)
-              (eat-line-load-input-history-from-file nushell-history-file "bash")
-              (replace-eat-completions)))
-  (add-hook 'eat-update-hook
-            (lambda (&rest _)
-              (eat-line-mode)
-              (eat-line-load-input-history-from-file nushell-history-file "bash")
-              (replace-eat-completions)))
+  (add-hook! 'eat-mode-hook #'replace-eat-completions)
 
   (setq nu-executable-path (executable-find "nu"))
   (setq eat-enable-directory-tracking t
         eat-shell (format "%s --config '%s/.config/nushell/emacs-config.nu'" nu-executable-path (getenv "HOME"))
         eat-enable-mouse t
-        eat-enable-auto-line-mode nil
+        eat-enable-auto-line-mode t
         eat-enable-kill-from-terminal t
         eat-enable-yank-to-terminal t
         eat-enable-shell-command-history t
@@ -911,6 +902,8 @@ text regions between template blocks."
 
   (keymap-set eat-mode-map "<insert-state> <tab>" #'completion-at-point)
   (keymap-set eat-mode-map "<normal-state> <tab>" #'completion-at-point)
+
+  (keymap-set eat-line-mode-map "<normal-state> <return>" #'eat-line-send-input)
 
   (advice-add 'eat-term-process-output :filter-args
               #'+eat/csi-ef-swap-output))

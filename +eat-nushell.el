@@ -43,9 +43,14 @@ Two sources are checked, in order:
                                   (substring comp 0 tab-pos)
                                 (substring-no-properties comp)))
                         (desc (or (get-text-property 0 'pcomplete-help comp)
-                                  (and tab-pos (substring comp (1+ tab-pos))))))
+                                  (and tab-pos (substring comp (1+ tab-pos)))))
+                        ;; Fish returns directory completions with a trailing
+                        ;; `/'; leave the user mid-path in that case.  All
+                        ;; other fish completions (flags, files, commands)
+                        ;; get the default space terminator.
+                        (terminator (if (string-suffix-p "/" name) "" " ")))
                    (puthash (concat name " ")
-                            `(:display ,name :value ,name
+                            `(:display ,name :value ,name :terminator ,terminator
                               ,@(and desc (not (string-empty-p desc))
                                      (list :description desc)))
                             table))
@@ -126,14 +131,32 @@ corfu/orderless filter cleanly against the user-typed prefix."
   (let* ((args (+eat-nushell--parse-args raw-prompt))
          (n (1- (length args)))
          (result (+nix-completions args n))
+         (header (plist-get result :header))
          (table (make-hash-table :test #'equal)))
     (dolist (cand (plist-get result :candidates))
       (let* ((short (substring-no-properties cand))
              (desc (get-text-property 0 'pcomplete-help cand))
              (full-ref (get-text-property 0 'nix-full-ref cand))
-             (key (or full-ref short)))
+             (key (or full-ref short))
+             ;; Pick the terminator pcomplete-style.  `attrs' header (e.g.
+             ;; `nixpkgs#hello' / `nixpkgs#hello.dependencies'): user might
+             ;; drill in with `.', emit nothing.  `filenames' header is
+             ;; overloaded -- it covers both bare flake refs and actual
+             ;; paths -- so we further split: candidates that look like
+             ;; filesystem paths emit nothing, everything else is a flake
+             ;; ref and gets `#' appended so the user can immediately start
+             ;; an attr path.  Non-attrs/non-filenames (subcommands etc.)
+             ;; get the default space.
+             (terminator
+              (cond
+               ((equal header "attrs") "")
+               ((equal header "filenames")
+                (if (string-match-p "\\`\\(/\\|\\./\\|\\.\\./\\|~/\\)" key)
+                    ""
+                  "#"))
+               (t " "))))
         (puthash (concat key " ")
-                 `(:display ,key :value ,key
+                 `(:display ,key :value ,key :terminator ,terminator
                    ,@(when desc (list :description desc))
                    ,@(when full-ref (list :nix-full-ref full-ref)))
                  table)))
@@ -222,20 +245,46 @@ each call to avoid leaking buffers across corfu-popupinfo invocations."
                      (plist-get cand :description)))
       ('doc-buffer (+eat-nushell-doc-buffer arg))
       ('post-completion
-       (setq-local carapace-nushell--active-completions nil)
+       ;; Read terminator preference BEFORE clearing the cache.  Each
+       ;; candidate carries `:terminator' in its plist (set at table-build
+       ;; time): `""' for paths/attrs (user is mid-path), `"#"' for flake
+       ;; refs (drill into attr set), `" "' for everything else.  Falls
+       ;; back to a space when no terminator was set.
+       (let* ((cand (and carapace-nushell--active-completions
+                         (gethash arg carapace-nushell--active-completions)))
+              (terminator (or (plist-get cand :terminator) " ")))
+         (setq-local carapace-nushell--active-completions nil)
 
-       ;; remove the inserted completion for requoting
-       (delete-char (- (length arg)))
+         ;; remove the inserted completion for requoting
+         (delete-char (- (length arg)))
 
-       ;; clean up quotes that weren't part of the prefix but were part of the current arg
-       (if (eql (char-before (point)) ?`) (delete-char -1))
-       (if (eql (char-after (point)) ?`) (delete-char 1))
+         ;; clean up quotes that weren't part of the prefix but were part of the current arg
+         (if (eql (char-before (point)) ?`) (delete-char -1))
+         (if (eql (char-after (point)) ?`) (delete-char 1))
 
-       (let* ((unquoted-arg (s-replace-regexp "['\"`]" "" (s-trim arg)))
-              (requoted-arg (if (s-contains? " " unquoted-arg)
-                                (s-wrap unquoted-arg "`")
-                              unquoted-arg)))
-         (insert requoted-arg))))))
+         (let* ((unquoted-arg (s-replace-regexp "['\"`]" "" (s-trim arg)))
+                (requoted-arg (if (s-contains? " " unquoted-arg)
+                                  (s-wrap unquoted-arg "`")
+                                unquoted-arg)))
+           (insert requoted-arg)
+           ;; Re-route boundary chars that open a new completion context
+           ;; through `unread-command-events' so the next command-loop
+           ;; tick runs `self-insert-command' on them -- that's what
+           ;; `corfu-auto-commands' matches, so the popup at the new
+           ;; level fires naturally.  Direct `insert' would skip the
+           ;; trigger.  Two flavors:
+           ;;   - `terminator' is `#': we never inserted it (flake refs
+           ;;     have no `#' in the candidate), just push it.
+           ;;   - candidate already ends in `/' (fish directory): pop
+           ;;     the slash back off so the synthetic self-insert can
+           ;;     re-add it.
+           (cond
+            ((string-suffix-p "/" requoted-arg)
+             (delete-char -1)
+             (push ?/ unread-command-events))
+            ((member terminator '("#"))
+             (push (aref terminator 0) unread-command-events))
+            (t (insert terminator)))))))))
 
 (defun +eat-nushell-empty-arg-capf ()
   "Capf that handles the empty-arg position (e.g. `nix build ').
