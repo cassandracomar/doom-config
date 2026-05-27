@@ -889,12 +889,6 @@ text regions between template blocks."
         eat-enable-directory-tracking t
         eat-enable-shell-prompt-annotation t
         eat-enable-blinking-text nil)
-  ;; `consult-mode-histories' is defined by `consult', which may not be
-  ;; loaded yet when eat's :config block runs (the daemon-startup path hits
-  ;; it before any consult command has fired).  Without this guard the
-  ;; void-variable error aborts the rest of the :config block, which left
-  ;; us with a half-configured eat -- no hook setup, no advice, no helper
-  ;; bindings.  Defer to whenever consult actually loads.
   (after! consult
     (add-to-list 'consult-mode-histories
                  '(eat-mode eat--line-input-ring eat--line-input-ring-index comint-bol)))
@@ -920,28 +914,12 @@ text regions between template blocks."
   (advice-add 'eat-term-process-output :filter-args
               #'+eat/csi-ef-swap-output)
 
-  ;; Semi-char and char modes are "raw input" -- keystrokes get forwarded
-  ;; to the underlying TUI.  Evil's modal editing (normal-state's `:'/`q'
-  ;; etc., insert-state's ESC->normal transition) would intercept those
-  ;; keys, so switch to evil emacs-state in those modes -- it passes the
-  ;; whole keymap stack through unfiltered.
   (add-hook 'eat--semi-char-mode-hook #'+eat/use-emacs-state-for-tui)
   (add-hook 'eat--char-mode-hook #'+eat/use-emacs-state-for-tui)
   (add-hook 'eat--line-mode-hook #'+eat/restore-evil-state-for-line-mode)
   (add-hook 'eat--line-mode-hook #'+eat/setup-line-mode-nu-highlight)
 
-  ;; Bind <escape> directly in eat-semi-char-mode-map so it shortcircuits
-  ;; function-key-map's translation to the meta-prefix byte -- without
-  ;; this, ESC in a TUI (vim's normal-mode entry, less's quit) would be
-  ;; swallowed as the start of an M-... key sequence.
   (define-key eat-semi-char-mode-map [escape] #'eat-self-input)
-
-  ;; eat's `eat--prepare-semi-char-mode-map' only forwards `:ascii :arrow
-  ;; :navigation' to `eat-self-input', so function keys fall through to
-  ;; Emacs's global bindings (e.g. F1=help, F10=menu-bar-open) and never
-  ;; reach the underlying TUI (htop's F6, midnight commander, etc.).
-  ;; Bind F1-F63 + every modifier combination to `eat-self-input' so they
-  ;; get sent to the program.
   (dolist (i (number-sequence 1 63))
     (let ((base (intern (format "f%d" i))))
       (dolist (mod '("" "C-" "M-" "S-" "C-M-" "C-S-" "M-S-" "C-M-S-"))
@@ -949,13 +927,6 @@ text regions between template blocks."
                     (vector (intern (concat mod (symbol-name base))))
                     #'eat-self-input))))
 
-  ;; `eat-next-shell-prompt' uses `next-single-property-change' from point,
-  ;; but if point already sits on an `eat--shell-prompt-end' character
-  ;; (which happens in evil normal-state, where the block cursor lives on
-  ;; the property-bearing byte), the first change it finds is just the end
-  ;; of the current property run -- it advances one char and stops without
-  ;; ever reaching the NEXT prompt.  Walk past the current run before the
-  ;; real navigation runs so each invocation actually moves to a new prompt.
   (advice-add 'eat-next-shell-prompt :before #'+eat/skip-current-prompt-end))
 
 (defvar-local +eat/-nu-parser nil
@@ -993,14 +964,6 @@ just-typed `s', leaving `l' with its stale face."
        (if region
            (list region)
          (list (cons (point-min) (point-min)))))
-      ;; Invalidate the whole input region's fontification on every
-      ;; keystroke so JIT-lock re-runs across the FULL active token.
-      ;; Without this, tree-sitter's view of `l' (one-char identifier ->
-      ;; function-call face) survives even after `s' is typed and the
-      ;; node becomes the builtin `ls' -- JIT only re-fontifies the
-      ;; just-changed `s' position.  `font-lock-flush' is a no-op here
-      ;; because eat-mode doesn't bind `font-lock-defaults', so we
-      ;; clear the `fontified' text property directly.
       (when region
         (with-silent-modifications
           (put-text-property (car region) (cdr region) 'fontified nil))))))
@@ -1020,9 +983,6 @@ it isn't autoloaded by eat alone)."
                  (treesit-parser-p +eat/-nu-parser)
                  (memq +eat/-nu-parser (treesit-parser-list)))
       (setq +eat/-nu-parser (treesit-parser-create 'nu)))
-    ;; `treesit-primary-parser' is what `treesit-font-lock-fontify-region'
-    ;; uses to compute its fast-mode heuristic -- without it, fontifying
-    ;; signals (wrong-type-argument treesit-parser-p nil).
     (setq-local treesit-primary-parser +eat/-nu-parser
                 treesit-font-lock-settings nu-ts-mode--font-lock-settings
                 treesit-font-lock-feature-list
@@ -1032,12 +992,6 @@ it isn't autoloaded by eat alone)."
                   (function builtin identifier operator punctuation error))
                 treesit-language-at-point-function (lambda (_pos) 'nu)
                 font-lock-fontify-region-function #'treesit-font-lock-fontify-region)
-    ;; eat-mode leaves font-lock-mode/jit-lock-mode off by default and
-    ;; doesn't set `font-lock-defaults', so the usual font-lock <-> JIT
-    ;; handshake (which registers `font-lock-fontify-region' with JIT via
-    ;; `font-lock-set-defaults') never runs.  Turn JIT on AND register
-    ;; treesit's fontifier directly so visible changes in the input region
-    ;; actually get colored as the user types.
     (jit-lock-mode 1)
     (jit-lock-register #'treesit-font-lock-fontify-region)
     (+eat/-sync-nu-parser-ranges)

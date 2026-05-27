@@ -344,15 +344,6 @@ corfu/orderless filter cleanly against the user-typed prefix."
              (desc (get-text-property 0 'pcomplete-help cand))
              (full-ref (get-text-property 0 'nix-full-ref cand))
              (key (or full-ref short))
-             ;; Pick the terminator pcomplete-style.  `attrs' header (e.g.
-             ;; `nixpkgs#hello' / `nixpkgs#hello.dependencies'): user might
-             ;; drill in with `.', emit nothing.  `filenames' header is
-             ;; overloaded -- it covers both bare flake refs and actual
-             ;; paths -- so we further split: candidates that look like
-             ;; filesystem paths emit nothing, everything else is a flake
-             ;; ref and gets `#' appended so the user can immediately start
-             ;; an attr path.  Non-attrs/non-filenames (subcommands etc.)
-             ;; get the default space.
              (terminator
               (cond
                ((equal header "attrs") "")
@@ -501,9 +492,6 @@ named-parameter value."
        ((and (string-prefix-p "--" prev) (> (length prev) 2))
         (substring prev 2))
        ((and (string-prefix-p "-" prev) (= (length prev) 2)
-             ;; Map short flag back to long via flag-candidates -- we don't
-             ;; have a short->long index, so skip for now; named values are
-             ;; almost always invoked with --long form anyway.
              nil)
         nil)))))
 
@@ -621,14 +609,6 @@ Used to layer nu builtins on top of fish-completion fallback results."
            (cmd (car args))
            (current-arg (or (car (last args)) ""))
            (candidates
-            ;; Dispatch nix completion to the shared NIX_GET_COMPLETIONS
-            ;; pipeline (flake refs + attrs + lazy .meta.description in
-            ;; the doc-buffer).  But `nix __get-completions' does NOT
-            ;; enumerate subcommand flags; fish's nix completion plugin
-            ;; does (with descriptions), so when the partial starts with
-            ;; `-' we let fish handle it.  Likewise fall back to fish
-            ;; when we're still completing the `nix' command name itself
-            ;; (less than two args parsed).
             (cond
              ((and (equal cmd "nix")
                    (>= (length args) 2)
@@ -681,18 +661,8 @@ each call to avoid leaking buffers across corfu-popupinfo invocations."
                               (prefix (buffer-substring-no-properties beg (point)))
                               (unquoted-prefix (s-replace-regexp "['\"`]" "" prefix))
                               (suffix (buffer-substring-no-properties (point) real-end)))
-                   ;; Always return the full arg as the prefix.  Candidates
-                   ;; include the boundary-prefix (e.g. "nixpkgs#hello"), so
-                   ;; corfu/orderless filters cleanly against the user-typed
-                   ;; text and on selection the whole arg gets replaced.
-                   ;; Returning the stub-only would collapse the region to
-                   ;; zero width, which `cape--dynamic-table' bails out on
-                   ;; (cape.el:353) -- no candidates would be produced.
                    (list unquoted-prefix suffix))))
       ('candidates (when-let* ((candidates (carapace-nushell--completions completion-prompt)))
-                     ;; Return every key; orderless / completion-styles will
-                     ;; filter against the prefix.  Pre-filtering here is both
-                     ;; redundant and wrong-shaped (substring vs. style).
                      (hash-table-keys candidates)))
 
       ('annotation (let* ((candidates (carapace-nushell--completions completion-prompt t))
