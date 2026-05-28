@@ -115,8 +115,10 @@
                           (igc-collect))))))
 
 ;; ENVIRONMENT
-(setenv "SSH_AUTH_SOCK" (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket"))
-(setenv "GPG_AGENT_INFO" (shell-command-to-string "gpgconf --list-dirs agent-socket"))
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setenv "SSH_AUTH_SOCK" (string-trim (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket")))
+            (setenv "GPG_AGENT_INFO" (string-trim (shell-command-to-string "gpgconf --list-dirs agent-socket")))))
 (setenv "TERM" "xterm-256color")
 (setenv "PAGER" "bat -f -pp")
 (setenv "DOOMPAGER" "bat -f -pp")
@@ -135,7 +137,8 @@
 (auth-source-rbw-enable)
 (setq epa-file-encrypt-to '("cass@ndra.io"))
 (setq epa-file-select-keys nil)
-(setq file-name-handler-alist (cons epa-file-handler file-name-handler-alist))
+(add-hook 'emacs-startup-hook
+          (lambda () (push epa-file-handler file-name-handler-alist)))
 (after! grip-mode
   (let ((credential (auth-source-user-and-password "git.drwholdings.com")))
     (setq grip-github-api-url "https://git.drwholdings.com/api/v3"
@@ -880,9 +883,9 @@ text regions between template blocks."
   :defer t
   :commands +eat/here eat
   :init
-  (load! "+eat-nushell")
   (setq process-adaptive-read-buffering t)
   :config
+  (load! "+eat-nushell")
   (setq-hook! 'eat-mode-hook consult-preview-key nil)
   (add-hook! 'eat-mode-hook #'replace-eat-completions)
 

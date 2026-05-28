@@ -2,8 +2,8 @@
 
 (require '+completions)
 
-(load "s")
-(load "dash")
+(require 's)
+(require 'dash)
 
 (setq nushell-history-file (shell-command-to-string "nu -c '$nu.history-path | print -n'"))
 (defcustom carapace-nushell-quoted-arg-chars "~/A-Za-z0-9\\+@:_\\.\\$#%,={} -"
