@@ -436,11 +436,6 @@ Based on `so-long-detected-long-line-p'."
 (advice-add 'evil-paste-after  :before #'+hercules--paste-setup)
 (advice-add 'evil-paste-before :before #'+hercules--paste-setup)
 
-(hercules-def
- :show-funs '(evil-paste-after evil-paste-before)
- :keymap 'custom-paste-map
- :transient t)
-
 (use-package! corfu
   :init
   (setq
