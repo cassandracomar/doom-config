@@ -104,6 +104,7 @@
 (add-to-list 'load-path doom-user-dir)
 
 (igc-start-idle-timer)
+
 (add-hook 'emacs-startup-hook
           (lambda ()
             (if (boundp 'after-focus-change-function)
@@ -116,10 +117,17 @@
                           (igc-collect))))))
 
 ;; ENVIRONMENT
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (setenv "SSH_AUTH_SOCK" (string-trim (shell-command-to-string "gpgconf --list-dirs agent-ssh-socket")))
-            (setenv "GPG_AGENT_INFO" (string-trim (shell-command-to-string "gpgconf --list-dirs agent-socket")))))
+(defun +gpgconf-set-agent-env ()
+  "Populate SSH_AUTH_SOCK and GPG_AGENT_INFO from one gpgconf call."
+  (with-temp-buffer
+    (when (zerop (call-process "gpgconf" nil t nil "--list-dirs"))
+      (goto-char (point-min))
+      (while (re-search-forward "^\\(agent-ssh-socket\\|agent-socket\\):\\(.*\\)$" nil t)
+        (pcase (match-string 1)
+          ("agent-ssh-socket" (setenv "SSH_AUTH_SOCK"   (match-string 2)))
+          ("agent-socket"     (setenv "GPG_AGENT_INFO" (match-string 2))))))))
+
+(run-with-idle-timer 1 nil #'+gpgconf-set-agent-env)
 (setenv "TERM" "xterm-256color")
 (setenv "PAGER" "bat -f -pp")
 (setenv "DOOMPAGER" "bat -f -pp")
