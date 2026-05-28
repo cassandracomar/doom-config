@@ -10,22 +10,23 @@
       (let ((eshell-history-ring newest-cmd-ring))
         (eshell-write-history eshell-history-file-name t)))))
 
-(defun eshell-update-history ()
-  (eshell-read-history eshell-history-file-name)
-  (when eshell-history-ring
-    (let ((old-ring (ring-copy eshell-history-ring)))
-      (setq eshell-history-ring (list (car eshell-history-ring)))
-                                        ; write
-      (setq eshell-history-ring old-ring))))
+(defvar +eshell-shared-history-ring nil
+  "Single history ring shared across all eshell buffers in this session.")
+
+(defun +eshell-init-shared-history ()
+  "Point this eshell buffer's history ring at the session-shared ring.
+On the first eshell, adopts the freshly-loaded buffer-local ring as the
+shared one.  Subsequent eshells then use the same ring object, so a
+command run in buffer A is immediately visible to history navigation in
+buffer B without a disk round-trip."
+  (unless +eshell-shared-history-ring
+    (setq +eshell-shared-history-ring eshell-history-ring))
+  (setq-local eshell-history-ring +eshell-shared-history-ring))
 
 (map! :leader "o E" #'+eshell/new)
 (defun +eshell/new ()
   (interactive)
   (eshell t))
-
-(add-hook! eshell-pre-command-hook #'eshell-append-history)
-(add-hook! eshell-post-command-hook #'eshell-update-history)
-(add-hook! eshell-post-command-hook #'envrc--update)
 
 (after! eshell
   (require '+completions)
@@ -55,8 +56,9 @@
 
   (setq eshell-scroll-to-bottom-on-output t)
   (setq eshell-error-if-no-glob nil)
+  (add-hook 'eshell-mode-hook #'+eshell-init-shared-history 90)
   (add-hook 'eshell-pre-command-hook #'eshell-append-history)
-  (add-hook 'eshell-post-command-hook #'eshell-update-history)
+  (add-hook 'eshell-post-command-hook #'envrc--update)
   (remove-hook 'eshell-mode-hook #'hide-mode-line-mode)
   (setq vterm-kill-buffer-on-exit t)
   ;; remove confirmation for process buffers

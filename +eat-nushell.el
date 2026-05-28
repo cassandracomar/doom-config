@@ -22,6 +22,36 @@
               carapace-nushell-quoted-arg-chars
               carapace-nushell-quoted-arg-chars))
 
+(defvar +eat-nushell-shared-history-ring nil
+  "Single input ring shared across all eat buffers running nushell.")
+
+(defun +eat-nushell--nushell-buffer-p ()
+  "Heuristic for whether this eat buffer is running nushell."
+  (and (bound-and-true-p eat-shell)
+       (string-match-p "\\bnu\\b" eat-shell)))
+
+(defun +eat-nushell--share-input-ring (&rest _)
+  "After eat populates this buffer's input ring from the nu history file,
+swap it for the session-shared ring (merging on first use).  Run as an
+`:after' advice on `eat--line-populate-input-ring' so the swap happens
+once the ring is actually populated, regardless of whether eat read the
+file directly or fell back to asking the shell for entries."
+  (when (and (bound-and-true-p eat--line-input-ring)
+             (+eat-nushell--nushell-buffer-p))
+    (cond
+     ((null +eat-nushell-shared-history-ring)
+      (setq +eat-nushell-shared-history-ring eat--line-input-ring))
+     (t
+      (let ((seen (make-hash-table :test 'equal)))
+        (dolist (cmd (ring-elements +eat-nushell-shared-history-ring))
+          (puthash cmd t seen))
+        (dolist (cmd (nreverse (ring-elements eat--line-input-ring)))
+          (unless (gethash cmd seen)
+            (ring-insert +eat-nushell-shared-history-ring cmd))))))
+    (setq-local eat--line-input-ring +eat-nushell-shared-history-ring)))
+
+(advice-add 'eat--line-populate-input-ring :after #'+eat-nushell--share-input-ring)
+
 (defvar +eat-nushell--commands nil
   "Hash table mapping nushell command name -> plist with command details.
 Populated once via a background `nu -c \"scope commands | to json\"' call.

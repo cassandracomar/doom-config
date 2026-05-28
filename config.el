@@ -917,6 +917,7 @@ text regions between template blocks."
         eat-enable-kill-from-terminal t
         eat-enable-yank-to-terminal t
         eat-enable-shell-command-history t
+        eat-line-input-ring-size 9999999
         eat-term-terminfo-directory (format "%s/.terminfo" (getenv "HOME"))
         eat-enable-directory-tracking t
         eat-enable-shell-prompt-annotation t
