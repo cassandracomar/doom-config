@@ -232,48 +232,51 @@
   (setq eglot-semantic-token-modifiers (remove "documentation" (remove "defaultLibrary" eglot-semantic-token-modifiers)))
   (set-popup-rule! "^\\*eglot-help" :size 0.5 :quit t :select t :side 'right))
 
-;; Face customizations (consolidated from use-package :custom-face blocks
-;; to avoid byte-compiler false positives)
 (custom-set-faces!
-  ;; eglot semantic tokens
-  '(my-font-lock-variable-use-face :foreground "#fda135")
-  '(my-font-lock-type-face :foreground "#5c9cff")
-  '(my-font-lock-type-parameter-face :foreground "#66d9ef")
-  '(my-font-lock-constant-face :inherit font-lock-property-use-face)
-  '(eglot-semantic-namespace :foreground "#fb3d81")
-  '(eglot-semantic-type :inherit my-font-lock-type-face)
-  '(eglot-semantic-class :inherit elisp-symbol-role)
-  '(eglot-semantic-enum :inherit elisp-major-mode-name)
-  '(eglot-semantic-enumMember :inherit my-font-lock-constant-face :slant italic)
-  '(eglot-semantic-interface :inherit elisp-symbol-role)
-  '(eglot-semantic-struct :inherit elisp-major-mode-name)
-  '(eglot-semantic-typeParameter :inherit my-font-lock-type-parameter-face :slant italic)
-  '(eglot-semantic-lifetime :inherit font-lock-preprocessor-face :slant italic)
-  '(eglot-semantic-parameter :inherit my-font-lock-variable-use-face :slant italic)
-  '(eglot-semantic-variable :inherit font-lock-variable-name-face :slant italic)
-  '(eglot-semantic-property :inherit font-lock-property-use-face :slant italic)
-  '(eglot-semantic-event :inherit my-font-lock-type-parameter-face)
-  '(eglot-semantic-function :inherit font-lock-function-name-face :slant italic)
-  '(eglot-semantic-method :inherit font-lock-function-name-face :slant italic)
-  '(eglot-semantic-macro :inherit font-lock-preprocessor-face :slant italic)
-  '(eglot-semantic-generic :inherit font-lock-variable-name-face :slant italic)
-  '(eglot-semantic-number :inherit my-font-lock-constant-face)
-  '(eglot-semantic-regexp :inherit font-lock-preprocessor-face)
-  '(eglot-semantic-operator :inherit font-lock-keyword-face)
-  '(eglot-semantic-const :inherit my-font-lock-constant-face)
-  '(eglot-semantic-constant :inherit my-font-lock-constant-face)
-  '(eglot-semantic-declaration :underline t :slant normal)
-  '(eglot-semantic-definition :underline t :slant normal)
-  '(eglot-semantic-static :overline t :slant normal)
-  '(eglot-semantic-modification :underline t :slant normal)
-  ;; rustic
-  '(rust-ampersand-face :inherit font-lock-keyword-face)
-  '(rust-builtin-formatting-macro :inherit font-lock-preprocessor-face)
-  ;; haskell
-  '(haskell-operator-face :inherit haskell-keyword-face)
-  '(haskell-definition-face :inherit haskell-keyword-face)
-  ;; nu-ts-mode
   '(font-lock-punctuation-face :inherit font-lock-keyword-face))
+
+(after! rust-mode
+  (custom-set-faces!
+    '(rust-ampersand-face :inherit font-lock-keyword-face)
+    '(rust-builtin-formatting-macro :inherit font-lock-preprocessor-face)))
+
+(after! haskell-mode
+  (custom-set-faces!
+    '(haskell-operator-face :inherit haskell-keyword-face)
+    '(haskell-definition-face :inherit haskell-keyword-face)))
+
+(after! eglot
+  (custom-set-faces!
+    '(my-font-lock-variable-use-face :foreground "#fda135")
+    '(my-font-lock-type-face :foreground "#5c9cff")
+    '(my-font-lock-type-parameter-face :foreground "#66d9ef")
+    '(my-font-lock-constant-face :inherit font-lock-property-use-face)
+    '(eglot-semantic-namespace :foreground "#fb3d81")
+    '(eglot-semantic-type :inherit my-font-lock-type-face)
+    '(eglot-semantic-class :inherit elisp-symbol-role)
+    '(eglot-semantic-enum :inherit elisp-major-mode-name)
+    '(eglot-semantic-enumMember :inherit my-font-lock-constant-face :slant italic)
+    '(eglot-semantic-interface :inherit elisp-symbol-role)
+    '(eglot-semantic-struct :inherit elisp-major-mode-name)
+    '(eglot-semantic-typeParameter :inherit my-font-lock-type-parameter-face :slant italic)
+    '(eglot-semantic-lifetime :inherit font-lock-preprocessor-face :slant italic)
+    '(eglot-semantic-parameter :inherit my-font-lock-variable-use-face :slant italic)
+    '(eglot-semantic-variable :inherit font-lock-variable-name-face :slant italic)
+    '(eglot-semantic-property :inherit font-lock-property-use-face :slant italic)
+    '(eglot-semantic-event :inherit my-font-lock-type-parameter-face)
+    '(eglot-semantic-function :inherit font-lock-function-name-face :slant italic)
+    '(eglot-semantic-method :inherit font-lock-function-name-face :slant italic)
+    '(eglot-semantic-macro :inherit font-lock-preprocessor-face :slant italic)
+    '(eglot-semantic-generic :inherit font-lock-variable-name-face :slant italic)
+    '(eglot-semantic-number :inherit my-font-lock-constant-face)
+    '(eglot-semantic-regexp :inherit font-lock-preprocessor-face)
+    '(eglot-semantic-operator :inherit font-lock-keyword-face)
+    '(eglot-semantic-const :inherit my-font-lock-constant-face)
+    '(eglot-semantic-constant :inherit my-font-lock-constant-face)
+    '(eglot-semantic-declaration :underline t :slant normal)
+    '(eglot-semantic-definition :underline t :slant normal)
+    '(eglot-semantic-static :overline t :slant normal)
+    '(eglot-semantic-modification :underline t :slant normal)))
 
 (set-popup-rule! ".*doom eval.*" :action '(display-buffer-no-window))
 
@@ -404,12 +407,25 @@ Based on `so-long-detected-long-line-p'."
 (add-hook! 'doom-first-buffer-hook #'horizontal-scroll-bar-mode)
 
 ;; TRANSIENT STATES
-(use-package! hercules)
+(use-package! hercules :defer t)
 
 (general-def
   :prefix-map 'custom-paste-map
   "C-j" #'evil-paste-pop-next
   "C-k" #'evil-paste-pop)
+
+(defun +hercules--paste-setup (&rest _)
+  "Load hercules + register paste transient on first paste, then self-remove."
+  (require 'hercules)
+  (hercules-def
+   :show-funs '(evil-paste-after evil-paste-before)
+   :keymap 'custom-paste-map
+   :transient t)
+  (advice-remove 'evil-paste-after  #'+hercules--paste-setup)
+  (advice-remove 'evil-paste-before #'+hercules--paste-setup))
+
+(advice-add 'evil-paste-after  :before #'+hercules--paste-setup)
+(advice-add 'evil-paste-before :before #'+hercules--paste-setup)
 
 (hercules-def
  :show-funs '(evil-paste-after evil-paste-before)
@@ -539,45 +555,45 @@ Based on `so-long-detected-long-line-p'."
     (apply #'ghub-query query variables args))
 
   (define-keys-and-transient! code-review-mode-map +code-review-menu
-    "Code Review commands."
-    :block "Review"
-    :desc "Approve"                     :n "a"     #'code-review-submit-approve
-    :desc "Request changes"             :n "r"     #'code-review-submit-request-changes
-    :desc "Comment review"              :n "c"     #'code-review-submit-comments
-    :desc "LGTM"                        :n "l"     #'code-review-submit-lgtm
-    :desc "ediff"                       :n "e"     #'multi-file-ediff-code-review
+                              "Code Review commands."
+                              :block "Review"
+                              :desc "Approve"                     :n "a"     #'code-review-submit-approve
+                              :desc "Request changes"             :n "r"     #'code-review-submit-request-changes
+                              :desc "Comment review"              :n "c"     #'code-review-submit-comments
+                              :desc "LGTM"                        :n "l"     #'code-review-submit-lgtm
+                              :desc "ediff"                       :n "e"     #'multi-file-ediff-code-review
 
-    :block "Comments"
-    :desc "Add/edit at point"           :n "C"     #'code-review-comment-add-or-edit
-    :desc "Code suggestion"             :n "S"     #'code-review-comment-code-suggestion
-    :desc "Submit replies only"         :n "P"     #'code-review-submit-only-replies
-    :desc "Single diff comment"         :n "d"     #'code-review-submit-single-diff-comment-at-point
-    :desc "Next comment"                :n "C-n"   #'code-review-comment-jump-next
-    :desc "Prev comment"                :n "C-p"   #'code-review-comment-jump-previous
+                              :block "Comments"
+                              :desc "Add/edit at point"           :n "C"     #'code-review-comment-add-or-edit
+                              :desc "Code suggestion"             :n "S"     #'code-review-comment-code-suggestion
+                              :desc "Submit replies only"         :n "P"     #'code-review-submit-only-replies
+                              :desc "Single diff comment"         :n "d"     #'code-review-submit-single-diff-comment-at-point
+                              :desc "Next comment"                :n "C-n"   #'code-review-comment-jump-next
+                              :desc "Prev comment"                :n "C-p"   #'code-review-comment-jump-previous
 
-    :block "Merge"
-    :desc "Merge"                       :n "m m"   #'code-review-merge-merge
-    :desc "Merge rebase"                :n "m r"   #'code-review-merge-rebase
-    :desc "Merge squash"                :n "m s"   #'code-review-merge-squash
+                              :block "Merge"
+                              :desc "Merge"                       :n "m m"   #'code-review-merge-merge
+                              :desc "Merge rebase"                :n "m r"   #'code-review-merge-rebase
+                              :desc "Merge squash"                :n "m s"   #'code-review-merge-squash
 
-    :row
-    :block "Set"
-    :desc "Feedback"                    :n "s f"   #'code-review-set-feedback
-    :desc "Reviewers"                   :n "s r"   #'code-review-request-reviews
-    :desc "Assignee"                    :n "s a"   #'code-review-set-assignee
-    :desc "Self-assign"                 :n "s y"   #'code-review-set-yourself-assignee
-    :desc "Milestone"                   :n "s m"   #'code-review-set-milestone
-    :desc "Labels"                      :n "s l"   #'code-review-set-label
-    :desc "Title"                       :n "s t"   #'code-review-set-title
-    :desc "Description"                 :n "s d"   #'code-review-set-description
+                              :row
+                              :block "Set"
+                              :desc "Feedback"                    :n "s f"   #'code-review-set-feedback
+                              :desc "Reviewers"                   :n "s r"   #'code-review-request-reviews
+                              :desc "Assignee"                    :n "s a"   #'code-review-set-assignee
+                              :desc "Self-assign"                 :n "s y"   #'code-review-set-yourself-assignee
+                              :desc "Milestone"                   :n "s m"   #'code-review-set-milestone
+                              :desc "Labels"                      :n "s l"   #'code-review-set-label
+                              :desc "Title"                       :n "s t"   #'code-review-set-title
+                              :desc "Description"                 :n "s d"   #'code-review-set-description
 
-    :block "Toggle"
-    :desc "All comments"                :n "t a"   #'code-review-toggle-display-all-comments
-    :desc "Diff comments"               :n "t d"   #'code-review-toggle-display-diff-comments
-    :desc "Top-level comments"          :n "t t"   #'code-review-toggle-display-top-level-comments
+                              :block "Toggle"
+                              :desc "All comments"                :n "t a"   #'code-review-toggle-display-all-comments
+                              :desc "Diff comments"               :n "t d"   #'code-review-toggle-display-diff-comments
+                              :desc "Top-level comments"          :n "t t"   #'code-review-toggle-display-top-level-comments
 
-    :block "Buffer"
-    :desc "Reload"                      :n "G"     #'code-review-reload)
+                              :block "Buffer"
+                              :desc "Reload"                      :n "G"     #'code-review-reload)
   (map! :map code-review-mode-map
         :n "?" #'+code-review-menu))
 
@@ -848,9 +864,10 @@ text regions between template blocks."
   :mode "\\.proto\\'")
 
 (use-package! envrc
-  :config
-  (setq! envrc-async-processing t)
-  (envrc-global-mode))
+  :defer t
+  :hook '((after-init . envrc-global-mode))
+  :init
+  (setq envrc-async-processing))
 
 (use-package! sideline
   :after eglot flymake
@@ -1311,38 +1328,38 @@ the start of the line."
            (url . "https://mcp.ai.drwcloud.com/slack/mcp"))))
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
-    "Agent shell commands."
-    ;;       desc                      prefix           state      key              cmd
-    :block "Navigate"
-    :desc "Next item"                                             "C-j"       #'agent-shell-next-item
-    :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
-    :desc "Forward block"                                :n       "C-n"       #'agent-shell-ui-forward-block
-    :desc "Backward block"                               :n       "C-p"       #'agent-shell-ui-backward-block
-    :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment-at-point
-    :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
+                              "Agent shell commands."
+                              ;;       desc                      prefix           state      key              cmd
+                              :block "Navigate"
+                              :desc "Next item"                                             "C-j"       #'agent-shell-next-item
+                              :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
+                              :desc "Forward block"                                :n       "C-n"       #'agent-shell-ui-forward-block
+                              :desc "Backward block"                               :n       "C-p"       #'agent-shell-ui-backward-block
+                              :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment-at-point
+                              :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
 
-    :block "Compose"
-    :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
-    :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
-    :desc "Send region"              :localleader        :n       "r"         #'agent-shell-send-region
-    :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
-    :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
+                              :block "Compose"
+                              :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
+                              :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
+                              :desc "Send region"              :localleader        :n       "r"         #'agent-shell-send-region
+                              :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
+                              :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
 
-    :block "Session"
-    :desc "Cycle mode"                                            "<C-tab>"   #'agent-shell-cycle-session-mode
-    :desc "Set mode"                 :localleader        :n       "M"         #'agent-shell-set-session-mode
-    :desc "Fork session"             :localleader        :n       "y"         #'agent-shell-fork
-    :desc "Restart"                  :localleader        :n       "q"         #'agent-shell-restart
-    :desc "Toggle shell"             :localleader        :n       "o"         #'agent-shell-toggle
+                              :block "Session"
+                              :desc "Cycle mode"                                            "<C-tab>"   #'agent-shell-cycle-session-mode
+                              :desc "Set mode"                 :localleader        :n       "M"         #'agent-shell-set-session-mode
+                              :desc "Fork session"             :localleader        :n       "y"         #'agent-shell-fork
+                              :desc "Restart"                  :localleader        :n       "q"         #'agent-shell-restart
+                              :desc "Toggle shell"             :localleader        :n       "o"         #'agent-shell-toggle
 
-    :row
-    :block "Launch"
-    :desc "Start Claude"             :localleader        :n       "l"         #'agent-shell-anthropic-start-claude-code
+                              :row
+                              :block "Launch"
+                              :desc "Start Claude"             :localleader        :n       "l"         #'agent-shell-anthropic-start-claude-code
 
-    :block "Debug"
-    :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
-    :desc "Transcript"               :localleader        :n       "T"         #'agent-shell-open-transcript
-    :desc "Usage"                    :localleader        :n       "u"         #'agent-shell-show-usage)
+                              :block "Debug"
+                              :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
+                              :desc "Transcript"               :localleader        :n       "T"         #'agent-shell-open-transcript
+                              :desc "Usage"                    :localleader        :n       "u"         #'agent-shell-show-usage)
   (map! :map agent-shell-mode-map :n "?" #'+agent-shell-menu)
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
