@@ -78,6 +78,7 @@
 (setq-default fill-column 120)
 (setq nobreak-char-display nil)
 (setq projectile-project-search-path `((,(format "%s/src" (getenv "HOME")) . 3)))
+(setq initial-major-mode 'fundamental-mode)
 
 ;; Here are some additional functions/macros that could help you configure Doom:
 ;;
@@ -1192,7 +1193,6 @@ window so the user can see the output land."
 (add-hook! nu-ts-mode (+format-with-lsp-mode -1))
 
 (use-package! semel
-  :after elisp-mode
   :defer t
   :config
   (setq semel-add-help-echo nil)
