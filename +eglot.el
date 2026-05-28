@@ -139,9 +139,9 @@ each hook is run for each project buffer.")
   (eglot-semantic-tokens-mode -1)
   (eglot-semantic-tokens-mode +1))
 
-(add-hook! +eglot-post-load
-  (run-with-idle-timer 1 nil #'+eglot-reload-inlay-hints)
-  (run-with-idle-timer 1 nil #'+eglot-semtok-reload))
+;; (add-hook! +eglot-post-load
+;;   (run-with-idle-timer 1 nil #'+eglot-reload-inlay-hints)
+;;   (run-with-idle-timer 1 nil #'+eglot-semtok-reload))
 
 (cl-defmethod eglot-handle-notification :after
   (server (_method (eql $/progress)) &key _token value)
@@ -159,15 +159,15 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
   ;; e.g. rust-analyzer uses "rustAnalyzer/Indexing"
   (cl-flet* ((run-post-load-hooks (buf)
                (eglot--when-buffer-window
-                   buf
-                 (run-hooks '+eglot-post-load-hook)))
+                buf
+                (run-hooks '+eglot-post-load-hook)))
              (refreshf ()
                (let ((buffers (eglot--managed-buffers server)))
                  (dolist (buf buffers)
                    (run-post-load-hooks buf)))))
     (eglot--dbind ((WorkDoneProgress) kind _title _percentage _message) value
-      (pcase kind
-        ("end" (refreshf))))))
+                  (pcase kind
+                    ("end" (refreshf))))))
 
 (defvar +eglot-after-envrc-hook '())
 (defvar-local +eglot-after-envrc-run? nil)
