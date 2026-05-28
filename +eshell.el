@@ -1,7 +1,5 @@
 ;;; ~/.doom.d/+eshell.el -*- lexical-binding: t; -*-
 
-(require '+completions)
-
 (setq! eshell-history-size 9999999)
 
 (defun eshell-append-history ()
@@ -30,6 +28,7 @@
 (add-hook! eshell-post-command-hook #'envrc--update)
 
 (after! eshell
+  (require '+completions)
   (setq su-mode t)
   (setq su-auto-save-mode t)
   (setq eshell-save-history-on-exit nil)
