@@ -14,8 +14,8 @@
 ;;      Alternatively, press 'gd' (or 'C-c g d') on a module to browse its
 ;;      directory (for easy access to its source code).
 
-(setq! package-native-compile t)
-(setq! native-comp-jit-compilation nil)
+(setopt package-native-compile t)
+(setopt native-comp-jit-compilation nil)
 (doom! :input
        ;;chinese
        ;;japanese

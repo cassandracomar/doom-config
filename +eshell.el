@@ -1,6 +1,6 @@
 ;;; ~/.doom.d/+eshell.el -*- lexical-binding: t; -*-
 
-(setq! eshell-history-size 9999999)
+(setopt eshell-history-size 9999999)
 
 (defun eshell-append-history ()
   "Call `eshell-write-history' with the `append' parameter set to `t'."

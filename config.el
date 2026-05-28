@@ -130,7 +130,7 @@
 (setq enable-local-variables :all)
 (setq enable-local-eval t)
 (setq with-editor-emacsclient-executable (executable-find "emacsclient"))
-(setq! forge-database-connector 'sqlite-builtin)
+(setopt forge-database-connector 'sqlite-builtin)
 
 ;; set up env vars from encrypted sources
 (setq auth-sources (list (format "%s/.authinfo.gpg" (getenv "HOME")) (format "%s/.authinfo" (getenv "HOME"))))
@@ -442,18 +442,18 @@ Based on `so-long-detected-long-line-p'."
    shell-file-name-quote-list '(?$ ?\* ?\! ?\" ?\'))
 
   :config
-  (setq! corfu-auto-prefix 0
-         corfu-auto-delay 0.0
-         corfu-preselect 'directory
-         global-corfu-modes t
-         corfu-auto t
-         corfu-count 16
-         corfu-max-width 120)
+  (setopt corfu-auto-prefix 0
+          corfu-auto-delay 0.0
+          corfu-preselect 'directory
+          global-corfu-modes t
+          corfu-auto t
+          corfu-count 16
+          corfu-max-width 120)
   :custom
   corfu-auto t)
 (use-package! corfu-auto
   :config
-  (setq! corfu-auto-prefix 0)
+  (setopt corfu-auto-prefix 0)
   ;; The default regex `"delete-backward-char\\'"' requires the command name
   ;; to END with that string, so evil's `evil-delete-backward-char-and-join'
   ;; (and other delete-* variants) don't trigger auto re-completion. Use an
@@ -467,9 +467,9 @@ Based on `so-long-detected-long-line-p'."
         orderless-matching-styles '(orderless-literal-prefix orderless-flex orderless-regexp)))
 
 (after! evil-snipe
-  (setq! evil-snipe-scope 'visible)
-  (setq! evil-snipe-repeat-scope 'whole-visible)
-  (setq! evil-snipe-spillover-scope 'whole-visible))
+  (setopt evil-snipe-scope 'visible)
+  (setopt evil-snipe-repeat-scope 'whole-visible)
+  (setopt evil-snipe-spillover-scope 'whole-visible))
 
 (use-package! marginalia
   :init
@@ -487,10 +487,10 @@ Based on `so-long-detected-long-line-p'."
 ;; configure evil
 ;; make evil-search-word look for symbol rather than word boundaries
 (defalias #'forward-evil-word #'forward-evil-symbol)
-(setq! evil-symbol-word-search t)
+(setopt evil-symbol-word-search t)
 
 ;; don't substitute globally by default
-(setq! evil-ex-substitute-global nil)
+(setopt evil-ex-substitute-global nil)
 
 ;; set up smartparens
 (after! smartparens
