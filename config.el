@@ -1108,7 +1108,7 @@ across PTY chunks are still handled correctly."
                         (match-beginning 0)))
              (live (if tail (substring buf 0 tail) buf))
              (carry (if tail (substring buf tail) ""))
-             (out "")
+             (pieces nil)
              (i 0)
              (n (length live)))
         (puthash terminal carry +eat/csi-ef-swap-pending)
@@ -1120,9 +1120,9 @@ across PTY chunks are still handled correctly."
                    (end
                     (let ((stop (+ end (length "\e[?2026l"))))
                       (puthash terminal nil +eat/csi-sync-buf)
-                      (setq out (concat out
-                                        (+eat/-csi-swap-ef
-                                         (concat sync (substring live i stop)))))
+                      (push (+eat/-csi-swap-ef
+                             (concat sync (substring live i stop)))
+                            pieces)
                       (setq i stop)))
                    (t
                     (puthash terminal
@@ -1132,16 +1132,15 @@ across PTY chunks are still handled correctly."
               (let ((start (string-match "\e\\[\\?2026h" live i)))
                 (cond
                  (start
-                  (setq out (concat out
-                                    (+eat/-csi-swap-ef (substring live i start))))
+                  (push (+eat/-csi-swap-ef (substring live i start)) pieces)
                   (puthash terminal
                            (substring live start (+ start (length "\e[?2026h")))
                            +eat/csi-sync-buf)
                   (setq i (+ start (length "\e[?2026h"))))
                  (t
-                  (setq out (concat out (+eat/-csi-swap-ef (substring live i))))
+                  (push (+eat/-csi-swap-ef (substring live i)) pieces)
                   (setq i n)))))))
-        (list terminal out)))))
+        (list terminal (apply #'concat (nreverse pieces)))))))
 
 (defun +eat/nu-open (&rest args)
   (interactive)
