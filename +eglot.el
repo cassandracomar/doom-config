@@ -3,6 +3,7 @@
 ;; require cl libraries for fixing eglot
 (require 'cl-lib)
 (require 'cl-macs)
+(declare-function WorkDoneProgress nil nil)
 
 ;; uncomment to debug lsp events
 ;; (cl-callf plist-put eglot-events-buffer-config :size 2000000)
@@ -157,15 +158,15 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
   ;; e.g. rust-analyzer uses "rustAnalyzer/Indexing"
   (cl-flet* ((run-post-load-hooks (buf)
                (eglot--when-buffer-window
-                   buf
-                 (run-hooks '+eglot-post-load-hook)))
+                buf
+                (run-hooks '+eglot-post-load-hook)))
              (refreshf ()
                (let ((buffers (eglot--managed-buffers server)))
                  (dolist (buf buffers)
                    (run-post-load-hooks buf)))))
     (eglot--dbind ((WorkDoneProgress) kind _title _percentage _message) value
-      (pcase kind
-        ("end" (refreshf))))))
+                  (pcase kind
+                    ("end" (refreshf))))))
 
 (defvar +eglot-after-envrc-hook '())
 (defvar-local +eglot-after-envrc-run? nil)
