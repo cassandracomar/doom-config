@@ -211,9 +211,10 @@
 (use-package! eglot
   :defer t
   :commands eglot eglot-ensure lsp!
+  :init
+  (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
   :config
   (load! "+eglot")
-  (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
 
   (add-hook! 'eglot-managed-mode-hook
     (add-to-list
@@ -1365,10 +1366,10 @@ the start of the line."
         (agent-shell-make-environment-variables
          "ANTHROPIC_AUTH_KEY" (auth-source-rbw-get "anthropic-api-key")
          "ANTHROPIC_CUSTOM_HEADERS" (format "x-portkey-api-key: %s\nx-portkey-config: pc-bedroc-55aa53\nx-portkey-metadata: {\"service\": \"claude-code\", \"os\": \"linux\"}" (auth-source-rbw-get "anthropic-api-key"))
-         "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-8"
+         "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-8[1m]"
          "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
-        agent-shell-anthropic-default-model-id "claude-opus-4-8"
+        agent-shell-anthropic-default-model-id "claude-opus-4-8[1m]"
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
           (mode . agent-shell-mode)
