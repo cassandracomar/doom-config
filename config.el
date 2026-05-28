@@ -865,7 +865,7 @@ text regions between template blocks."
 
 (use-package! envrc
   :defer t
-  :hook '((after-init . envrc-global-mode))
+  :hook '((doom-first-input . envrc-global-mode))
   :init
   (setq envrc-async-processing t))
 
