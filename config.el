@@ -123,7 +123,8 @@
 (setenv "PAGER" "bat -f -pp")
 (setenv "DOOMPAGER" "bat -f -pp")
 
-(load! "+transient-macros")
+(eval-when-compile
+  (require '+transient-macros))
 
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
@@ -1134,7 +1135,7 @@ The shell uses `term query' to send the request OSC and block reading
 the reply, so we send the contents as `OSC 51 e;K;<base64> ST'.  When
 the buffer doesn't exist (or isn't readable as text) we send an empty
 payload, which the shell sees as a zero-length string."
-  (let* ((content (if-let ((b (get-buffer buffer-name)))
+  (let* ((content (if-let* ((b (get-buffer buffer-name)))
                       (with-current-buffer b
                         (buffer-substring-no-properties (point-min) (point-max)))
                     ""))
