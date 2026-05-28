@@ -867,7 +867,7 @@ text regions between template blocks."
   :defer t
   :hook '((after-init . envrc-global-mode))
   :init
-  (setq envrc-async-processing))
+  (setq envrc-async-processing t))
 
 (use-package! sideline
   :after eglot flymake
