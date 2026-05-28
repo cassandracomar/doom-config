@@ -506,8 +506,6 @@ Based on `so-long-detected-long-line-p'."
   (show-smartparens-global-mode +1))
 
 ;; magit
-(add-hook! 'after-save-hook #'magit-after-save-refresh-status)
-
 (after! magit
   (require 'magit-ediff)
   (load! "+multi-file-ediff")
