@@ -953,7 +953,7 @@ text regions between template blocks."
   (add-hook 'eat--line-mode-hook #'+eat/setup-line-mode-nu-highlight)
 
   (define-key eat-semi-char-mode-map [escape] #'eat-self-input)
-  (dolist (i (number-sequence 1 63))
+  (dolist (i (number-sequence 1 12))
     (let ((base (intern (format "f%d" i))))
       (dolist (mod '("" "C-" "M-" "S-" "C-M-" "C-S-" "M-S-" "C-M-S-"))
         (define-key eat-semi-char-mode-map
