@@ -1147,16 +1147,88 @@ across PTY chunks are still handled correctly."
   (interactive)
   (apply #'eshell/find-file args))
 
-(defun +eat/cat (buffer-name)
-  "Send BUFFER-NAME's contents back to the eat-launched shell as an OSC reply.
-Invoked from nushell via `eat cat <buffer>' -- inverse of `eat tee'.
-The shell uses `term query' to send the request OSC and block reading
-the reply, so we send the contents as `OSC 51 e;K;<base64> ST'.  When
-the buffer doesn't exist (or isn't readable as text) we send an empty
-payload, which the shell sees as a zero-length string."
-  (let* ((content (if-let* ((b (get-buffer buffer-name)))
-                      (with-current-buffer b
-                        (buffer-substring-no-properties (point-min) (point-max)))
+(defun +eat--face-spec-attribute (spec attribute)
+  "Return the first specified ATTRIBUTE among SPEC, a `face' property value.
+SPEC may be a face symbol, an anonymous face plist, or a list mixing
+those (earlier entries win).  Returns `unspecified' when nothing in SPEC
+sets ATTRIBUTE."
+  (cond
+   ((null spec) 'unspecified)
+   ((and (symbolp spec) (facep spec)) (face-attribute spec attribute nil t))
+   ((keywordp (car-safe spec))
+    (if (plist-member spec attribute) (plist-get spec attribute) 'unspecified))
+   ((consp spec)
+    (catch 'done
+      (dolist (s spec 'unspecified)
+        (let ((v (+eat--face-spec-attribute s attribute)))
+          (unless (memq v '(unspecified nil)) (throw 'done v))))))
+   (t 'unspecified)))
+
+(defun +eat--color->sgr (color layer)
+  "Render COLOR (a name or hex string) as a truecolor SGR fragment.
+LAYER is 38 for foreground or 48 for background.  Returns nil for an
+unknown color."
+  (when (stringp color)
+    (when-let* ((cv (color-values color)))
+      (format "%d;2;%d;%d;%d" layer
+              (round (/ (nth 0 cv) 257.0))
+              (round (/ (nth 1 cv) 257.0))
+              (round (/ (nth 2 cv) 257.0))))))
+
+(defun +eat--face->sgr (spec)
+  "Return a reset-prefixed ANSI SGR escape string rendering face SPEC.
+Translates foreground color, weight, slant and underline; background is
+intentionally left to the terminal."
+  (let ((params (list "0"))
+        (fg (+eat--face-spec-attribute spec :foreground))
+        (weight (+eat--face-spec-attribute spec :weight))
+        (slant (+eat--face-spec-attribute spec :slant))
+        (underline (+eat--face-spec-attribute spec :underline)))
+    (when-let* (((not (memq fg '(unspecified nil))))
+                (s (+eat--color->sgr fg 38)))
+      (push s params))
+    (when (memq weight '(bold semi-bold extra-bold ultra-bold heavy black))
+      (push "1" params))
+    (when (memq slant '(italic oblique)) (push "3" params))
+    (when (and underline (not (memq underline '(unspecified nil)))) (push "4" params))
+    (format "\e[%sm" (string-join (nreverse params) ";"))))
+
+(defun +eat--propertized->ansi (string)
+  "Translate STRING's `face' text properties into inline ANSI SGR codes.
+Walks maximal runs of constant `face', emitting an SGR sequence only
+when the rendered attributes change, and resets at the end."
+  (let ((n (length string)) (pos 0) (out nil) (last nil))
+    (while (< pos n)
+      (let* ((face (get-text-property pos 'face string))
+             (end (or (next-single-property-change pos 'face string) n))
+             (sgr (+eat--face->sgr face)))
+        (unless (equal sgr last) (push sgr out) (setq last sgr))
+        (push (substring-no-properties string pos end) out)
+        (setq pos end)))
+    (push "\e[0m" out)
+    (apply #'concat (nreverse out))))
+
+(defun +eat/cat (buffer-or-file)
+  "Send BUFFER-OR-FILE's contents back to the eat-launched shell as an OSC reply.
+Invoked from nushell via `eat cat <buffer-or-file>' -- inverse of `eat
+tee'.  BUFFER-OR-FILE is resolved as a live buffer first; failing that,
+as a readable file, which is opened buried with `find-file-noselect' (so
+its major mode fontifies it) and left open.  The chosen buffer is
+fontified and its `face' text properties are translated to ANSI SGR
+escape codes (see `+eat--propertized->ansi'), so the shell renders the
+contents the way they look in Emacs.  The shell uses `term query' to
+send the request OSC and block reading the reply, so we send the result
+as `OSC 51 e;K;<base64> ST'.  When neither a buffer nor a readable file
+matches we send an empty payload, which the shell sees as a zero-length
+string."
+  (let* ((buf (or (get-buffer buffer-or-file)
+                  (and (file-regular-p buffer-or-file)
+                       (find-file-noselect buffer-or-file))))
+         (content (if buf
+                      (with-current-buffer buf
+                        (font-lock-ensure)
+                        (+eat--propertized->ansi
+                         (buffer-substring (point-min) (point-max))))
                     ""))
          (b64 (base64-encode-string (encode-coding-string content 'utf-8) t)))
     (eat-term-send-string eat-terminal
@@ -1293,10 +1365,10 @@ the start of the line."
         (agent-shell-make-environment-variables
          "ANTHROPIC_AUTH_KEY" (auth-source-rbw-get "anthropic-api-key")
          "ANTHROPIC_CUSTOM_HEADERS" (format "x-portkey-api-key: %s\nx-portkey-config: pc-bedroc-55aa53\nx-portkey-metadata: {\"service\": \"claude-code\", \"os\": \"linux\"}" (auth-source-rbw-get "anthropic-api-key"))
-         "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-7"
+         "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-8"
          "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
-        agent-shell-anthropic-default-model-id "claude-opus-4-7"
+        agent-shell-anthropic-default-model-id "claude-opus-4-8"
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
           (mode . agent-shell-mode)
