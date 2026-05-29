@@ -64,7 +64,7 @@
 (package! hercules)
 (package! jsonnet-mode)
 (package! protobuf-mode)
-(package! eat :recipe (:repo "https://codeberg.org/akib/emacs-eat.git") :pin "c8d54d649872bfe7b2b9f49ae5c2addbf12d3b99")
+(package! eat :recipe (:repo "https://codeberg.org/therivercass/emacs-eat.git") :pin "40999194ca01f10b208725972f7c70dfda9c382a")
 (package! consult-projectile)
 (package! rego-mode)
 (package! nu-ts-mode :recipe (:host github :repo "ItsOleks/nu-ts-mode") :pin "751df8edc60643f123ed15b0da553aea8732028b")

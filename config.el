@@ -946,9 +946,6 @@ text regions between template blocks."
 
   (keymap-set eat-line-mode-map "<normal-state> <return>" #'eat-line-send-input)
 
-  (advice-add 'eat-term-process-output :filter-args
-              #'+eat/csi-ef-swap-output)
-
   (add-hook 'eat--semi-char-mode-hook #'+eat/use-emacs-state-for-tui)
   (add-hook 'eat--char-mode-hook #'+eat/use-emacs-state-for-tui)
   (add-hook 'eat--line-mode-hook #'+eat/restore-evil-state-for-line-mode)
@@ -1065,84 +1062,6 @@ stopping at the property-change one position over."
     (goto-char (or (next-single-property-change
                     (point) 'eat--shell-prompt-end)
                    (point-max)))))
-
-(defvar +eat/csi-ef-swap-pending (make-hash-table :test 'eq :weakness 'key)
-  "Per-terminal tail of `\\e[<params>' awaiting a terminator across chunks.")
-
-(defvar +eat/csi-sync-buf (make-hash-table :test 'eq :weakness 'key)
-  "Per-terminal accumulator of bytes between \\e[?2026h and \\e[?2026l.
-nil/missing means we are not in synchronized output mode.")
-
-(defun +eat/-csi-swap-ef (s)
-  "Return S with every `\\e[<params>E' rewritten as `\\e[<params>F' and v.v."
-  (replace-regexp-in-string
-   (rx "\e[" (zero-or-more (any "0-9;")) (any "EF"))
-   (lambda (m)
-     (let ((letter (aref m (1- (length m)))))
-       (concat (substring m 0 -1)
-               (if (eq letter ?E) "F" "E"))))
-   s t t))
-
-(defun +eat/csi-ef-swap-output (args)
-  "Filter advice for `eat-term-process-output'.
-Two workarounds for eat 0.9.4 in a single byte-stream rewrite:
-1. The CSI dispatch (eat.el:3559-3565) has CNL (`\\e[<n>E') and CPL
-   (`\\e[<n>F') reversed relative to ECMA-48.  Swap the letters before
-   the parser sees them.
-2. eat does not implement DEC private mode 2026 (synchronized output),
-   so each cursor move and line write within a frame is rendered as it
-   arrives, producing flicker.  Buffer everything between `\\e[?2026h'
-   and `\\e[?2026l' and only release the whole frame when the closing
-   marker arrives -- the parser then renders the frame in one pass.
-
-State is per-terminal and persists across chunks so sequences split
-across PTY chunks are still handled correctly."
-  (pcase-let* ((`(,terminal ,output) args))
-    (if (not (stringp output))
-        args
-      (let* ((pending (gethash terminal +eat/csi-ef-swap-pending ""))
-             (buf (concat pending output))
-             (tail (and (string-match
-                         (rx "\e" (zero-or-one
-                                   (seq "[" (zero-or-more (any "0-9;?>"))))
-                             string-end)
-                         buf)
-                        (match-beginning 0)))
-             (live (if tail (substring buf 0 tail) buf))
-             (carry (if tail (substring buf tail) ""))
-             (pieces nil)
-             (i 0)
-             (n (length live)))
-        (puthash terminal carry +eat/csi-ef-swap-pending)
-        (while (< i n)
-          (let ((sync (gethash terminal +eat/csi-sync-buf)))
-            (if sync
-                (let ((end (string-match "\e\\[\\?2026l" live i)))
-                  (cond
-                   (end
-                    (let ((stop (+ end (length "\e[?2026l"))))
-                      (puthash terminal nil +eat/csi-sync-buf)
-                      (push (+eat/-csi-swap-ef
-                             (concat sync (substring live i stop)))
-                            pieces)
-                      (setq i stop)))
-                   (t
-                    (puthash terminal
-                             (concat sync (substring live i))
-                             +eat/csi-sync-buf)
-                    (setq i n))))
-              (let ((start (string-match "\e\\[\\?2026h" live i)))
-                (cond
-                 (start
-                  (push (+eat/-csi-swap-ef (substring live i start)) pieces)
-                  (puthash terminal
-                           (substring live start (+ start (length "\e[?2026h")))
-                           +eat/csi-sync-buf)
-                  (setq i (+ start (length "\e[?2026h"))))
-                 (t
-                  (push (+eat/-csi-swap-ef (substring live i)) pieces)
-                  (setq i n)))))))
-        (list terminal (apply #'concat (nreverse pieces)))))))
 
 (defun +eat/nu-open (&rest args)
   (interactive)
