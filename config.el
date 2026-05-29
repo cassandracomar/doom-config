@@ -767,46 +767,6 @@ text regions between template blocks."
     (set-window-buffer currentbuf newbuf)
     (shell newbuf)))
 
-;; mu4e settings
-;; (use-package! mu4e
-;;   :defer t
-;;   :config
-;;   (set-email-account!
-;;    "nie.rs"
-;;    '((user-full-name . "Cassandra Comar")
-;;      (user-mail-address . "cass@nie.rs")
-;;      (mtpmail-smtp-user . "cass@nie.rs")
-;;      (mu4e-sent-folder       . "/cass@nie.rs/Sent")
-;;      (mu4e-drafts-folder     . "/cass@nie.rs/Drafts")
-;;      (mu4e-trash-folder      . "/cass@nie.rs/Trash")
-;;      (mu4e-refile-folder     . "/cass@nie.rs/Archive")))
-;;   (set-email-account!
-;;    "mountclare.net"
-;;    '((user-full-name . "Cassandra Comar")
-;;      (user-mail-address . "cass@mountclare.net")
-;;      (mtpmail-smtp-user . "cass@mountclare.net")
-;;      (mu4e-sent-folder       . "/cass@mountclare.net/Sent")
-;;      (mu4e-drafts-folder     . "/cass@mountclare.net/Drafts")
-;;      (mu4e-trash-folder      . "/cass@mountclare.net/Trash")
-;;      (mu4e-refile-folder     . "/cass@mountclare.net/Archive")))
-;;   (set-email-account!
-;;    "drwholdings.com"
-;;    '((user-full-name . "Cassandra Comar")
-;;      (user-mail-address . "ccomar@drwholdings.com")
-;;      (mtpmail-smtp-user . "ccomar@drwholdings.com")
-;;      (mu4e-sent-folder       . "/ccomar@drwholdings.com/Sent")
-;;      (mu4e-drafts-folder     . "/ccomar@drwholdings.com/Drafts")
-;;      (mu4e-trash-folder      . "/ccomar@drwholdings.com/Trash")
-;;      (mu4e-refile-folder     . "/ccomar@drwholdings.com/Archive")))
-;;   (setq mu4e-update-interval 60)
-;;   :custom
-;;   (mu4e-mu-binary (executable-find "mu"))
-;;   (mu4e-maildir "~/.local/share/maildir")
-;;   (mu4e-get-mail-command (concat (executable-find "mbsync") " -a"))
-;;   (mu4e-update-interval 60)
-;;   (mu4e-attachment-dir "~/downloads")
-;;   (mu4e-change-filenames-when-moving t))
-
 (setq sendmail-program (executable-find "msmtp")
       send-mail-function #'smtpmail-send-it
       message-sendmail-f-is-evil t
