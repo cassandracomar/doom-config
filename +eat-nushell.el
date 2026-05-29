@@ -4,18 +4,19 @@
 
 (require 's)
 (require 'dash)
+(require 'cl-lib)
 
 (defcustom carapace-nushell-quoted-arg-chars "~/A-Za-z0-9\\+@:_\\.\\$#%,={} -"
-  "regex matching an unquoted argument")
+  "regex matching an unquoted argument" :type 'string :group 'carapace-nushell)
 (defcustom carapace-nushell-unquoted-arg-chars "~/A-Za-z0-9\\+@:_\\.\\$#%,={}-"
-  "regex matching an unquoted argument")
+  "regex matching an unquoted argument" :type 'string :group 'carapace-nushell)
 (defcustom carapace-nushell-quoted-arg-regex
   (format "['\"`][%s]+?['\"`][%s]*"
           carapace-nushell-quoted-arg-chars
           carapace-nushell-quoted-arg-chars)
-  "regex matching a quoted argument")
+  "regex matching a quoted argument" :type 'string :group 'carapace-nushell)
 (defcustom carapace-nushell-unquoted-arg-regex (format "[%s]" carapace-nushell-unquoted-arg-chars)
-  "regex matching a quoted argument")
+  "regex matching a quoted argument" :type 'string :group 'carapace-nushell)
 (setq carapace-nushell-quoted-arg-chars "~/A-Za-z0-9\\+@:_\\.\\$#%,={} -")
 (setq carapace-nushell-quoted-arg-regex
       (format "['\"`][%s]+?['\"`][%s]*"
@@ -128,7 +129,7 @@ Interactively (or with prefix arg) forces a refresh even if the cache
 is already populated.  CALLBACK is invoked at the end if non-nil
 (matches the old async signature so existing callers keep working).
 
-Spawns nu under a PTY (`:connection-type 'pty') so `tty' and other
+Spawns nu under a PTY (`:connection-type \='pty') so `tty' and other
 TTY-dependent forms in `config.nu' (`gpg-connect-agent', etc.) don't
 abort the source chain.  Without a PTY they fail silently and skip
 the rest of the config -- losing the `default-config.nu' defs/aliases
@@ -172,8 +173,9 @@ the rest of the config -- losing the `default-config.nu' defs/aliases
 Extracts per-candidate descriptions so they flow into the `annotation'
 case of `carapace-nushell-backend' (and on to corfu / corfu-popupinfo).
 Two sources are checked, in order:
-1. The `pcomplete-help' text property, set by `+fish-completion--list-completions-a'
-   in `+eshell.el' when that override is loaded.
+1. The `pcomplete-help' text property, set by
+   `+fish-completion--list-completions-a' in `+eshell.el' when that
+   override is loaded.
 2. A literal `name<TAB>description' split, in case the override isn't active
    yet (e.g. fish-completion hasn't been required by the eshell side).
 
@@ -217,7 +219,7 @@ confuses corfu."
              nil '(t nil) nil
              args))))
 
-(defun carapace-completion--list-completions-with-desc (shell raw-prompt)
+(defun carapace-completion--list-completions-with-desc (_shell raw-prompt)
   (carapace-completion--fish-fallback raw-prompt))
 
 (defun carapace-nushell--line-offset (offset-bounds)
@@ -491,7 +493,7 @@ E.g. \"git\", \"eat\", \"from\", \"to\" for `git status', `eat tee', etc."
   (when +eat-nushell--commands
     (let (set)
       (maphash (lambda (name _)
-                 (when-let ((sp (string-match " " name)))
+                 (when-let* ((sp (string-match " " name)))
                    (push (substring name 0 sp) set)))
                +eat-nushell--commands)
       (cl-delete-duplicates set :test #'equal))))
@@ -507,7 +509,7 @@ Returns nil when HEAD isn't a known command or the flag has no enum."
       (cl-loop for (_input params) on sigs by #'cddr do
                (dolist (p params)
                  (when (equal (plist-get p :parameter_name) flag-name)
-                   (when-let ((vals (plist-get p :completion)))
+                   (when-let* ((vals (plist-get p :completion)))
                      (throw 'found vals))))))))
 
 (defun +eat-nushell--previous-flag-name (args)
@@ -520,9 +522,8 @@ named-parameter value."
       (cond
        ((and (string-prefix-p "--" prev) (> (length prev) 2))
         (substring prev 2))
-       ((and (string-prefix-p "-" prev) (= (length prev) 2)
-             nil)
-        nil)))))
+       ((and (string-prefix-p "-" prev) (= (length prev) 2))
+        (substring prev 1))))))
 
 (defun +eat-nushell--add-var-candidates (table)
   "Add `$name' candidates to TABLE for the nu built-ins + in-scope locals.
@@ -567,7 +568,7 @@ trigger; orderless does the visual filtering as the user types."
             (puthash (concat (car flag) " ")
                      `(:display ,(car flag) :value ,(car flag)
                        :terminator " "
-                       ,@(when-let ((d (plist-get (cdr flag) :description)))
+                       ,@(when-let* ((d (plist-get (cdr flag) :description)))
                            (list :description d)))
                      table))))
        ;; Flag-value position: `cmd --flag <cursor>'.  If the previous arg is
@@ -594,7 +595,7 @@ trigger; orderless does the visual filtering as the user types."
            (unless (string-match-p " " name)
              (puthash (concat name " ")
                       `(:display ,name :value ,name :terminator " "
-                        ,@(when-let ((d (plist-get cmd :description)))
+                        ,@(when-let* ((d (plist-get cmd :description)))
                             (list :description d)))
                       table)))
          +eat-nushell--commands)
@@ -613,7 +614,7 @@ trigger; orderless does the visual filtering as the user types."
           (dolist (sub (+eat-nushell--subcommand-candidates head))
             (puthash (concat (car sub) " ")
                      `(:display ,(car sub) :value ,(car sub) :terminator " "
-                       ,@(when-let ((d (plist-get (cdr sub) :description)))
+                       ,@(when-let* ((d (plist-get (cdr sub) :description)))
                            (list :description d)))
                      table)))
         (+eat-nushell--add-var-candidates table))))
@@ -664,7 +665,7 @@ each call to avoid leaking buffers across corfu-popupinfo invocations."
   (when-let* ((table carapace-nushell--active-completions)
               (cand (gethash cand-key table))
               (doc (or (plist-get cand :description)
-                       (when-let ((full-ref (plist-get cand :nix-full-ref)))
+                       (when-let* ((full-ref (plist-get cand :nix-full-ref)))
                          (and (string-match-p "#" full-ref)
                               (+nix--fetch-meta-description full-ref))))))
     (when (buffer-live-p +eat-nushell-doc--last-buffer)
@@ -806,7 +807,7 @@ when the process mutates its environment (e.g. `$env.X = ...',
       (insert-file-contents path)
       (let (out)
         (dolist (e (split-string (buffer-string) "\0" t))
-          (when-let ((eq-pos (string-search "=" e)))
+          (when-let* ((eq-pos (string-search "=" e)))
             (push (substring e 0 eq-pos) out)))
         (nreverse out)))))
 
@@ -827,14 +828,14 @@ Returns nil if the parser isn't ready or no bindings are in scope."
              (when node
                (push (treesit-node-text node t) names)))
            (collect-params-of (parent)
-             (when-let ((params (treesit-node-child-by-field-name
-                                 parent "parameters")))
+             (when-let* ((params (treesit-node-child-by-field-name
+                                  parent "parameters")))
                (dolist (p (treesit-node-children params))
                  (when (equal (treesit-node-type p) "parameter")
                    (collect-id (treesit-node-child-by-field-name
                                 p "param_name"))))))
            (point-in (node field)
-             (when-let ((b (treesit-node-child-by-field-name node field)))
+             (when-let* ((b (treesit-node-child-by-field-name node field)))
                (and (>= pt (treesit-node-start b))
                     (<= pt (treesit-node-end b))))))
         (let ((cur (treesit-node-at pt 'nu)))
@@ -923,7 +924,7 @@ matches sort first because we own the local region."
                    (string= (buffer-substring-no-properties
                              (- name-beg 5) name-beg)
                             "$env."))
-          (when-let ((names (+eat-nushell--env-names)))
+          (when-let* ((names (+eat-nushell--env-names)))
             (list name-beg end names
                   :exclusive 'no
                   :annotation-function (lambda (_) " env")

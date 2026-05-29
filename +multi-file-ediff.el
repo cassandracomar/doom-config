@@ -11,10 +11,13 @@
 ;;
 ;;; Code:
 
+(require 'evil)
 (require 'cl-lib)
 (require 'ediff)
 (require 'ediff-init)
 (require 'magit)
+(require 'magit-ediff)
+(require 'code-review)
 
 (defgroup multi-file-ediff nil
   "Multi-file ediff with sidebar."
@@ -39,7 +42,8 @@
 ;;;; Source protocol
 
 (cl-defgeneric multi-file-ediff--prepare (source)
-  "Pre-flight before listing files (e.g. fetch refs)."
+  "Pre-flight before listing files (e.g. fetch refs).
+SOURCE"
   (ignore source))
 
 (cl-defgeneric multi-file-ediff--title (source)
@@ -161,6 +165,7 @@ Default is a no-op.  Sources whose ediff has a writable side
     win))
 
 (defun multi-file-ediff--our-sidebar-window-p (win)
+  "WIN."
   (window-parameter win 'multi-file-ediff-sidebar))
 
 
@@ -210,7 +215,7 @@ Default is a no-op.  Sources whose ediff has a writable side
                      ediff-error-buffer
                      ediff-msg-buffer
                      ediff-debug-buffer))
-        (when-let ((buf (and (boundp var) (symbol-value var))))
+        (when-let* ((buf (and (boundp var) (symbol-value var))))
           (when (buffer-live-p buf)
             (let ((kill-buffer-query-functions nil))
               (ignore-errors (kill-buffer buf)))))))))
@@ -243,7 +248,7 @@ Default is a no-op.  Sources whose ediff has a writable side
           (kill-buffer buf)))
       (when (eq group multi-file-ediff--current-session)
         (setq multi-file-ediff--current-session nil))
-      (when-let ((wc (multi-file-ediff-group-saved-winconf group)))
+      (when-let* ((wc (multi-file-ediff-group-saved-winconf group)))
         (ignore-errors (set-window-configuration wc))))))
 
 (defun multi-file-ediff--sidebar-killed-hook ()
@@ -336,6 +341,7 @@ Default is a no-op.  Sources whose ediff has a writable side
 ;;;; Sidebar commands
 
 (defun multi-file-ediff--path-at-point ()
+  "."
   (get-text-property (line-beginning-position) 'multi-file-ediff-path))
 
 (defun multi-file-ediff-select-file ()
@@ -395,11 +401,13 @@ Default is a no-op.  Sources whose ediff has a writable side
 
 (cl-defmethod multi-file-ediff--title
   ((source multi-file-ediff-magit-source))
+  "SOURCE."
   (multi-file-ediff-magit-source-display-title source))
 
 (cl-defmethod multi-file-ediff--prepare
   ((source multi-file-ediff-magit-source))
-  "Try to fetch from origin if either ref is not yet local."
+  "Try to fetch from origin if either ref is not yet local.
+SOURCE"
   (let* ((default-directory
           (multi-file-ediff-magit-source-default-directory source))
          (base (multi-file-ediff-magit-source-base-ref source))
@@ -409,6 +417,7 @@ Default is a no-op.  Sources whose ediff has a writable side
 
 (cl-defmethod multi-file-ediff--list-files
   ((source multi-file-ediff-magit-source))
+  "SOURCE."
   (let ((default-directory (multi-file-ediff-magit-source-default-directory source)))
     (mapcar (lambda (p) (cons p nil))
             (magit-git-items
@@ -418,6 +427,7 @@ Default is a no-op.  Sources whose ediff has a writable side
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-magit-source) path)
+  "SOURCE PATH."
   (let* ((default-directory (multi-file-ediff-magit-source-default-directory source))
          (base (multi-file-ediff-magit-source-base-ref source))
          (wt (multi-file-ediff--ensure-worktree source))
@@ -456,7 +466,7 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
   "Create an empty stand-in buffer for PATH on SIDE."
   (let ((buf (generate-new-buffer (format "*[empty] %s: %s*" side path))))
     (with-current-buffer buf
-      (when-let ((mode (assoc-default path auto-mode-alist #'string-match)))
+      (when-let* ((mode (assoc-default path auto-mode-alist #'string-match)))
         (ignore-errors (funcall mode)))
       (setq buffer-read-only t))
     buf))
@@ -471,17 +481,20 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
 
 (cl-defmethod multi-file-ediff--title
   ((source multi-file-ediff-magit-staged-source))
+  "SOURCE."
   (multi-file-ediff-magit-staged-source-display-title source))
 
 (cl-defmethod multi-file-ediff--list-files
   ((source multi-file-ediff-magit-staged-source))
+  "SOURCE."
   (let ((default-directory
          (multi-file-ediff-magit-staged-source-default-directory source)))
     (mapcar (lambda (p) (cons p nil)) (magit-staged-files))))
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-magit-staged-source) path)
-  "Return (HEAD INDEX WORKTREE) buffers for staged review."
+  "Return (HEAD INDEX WORKTREE) buffers for staged review.
+SOURCE PATH"
   (let* ((default-directory
           (multi-file-ediff-magit-staged-source-default-directory source))
          (full-path (expand-file-name path))
@@ -498,6 +511,7 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
 
 (cl-defmethod multi-file-ediff--commit-buffers
   ((_ multi-file-ediff-magit-staged-source) bufs)
+  "BUFS."
   (multi-file-ediff--commit-staging-bufs bufs))
 
 (cl-defstruct (multi-file-ediff-magit-unstaged-source
@@ -507,17 +521,20 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
 
 (cl-defmethod multi-file-ediff--title
   ((source multi-file-ediff-magit-unstaged-source))
+  "SOURCE."
   (multi-file-ediff-magit-unstaged-source-display-title source))
 
 (cl-defmethod multi-file-ediff--list-files
   ((source multi-file-ediff-magit-unstaged-source))
+  "SOURCE."
   (let ((default-directory
          (multi-file-ediff-magit-unstaged-source-default-directory source)))
     (mapcar (lambda (p) (cons p nil)) (magit-unstaged-files))))
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-magit-unstaged-source) path)
-  "Return (HEAD INDEX WORKTREE) buffers for unstaged review."
+  "Return (HEAD INDEX WORKTREE) buffers for unstaged review.
+SOURCE PATH"
   (let* ((default-directory
           (multi-file-ediff-magit-unstaged-source-default-directory source))
          (full-path (expand-file-name path))
@@ -534,6 +551,7 @@ File-visiting (rather than blob) so LSP / projectile / xref work natively."
 
 (cl-defmethod multi-file-ediff--commit-buffers
   ((_ multi-file-ediff-magit-unstaged-source) bufs)
+  "BUFS."
   (multi-file-ediff--commit-staging-bufs bufs))
 
 (defun multi-file-ediff--commit-staging-bufs (bufs)
@@ -562,16 +580,19 @@ modifications prompt to save."
 
 (cl-defmethod multi-file-ediff--title
   ((source multi-file-ediff-magit-working-tree-source))
+  "SOURCE."
   (multi-file-ediff-magit-working-tree-source-display-title source))
 
 (cl-defmethod multi-file-ediff--list-files
   ((source multi-file-ediff-magit-working-tree-source))
+  "SOURCE."
   (let ((default-directory
          (multi-file-ediff-magit-working-tree-source-default-directory source)))
     (mapcar (lambda (p) (cons p nil)) (magit-modified-files))))
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-magit-working-tree-source) path)
+  "SOURCE PATH."
   (let ((default-directory
          (multi-file-ediff-magit-working-tree-source-default-directory source)))
     (list (multi-file-ediff--magit-file-buffer "HEAD" path "old")
@@ -640,12 +661,14 @@ modifications prompt to save."
 ;;;; Advice variants for `magit-ediff-show-*' / `magit-ediff-compare'
 
 (defun multi-file-ediff-magit--advice-show-commit (rev &rest _)
-  "Drop-in replacement for `magit-ediff-show-commit' that uses multi-file ediff."
+  "Drop-in replacement for `magit-ediff-show-commit' that uses multi-file ediff.
+REV is the git revision"
   (interactive (list (magit-read-branch-or-commit "Commit")))
   (multi-file-ediff-magit-commit rev))
 
 (defun multi-file-ediff-magit--advice-compare (reva revb &rest _)
-  "Drop-in replacement for `magit-ediff-compare' that uses multi-file ediff."
+  "Drop-in replacement for `magit-ediff-compare' that uses multi-file ediff.
+REVA and REVB are the git revisions to compare"
   (interactive
    (let ((rs (magit-ediff-compare--read-revisions)))
      (list (car rs) (cdr rs))))
@@ -662,14 +685,16 @@ modifications prompt to save."
   (multi-file-ediff-magit-show-unstaged))
 
 (defun multi-file-ediff-magit--advice-show-working-tree (&rest _)
-  "Drop-in replacement for `magit-ediff-show-working-tree' that uses multi-file ediff."
+  "Replacement for `magit-ediff-show-working-tree' that uses multi-file ediff."
   (interactive)
   (multi-file-ediff-magit-show-working-tree))
 
 (defun multi-file-ediff-magit--advice-dwim (orig &rest args)
-  "Around-advice for `magit-ediff-dwim': route the multi-file cases through
+  "Around-advice for `magit-ediff-dwim'.
+route the multi-file cases through
 our entry points so we don't get the single-file prompt for PRs / ranges
-or get dispatched to `magit-ediff-stage' for staged/unstaged sections."
+or get dispatched to `magit-ediff-stage' for staged/unstaged sections.
+see `magit-ediff-dwim' for ORIG and ARGS"
   (let* ((section (magit-current-section))
          (range (and section (magit-diff--dwim))))
     (cond
@@ -687,8 +712,8 @@ or get dispatched to `magit-ediff-stage' for staged/unstaged sections."
 
 ;;;###autoload
 (defun multi-file-ediff-magit-setup ()
-  "Install :override advice on magit-ediff entry points.
-Routes the standard magit-ediff transient through multi-file-ediff."
+  "Install :override advice on `magit-ediff' entry points.
+Routes the standard `magit-ediff' transient through multi-file-ediff."
   (interactive)
   (with-eval-after-load 'magit-ediff
     (advice-add 'magit-ediff-show-commit       :override #'multi-file-ediff-magit--advice-show-commit)
@@ -733,7 +758,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
   NEW-LINE  - new-side line number (or nil for `-` lines)
   LINE-TYPE - one of \"ADDED\", \"REMOVED\", \"UNCHANGED\", \"HUNK\", \"NOEOL\"
   LINE-TEXT - the diff line content without the leading marker"
-  (when-let ((bounds (multi-file-ediff--narrow-to-file raw-diff path)))
+  (when-let* ((bounds (multi-file-ediff--narrow-to-file raw-diff path)))
     (with-temp-buffer
       (insert raw-diff)
       (let ((current-new-line nil)
@@ -767,7 +792,8 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
           (forward-line 1))))))
 
 (defun multi-file-ediff--new-line-to-diff-position (raw-diff path new-line)
-  "Return the (POSITION . LINE-TYPE) for NEW-LINE in PATH, or nil if not in a hunk."
+  "Return the (POSITION . LINE-TYPE) for NEW-LINE in PATH, or nil if not in a hunk.
+RAW-DIFF NEW-LINE"
   (let (result)
     (multi-file-ediff--walk-file-diff
      raw-diff path
@@ -777,7 +803,8 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
     result))
 
 (defun multi-file-ediff--diff-position-to-new-line (raw-diff path position)
-  "Return the new-line for POSITION in PATH, or nil if not on the new side."
+  "Return the new-line for POSITION in PATH, or nil if not on the new side.
+RAW-DIFF"
   (let (result)
     (multi-file-ediff--walk-file-diff
      raw-diff path
@@ -800,6 +827,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
 
 (cl-defmethod multi-file-ediff--title
   ((source multi-file-ediff-code-review-source))
+  "SOURCE."
   (multi-file-ediff-code-review-source-display-title source))
 
 (defun multi-file-ediff--files-from-raw-diff (raw-diff)
@@ -815,7 +843,8 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
 
 (cl-defmethod multi-file-ediff--prepare
   ((source multi-file-ediff-code-review-source))
-  "Ensure the PR's base and head refs are available locally."
+  "Ensure the PR's base and head refs are available locally.
+SOURCE"
   (let* ((default-directory
           (multi-file-ediff-code-review-source-default-directory source))
          (base (multi-file-ediff-code-review-source-base-ref source))
@@ -834,6 +863,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
 
 (cl-defmethod multi-file-ediff--list-files
   ((source multi-file-ediff-code-review-source))
+  "SOURCE."
   (let* ((default-directory
           (multi-file-ediff-code-review-source-default-directory source))
          (base (multi-file-ediff-code-review-source-base-ref source))
@@ -857,6 +887,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
 
 (cl-defmethod multi-file-ediff--make-buffers
   ((source multi-file-ediff-code-review-source) path)
+  "SOURCE PATH."
   (let* ((default-directory
           (multi-file-ediff-code-review-source-default-directory source))
          (base (multi-file-ediff-code-review-source-base-ref source))
@@ -918,7 +949,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
 ;;;; Comment edit buffer
 
 (defvar-local multi-file-ediff--edit-context nil
-  "Plist with edit state: :source :path :line :position :line-type :ediff-buffer :placeholder.")
+  "Plist with edit state.")
 
 (defvar multi-file-ediff-comment-edit-mode-map
   (let ((m (make-sparse-keymap)))
@@ -946,7 +977,8 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
         ov))))
 
 (defun multi-file-ediff--open-comment-edit-buffer (source path line position line-type ediff-buf)
-  "Pop up an edit buffer for a comment at PATH:LINE."
+  "Pop up an edit buffer for a comment at PATH:LINE.
+SOURCE"
   (let* ((edit-buf (generate-new-buffer
                     (format "*MFE-Comment %s:%d*" path line)))
          (placeholder (multi-file-ediff--placeholder-overlay ediff-buf line)))
@@ -985,7 +1017,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
             (multi-file-ediff--render-comments-in-buffer)
           (error
            (message "multi-file-ediff: render failed: %S" err)))))
-    (when-let ((win (get-buffer-window edit-buf)))
+    (when-let* ((win (get-buffer-window edit-buf)))
       (delete-window win))
     (when (buffer-live-p edit-buf)
       (let ((kill-buffer-query-functions nil))
@@ -997,7 +1029,7 @@ FN is called as (FN POSITION NEW-LINE LINE-TYPE LINE-TEXT) where:
   (let ((ph (plist-get multi-file-ediff--edit-context :placeholder)))
     (when (overlayp ph) (delete-overlay ph)))
   (let ((edit-buf (current-buffer)))
-    (when-let ((win (get-buffer-window edit-buf)))
+    (when-let* ((win (get-buffer-window edit-buf)))
       (delete-window win))
     (kill-buffer edit-buf)))
 
@@ -1068,12 +1100,13 @@ sit just above the buffer bg."
                    `((t :background ,tinted :foreground unspecified :extend t)))
     (face-spec-set 'multi-file-ediff-comment-heading-face
                    '((t :inherit multi-file-ediff-comment-overlay-face
-                        :weight bold :box nil)))))
+                      :weight bold :box nil)))))
 
 (multi-file-ediff--update-comment-faces)
 (add-hook 'doom-load-theme-hook #'multi-file-ediff--update-comment-faces)
 
 (defun multi-file-ediff--comment-author (c)
+  "C."
   (cond ((eieio-object-p c) (and (slot-boundp c 'author) (oref c author)))
         ((listp c) (or (alist-get 'author c)
                        (alist-get 'login (alist-get 'author c))))))
@@ -1119,6 +1152,7 @@ monospace alignment.  We replace those with a single space."
        (string-trim-right (buffer-string))))))
 
 (defun multi-file-ediff--comment-body (c)
+  "C."
   (let ((raw (cond ((eieio-object-p c) (and (slot-boundp c 'msg) (oref c msg)))
                    ((listp c) (or (alist-get 'bodyText c)
                                   (alist-get 'body c))))))
@@ -1132,7 +1166,7 @@ monospace alignment.  We replace those with a single space."
 (defun multi-file-ediff--wrap-lines (text width)
   "Return TEXT as a list of lines fitting WIDTH columns.
 If TEXT already contains newlines (e.g. shr-rendered output), split on them
-and trim trailing whitespace; otherwise word-wrap via `fill-region'."
+and trim trailing whitespace; otherwise `word-wrap' via `fill-region'."
   (cond
    ((null text) (list ""))
    ((string-match-p "\n" text)
@@ -1147,13 +1181,15 @@ and trim trailing whitespace; otherwise word-wrap via `fill-region'."
               (split-string (buffer-string) "\n"))))))
 
 (defun multi-file-ediff--rule-string (n)
+  "N."
   (apply #'concat (make-list n "─")))
 
 (defconst multi-file-ediff--emoji-regex
   "[\u2600-\u27BF\U0001F300-\U0001FAFF]"
-  "Matches emoji code-points whose color-font rendering exceeds string-width.")
+  "Matches emoji code-points whose color-font rendering exceeds `string-width'.")
 
 (defun multi-file-ediff--count-emoji (text)
+  "TEXT."
   (let ((c 0) (pos 0))
     (while (string-match multi-file-ediff--emoji-regex text pos)
       (cl-incf c)
@@ -1186,7 +1222,8 @@ tty falls back to integer alignment."
                 (or half-spacer ""))))))
 
 (defun multi-file-ediff--build-comment-block (author body width face heading-face)
-  "Render a single comment as a boxed block of WIDTH columns."
+  "Render a single comment as a boxed block of WIDTH columns.
+AUTHOR BODY"
   (let* ((inner (max 4 (- width 4)))
          (heading (format "💬 @%s" (or author "?")))
          (heading-padded (multi-file-ediff--pad-to heading inner))
@@ -1225,7 +1262,8 @@ tty falls back to integer alignment."
      "\n")))
 
 (defun multi-file-ediff--comments-for-path (cr-buf path)
-  "Return a list of (NEW-LINE . COMMENT-LIST) pairs for PATH."
+  "Return a list of (NEW-LINE . COMMENT-LIST) pairs for PATH.
+CR-BUF"
   (let* ((raw-diff (with-current-buffer cr-buf
                      (code-review-db--pullreq-raw-diff)))
          (raw-comments (with-current-buffer cr-buf
@@ -1273,10 +1311,10 @@ tty falls back to integer alignment."
   "Return the local worktree directory forge knows for OWNER/REPO, or nil."
   (require 'forge)
   (caar (forge-sql [:select [worktree]
-                             :from repository
-                             :where (= owner $s1)
-                             :and   (= name  $s2)
-                             :limit 1]
+                    :from repository
+                    :where (= owner $s1)
+                    :and   (= name  $s2)
+                    :limit 1]
                    owner repo)))
 
 ;;;###autoload
@@ -1360,10 +1398,11 @@ tty falls back to integer alignment."
   "Return a stable per-branch identifier for SOURCE's worktree.")
 
 (cl-defgeneric multi-file-ediff--worktree-repo (source)
-  "Return the source repo's working directory.")
+  "Return the SOURCE repo's working directory.")
 
 (cl-defmethod multi-file-ediff--worktree-key
   ((source multi-file-ediff-code-review-source))
+  "SOURCE."
   (let* ((pr (multi-file-ediff-code-review-source-pullreq source))
          (branch (and pr (slot-boundp pr 'head-ref-name)
                       (oref pr head-ref-name))))
@@ -1373,10 +1412,12 @@ tty falls back to integer alignment."
 
 (cl-defmethod multi-file-ediff--worktree-repo
   ((source multi-file-ediff-code-review-source))
+  "SOURCE."
   (multi-file-ediff-code-review-source-default-directory source))
 
 (cl-defmethod multi-file-ediff--worktree-key
   ((source multi-file-ediff-magit-source))
+  "SOURCE."
   (let* ((dir (multi-file-ediff-magit-source-default-directory source))
          (name (file-name-nondirectory (directory-file-name dir))))
     (format "%s_magit" name)))
@@ -1506,6 +1547,7 @@ in the worktree whenever it was created or its HEAD changed."
   "Assign 0 to the multi-file-ediff sidebar window."
   (when (eq major-mode 'multi-file-ediff-mode) 0))
 
+(defvar winum-assign-functions)
 (with-eval-after-load 'winum
   (add-to-list 'winum-assign-functions
                #'multi-file-ediff--winum-assign))

@@ -1,7 +1,10 @@
 ;;; ~/.doom.d/+eshell.el -*- lexical-binding: t; -*-
 
+(declare-function eshell-find-single-file "config")
+
 (setopt eshell-history-size 9999999)
 
+(defvar eshell-history-ring nil)
 (defun eshell-append-history ()
   "Call `eshell-write-history' with the `append' parameter set to `t'."
   (when eshell-history-ring
@@ -110,9 +113,10 @@ buffer B without a disk round-trip."
       buf))
 
   (defun +eshell-fish-path (path max-len)
-    "Return a potentially trimmed-down version of the directory PATH, replacing
-     parent directories with their initial characters to try to get the character
-     length of PATH (sans directory slashes) down to MAX-LEN."
+    "Return a potentially trimmed-down version of the directory PATH,
+     replacing parent directories with their initial characters to
+     try to get the character length of PATH (sans directory slashes)
+     down to MAX-LEN."
     (let* ((components (split-string (abbreviate-file-name path) "/"))
            (len (+ (1- (length components))
                    (cl-reduce '+ components :key 'length)))
@@ -157,11 +161,11 @@ buffer B without a disk round-trip."
   (aio-defun aio-run (name cmd)
     (letrec ((curr (current-buffer))
              (temp (get-buffer-create (combine-and-quote-strings (list "*" name "*") " ")))
-             (cap (set-buffer temp))
-             (a (erase-buffer)))
+             (_cap (set-buffer temp))
+             (_a (erase-buffer)))
       (aio-await (apply #'aio-call-process name (current-buffer) cmd))
       (let ((r (buffer-string))
-            (cap (set-buffer curr)))
+            (_cap (set-buffer curr)))
         r)))
 
   (defun eshell/async-command-to-string (cmd &rest args)
@@ -341,12 +345,6 @@ buffer B without a disk round-trip."
 (defun algernon/git-pr (pr branch)
   (eshell-do-eval
    (eshell-parse-command (format "git fetch origin pull/%s/head:%s" pr branch)) t))
-
-(defun eshell-find-single-file (file-name)
-  (let ((file-writeable? (file-writable-p file-name)))
-    (if file-writeable?
-        (find-file file-name)
-      (doom/sudo-find-file file-name))))
 
 (defun eshell/find-file (&rest args)
   "Open file even if it is not owned by you via sudo. Only adds sudo if needed."
