@@ -1171,9 +1171,13 @@ window so the user can see the output land."
         (insert data)))
     (display-buffer buf)))
 
+(defvar eat-buffer-name "*eat*")
 (defun +eat/here (&optional program)
   (interactive)
-  (eat program "new"))
+  (let ((eat-buffer-name
+         (format "*eat %s*" (abbreviate-file-name
+                             (directory-file-name default-directory)))))
+    (eat program "new")))
 
 (map! :leader "RET" #'+eat/here)
 (map! :leader "<return>" #'+eat/here)
