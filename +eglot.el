@@ -158,55 +158,6 @@ configure the refreshes to take place post-load via `+eglot-post-load-hook'"
       (pcase kind
         ("end" (refreshf))))))
 
-(defvar +eglot-after-envrc-hook '())
-(defvar-local +eglot-after-envrc-run? nil)
-(defun +eglot--envrc-settled-p ()
-  "Non-nil when no envrc process is running for the current buffer's
-env-dir or any ancestor directory of it."
-  (let ((dir (ignore-errors (envrc--find-env-dir))))
-    (not (and dir
-              (seq-some (lambda (proc-dir)
-                          (file-in-directory-p dir proc-dir))
-                        (hash-table-keys envrc--processes))))))
-
-(defun +eglot-ensure-connected (&optional tries)
-  "Start eglot, or reconnect it, once direnv has fully settled.
-The `envrc--status' watcher fires the moment status becomes \\='on, which
-is mid-`envrc--apply' -- before `exec-path'/`process-environment' are
-installed and before the direnv process leaves `envrc--processes'.  Defer
-via a timer and poll until no envrc process remains for this dir or any
-parent dir, so eglot launches with the direnv-provided server."
-  (let ((tries (or tries 100))
-        (buf (current-buffer)))
-    (cond
-     ((+eglot--envrc-settled-p)
-      (when (eglot--lookup-mode major-mode)
-        (if (eglot-current-server)
-            (eglot-reconnect (eglot-current-server))
-          (lsp!))))
-     ((> tries 0)
-      (run-at-time 0.1 nil
-                   (lambda ()
-                     (when (buffer-live-p buf)
-                       (with-current-buffer buf
-                         (+eglot-ensure-connected (1- tries)))))))
-     (t (message "envrc: gave up waiting for direnv in %s" (buffer-name buf))))))
-
-(defun +envrc-status-watcher (symbol newval operation where)
-  (when (and (equal symbol 'envrc--status)
-             (eq operation 'set)
-             (bufferp where)
-             (buffer-file-name where) ;; only try to start eglot this way in file-visiting buffers
-             (equal newval 'on))
-    (with-current-buffer where
-      (when (and (eglot--lookup-mode major-mode)
-                 (not +eglot-after-envrc-run?))
-        ;; make sure hooks are only triggered once
-        (setq +eglot-after-envrc-run? t)
-        (run-hooks '+eglot-after-envrc-hook)))))
-(add-variable-watcher 'envrc--status #'+envrc-status-watcher)
-(add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-connected)
-
 (map! :leader
       "c x" #'consult-flymake
       "p x" #'consult-flymake-project)
