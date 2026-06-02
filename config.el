@@ -138,6 +138,23 @@
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
 (setq enable-local-eval t)
+
+;; Memoize per buffer: scope.el calls `trusted-content-p' once per macro during elisp
+;; fontification, and each call file-truename's the nix-store symlink farms in
+;; `trusted-content' (~280ms / 60% of a full config.el fontify, the bulk of scroll stalls).
+(defvar-local +trusted-content-p--cache nil
+  "Memoized `(SIGNATURE . RESULT)' for `trusted-content-p' in this buffer.")
+(defun +trusted-content-p--memoize (orig)
+  "Cache `trusted-content-p' (ORIG) per buffer, keyed on the inputs it reads."
+  (let ((sig (list untrusted-content trusted-content buffer-file-truename)))
+    (if (and +trusted-content-p--cache
+             (equal (car +trusted-content-p--cache) sig))
+        (cdr +trusted-content-p--cache)
+      (let ((result (funcall orig)))
+        (setq +trusted-content-p--cache (cons sig result))
+        result))))
+(when (fboundp 'trusted-content-p)
+  (advice-add 'trusted-content-p :around #'+trusted-content-p--memoize))
 (setq with-editor-emacsclient-executable (executable-find "emacsclient"))
 (setopt forge-database-connector 'sqlite-builtin)
 
@@ -192,6 +209,25 @@
 
 ;; UI
 (defvar-local +doom-modeline--git-worktree-cache 'unset)
+(defvar +doom-modeline-scroll-commands
+  '(ultra-scroll ultra-scroll-up ultra-scroll-down
+    mwheel-scroll pixel-scroll-precision pixel-scroll-precision-scroll-down
+    scroll-up-command scroll-down-command
+    evil-scroll-up evil-scroll-down evil-scroll-line-up evil-scroll-line-down
+    evil-scroll-page-up evil-scroll-page-down)
+  "Commands during which the modeline is served from cache, not recomputed.")
+(defvar-local +doom-modeline--scroll-cache nil
+  "Cached `doom-modeline-format--main' output, reused for the duration of a scroll.")
+(defun +doom-modeline--cache-during-scroll (orig &rest args)
+  "Serve a `format-mode-line'-flattened cached modeline (ORIG) during scroll.
+ORIG returns a construct of live `:eval' segment forms; flattening to a string
+is what stops redisplay re-running every segment on each `posn-at-point' call
+mid-scroll."
+  (if (memq this-command +doom-modeline-scroll-commands)
+      (or +doom-modeline--scroll-cache
+          (setq +doom-modeline--scroll-cache (format-mode-line (apply orig args))))
+    (setq +doom-modeline--scroll-cache nil)
+    (apply orig args)))
 (use-package! doom-modeline
   :config
   (setq doom-modeline-lsp nil
@@ -200,7 +236,9 @@
               (lambda (orig)
                 (if (eq +doom-modeline--git-worktree-cache 'unset)
                     (setq +doom-modeline--git-worktree-cache (funcall orig))
-                  +doom-modeline--git-worktree-cache))))
+                  +doom-modeline--git-worktree-cache)))
+  ;; ultra-scroll reformats the modeline via posn-at-point every step; cache a flattened string during scroll so segments don't re-run.
+  (advice-add 'doom-modeline-format--main :around #'+doom-modeline--cache-during-scroll))
 
 (use-package! spacious-padding
   :hook '((after-init . spacious-padding-mode))
