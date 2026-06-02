@@ -862,7 +862,9 @@ parent dir, so eglot launches with the direnv-provided server."
         (when (eglot--lookup-mode major-mode)
           (if (eglot-current-server)
               (eglot-reconnect (eglot-current-server))
-            (lsp!))))
+            (condition-case-unless-debug oops
+                (apply #'eglot--connect (eglot--guess-contact))
+              (error (eglot--warn (error-message-string oops)))))))
        ((> tries 0)
         (run-at-time 0.1 nil
                      (lambda ()
