@@ -191,10 +191,16 @@
 (add-hook! global-hl-line-modes (hl-line-mode +1))
 
 ;; UI
+(defvar-local +doom-modeline--git-worktree-cache 'unset)
 (use-package! doom-modeline
   :config
   (setq doom-modeline-lsp nil
-        doom-modeline-hud t))
+        doom-modeline-hud t)
+  (advice-add 'doom-modeline--in-git-worktree-p :around
+              (lambda (orig)
+                (if (eq +doom-modeline--git-worktree-cache 'unset)
+                    (setq +doom-modeline--git-worktree-cache (funcall orig))
+                  +doom-modeline--git-worktree-cache))))
 
 (use-package! spacious-padding
   :hook '((after-init . spacious-padding-mode))
@@ -894,7 +900,15 @@ parent dir, so eglot launches with the direnv-provided server."
   :defer t
   :hook '((flymake-mode . sideline-mode))
   :init
-  (setq sideline-force-display-if-exceeds t))
+  (setq sideline-force-display-if-exceeds t)
+
+  (advice-add 'sideline--post-command :around
+              (lambda (orig)
+                (if (memq this-command '(ultra-scroll-up ultra-scroll-down ultra-scroll
+                                         mwheel-scroll pixel-scroll-precision
+                                         scroll-up-command scroll-down-command))
+                    (sideline--delete-ovs)   ; clear overlays, skip the recompute
+                  (funcall orig)))))
 
 (use-package! sideline-flymake
   :after sideline flymake
@@ -1203,6 +1217,28 @@ REQUEST looks like ((:method . STR) (:params . ALIST))."
                    acp-make-session-resume-request
                    acp-make-session-fork-request))
       (advice-add sym :filter-return #'my/claude-acp-inject-session-meta))))
+
+;; agent-shell's heartbeat rebuilds the header-line ~10x/sec; each rebuild ran
+;; `where-is-internal' 3x (a ~5ms keymap search) to recompute keybindings that
+;; never change -- ~17ms/beat, a steady CPU drain that makes scrolling janky
+;; while the agent is busy. Memoize those lookups (26x faster header update).
+(defvar +agent-shell--where-is-cache (make-hash-table :test 'equal)
+  "Memoized `where-is-internal' results for agent-shell's header commands.")
+(defun +agent-shell--cache-where-is (orig def &optional keymap firstonly &rest args)
+  "Cache `where-is-internal' for agent-shell's constant header keybindings."
+  (if (and (boundp 'agent-shell-mode-map)
+           (eq keymap agent-shell-mode-map)
+           (memq def '(agent-shell-set-session-model
+                       agent-shell-set-session-mode
+                       agent-shell-set-session-thought-level)))
+      (let* ((key (list def firstonly))
+             (cached (gethash key +agent-shell--where-is-cache :miss)))
+        (if (eq cached :miss)
+            (puthash key (apply orig def keymap firstonly args)
+                     +agent-shell--where-is-cache)
+          cached))
+    (apply orig def keymap firstonly args)))
+(advice-add 'where-is-internal :around #'+agent-shell--cache-where-is)
 
 (use-package! agent-shell-ediff
   :after agent-shell

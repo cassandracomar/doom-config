@@ -7,7 +7,8 @@
 (declare-function WorkDoneProgress nil nil)
 
 ;; uncomment to debug lsp events
-;; (cl-callf plist-put eglot-events-buffer-config :size 2000000)
+;; (cl-callf plist-put eglot-events-buffer-config :size 0)
+(setq eglot-events-buffer-config '(:size 0 :format full))
 (add-hook! terraform-mode
   (setq-local completion-at-point-functions #'eglot-completion-at-point))
 (set-eglot-client! '(terraform-mode :language-id "opentofu") '("tofu-ls" "serve") "tofu-ls")
@@ -127,36 +128,68 @@
                                         :maxItemsComputed 5000)
                                  :tofu-ls (:validation (:enableEnhancedValidation t))))
 
-(defvar +eglot-post-load-hook
-  '()
-  "hooks to run after the server has finished loading the project.
-each hook is run for each project buffer.")
+(defvar +eglot-post-load-hook '()
+  "Hook run after a managed server settles (e.g. finishes indexing).
+Each function is called with one argument, the eglot SERVER, in each of the
+server's displayed buffers (with that buffer current).  Run debounced per
+server -- on `$/progress' end and on `workspace/inlayHint/refresh' -- so an
+indexing burst collapses into a single run once the server goes quiet.  Use it
+for UI that eglot pulls lazily and won't re-render on its own.")
+
+(defvar +eglot--post-load-timers (make-hash-table :test 'eq)
+  "Per-server debounce timers for `+eglot-post-load-hook'.")
+
+(defun +eglot--run-post-load (server)
+  "Debounced: run `+eglot-post-load-hook' in each displayed buffer of SERVER."
+  (let ((existing (gethash server +eglot--post-load-timers)))
+    (when (timerp existing) (cancel-timer existing)))
+  (puthash server
+           (run-at-time
+            0.5 nil
+            (lambda ()
+              (remhash server +eglot--post-load-timers)
+              (when (jsonrpc-running-p server)
+                (dolist (buf (eglot--managed-buffers server))
+                  (eglot--when-buffer-window buf
+                    (run-hook-with-args '+eglot-post-load-hook server))))))
+           +eglot--post-load-timers))
+
+(defun +eglot-refresh-inlay-hints-h (_server)
+  "Re-pull inlay hints for the current buffer's visible windows."
+  (when (bound-and-true-p eglot-inlay-hints-mode)
+    (dolist (win (get-buffer-window-list nil nil t))
+      (eglot--update-hints-1 (window-start win) (window-end win t)))))
+
+(defun +eglot-refresh-flymake-h (_server)
+  "Re-run flymake backends in the current buffer."
+  (when (bound-and-true-p flymake-mode)
+    (flymake-start)))
+
+(add-hook '+eglot-post-load-hook #'+eglot-refresh-inlay-hints-h)
+(add-hook '+eglot-post-load-hook #'+eglot-refresh-flymake-h)
+
+(defun +eglot--advertise-inlayhint-refresh (caps)
+  "Add `workspace.inlayHint.refreshSupport' to eglot client CAPS."
+  (plist-put caps :workspace
+             (plist-put (plist-get caps :workspace)
+                        :inlayHint '(:refreshSupport t)))
+  caps)
+(advice-add 'eglot-client-capabilities :filter-return #'+eglot--advertise-inlayhint-refresh)
+
+(cl-defmethod eglot-handle-request
+  (server (_method (eql workspace/inlayHint/refresh)))
+  "Run post-load refreshers when SERVER requests an inlay-hint refresh."
+  (+eglot--run-post-load server)
+  nil)
 
 (cl-defmethod eglot-handle-notification :after
   (server (_method (eql $/progress)) &key _token value)
-  "wait for the server to finish loading the project before attempting to
-render inlay hints and semantic tokens. because eglot doesn't wait for the
-server to finish loading/indexing the project completely before running most of
-the available hooks, it gets back an empty set of inlay hints/semantic tokens
-initially. these UI elements do update after an edit to the document via
-`eglot--document-changed-hook' -- however, this isn't a great substitute for
-just refreshing these UI elements after the server has loaded.
-
-configure the refreshes to take place post-load via `+eglot-post-load-hook'"
-  ;; if your server provides a specific token for specific kinds of $/progress events,
-  ;; you can wrap this in a `(when (equal token "$TOKEN") ...)'
-  ;; e.g. rust-analyzer uses "rustAnalyzer/Indexing"
-  (cl-flet* ((run-post-load-hooks (buf)
-               (eglot--when-buffer-window
-                   buf
-                 (run-hooks '+eglot-post-load-hook)))
-             (refreshf ()
-               (let ((buffers (eglot--managed-buffers server)))
-                 (dolist (buf buffers)
-                   (run-post-load-hooks buf)))))
-    (eglot--dbind ((WorkDoneProgress) kind _title _percentage _message) value
-      (pcase kind
-        ("end" (refreshf))))))
+  "Run `+eglot-post-load-hook' once SERVER goes quiet after reporting progress.
+Hints (and other lazily-rendered UI) requested mid-indexing come back empty or
+stale; refreshing when a progress sequence ends fills them in without a scroll."
+  (eglot--dbind ((WorkDoneProgress) kind) value
+    (when (equal kind "end")
+      (+eglot--run-post-load server))))
 
 (map! :leader
       "c x" #'consult-flymake
