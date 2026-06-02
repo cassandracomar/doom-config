@@ -53,7 +53,7 @@
 (package! docker-tramp :disable t)
 (package! flymake-popon :disable t)
 ;; version bumps
-(package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "a7c773fac315f640526a6f35cd3c60edaa51b2b4")
+(package! envrc :recipe (:host github :repo "cassandracomar/envrc" :branch "master") :pin "db5b31e94b9aeb477420e5e80610c12d0d1b4bd6")
 ;; (package! eglot :pin "78bd85f1b50a7256e9c6171094544fd68f0a0b0c")
 
 ;; new packages
