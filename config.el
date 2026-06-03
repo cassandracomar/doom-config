@@ -208,6 +208,9 @@
 (add-hook! global-hl-line-modes (hl-line-mode +1))
 
 ;; evil
+(setq! evil-want-minibuffer t
+       evil-kill-on-visual-paste nil)
+(add-hook! 'minibuffer-setup-hook :append (evil-insert-state))
 (use-package! evil-collection
   :after evil
   :init
@@ -397,7 +400,13 @@ mid-scroll."
       "C-r" #'consult-history)
 (map! :map vertico-map
       "<tab>" #'vertico-insert
-      [backtab] #'vertico-previous)
+      [backtab] #'vertico-previous
+      :n "RET" #'vertico-exit
+      :n "<return>" #'vertico-exit
+      :n "<up>" #'vertico-previous
+      :n "<down>" #'vertico-next)
+(map! :map read--expression-map
+      :n "RET" #'read--expression-try-read)
 (map! :leader "b b" #'consult-buffer)
 (map! :leader "o u" #'undo-tree-visualize)
 (map! :leader
