@@ -207,6 +207,12 @@
 (remove-hook! 'doom-first-buffer-hook #'global-hl-line-mode)
 (add-hook! global-hl-line-modes (hl-line-mode +1))
 
+;; evil
+(use-package! evil-collection
+  :after evil
+  :init
+  (setq evil-collection-setup-minibuffer t))
+
 ;; UI
 (defvar-local +doom-modeline--git-worktree-cache 'unset)
 (defvar +doom-modeline-scroll-commands
@@ -666,6 +672,13 @@ Based on `so-long-detected-long-line-p'."
   (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-ts-mode)))
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
+
+(use-package! nix-ts-mode
+  :defer t
+  :mode "\\.nix\\'"
+  :config
+  (sp-with-modes '(nix-mode nix-ts-mode)
+    (sp-local-pair "''" "''")))
 
 ;; haskell stuff
 (plist-put! +ligatures-extra-symbols
