@@ -214,7 +214,8 @@
 (use-package! evil-collection
   :after evil
   :init
-  (setq evil-collection-setup-minibuffer t))
+  (setq evil-collection-setup-minibuffer t
+        evil-collection-repl-submit-state 'normal))
 
 ;; UI
 (defvar-local +doom-modeline--git-worktree-cache 'unset)
@@ -1249,7 +1250,12 @@ the start of the line."
                               :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
                               :desc "Transcript"               :localleader        :n       "T"         #'agent-shell-open-transcript
                               :desc "Usage"                    :localleader        :n       "u"         #'agent-shell-show-usage)
-  (map! :map agent-shell-mode-map :n "?" #'+agent-shell-menu)
+  (map! :map agent-shell-mode-map
+        :n "?" #'+agent-shell-menu
+        :n "RET" #'comint-send-input
+        :n "<return>" #'comint-send-input
+        :i "RET" #'newline
+        :i "<return>" #'newline)
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
 
