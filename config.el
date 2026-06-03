@@ -221,7 +221,8 @@
     scroll-up-command scroll-down-command
     evil-scroll-up evil-scroll-down evil-scroll-line-up evil-scroll-line-down
     evil-scroll-page-up evil-scroll-page-down)
-  "Commands during which the modeline is served from cache, not recomputed.")
+  "Commands during which scroll-triggered recomputation (modeline, evil cursor)
+is skipped.")
 (defvar-local +doom-modeline--scroll-cache nil
   "Cached `doom-modeline-format--main' output, reused for the duration of a scroll.")
 (defun +doom-modeline--cache-during-scroll (orig &rest args)
@@ -245,6 +246,14 @@ mid-scroll."
                   +doom-modeline--git-worktree-cache)))
   ;; ultra-scroll reformats the modeline via posn-at-point every step; cache a flattened string during scroll so segments don't re-run.
   (advice-add 'doom-modeline-format--main :around #'+doom-modeline--cache-during-scroll))
+
+;; evil advises `select-window' to refresh the cursor; ultra-scroll calls it heavily per scroll, so skip the refresh during scroll (cursor can't change mid-scroll).
+(defun +evil--skip-cursor-refresh-during-scroll (orig &rest args)
+  "Skip evil's `select-window'-triggered cursor refresh (ORIG) during scroll."
+  (unless (memq this-command +doom-modeline-scroll-commands)
+    (apply orig args)))
+(when (fboundp 'evil--sw-refresh-cursor)
+  (advice-add 'evil--sw-refresh-cursor :around #'+evil--skip-cursor-refresh-during-scroll))
 
 (use-package! spacious-padding
   :hook '((after-init . spacious-padding-mode))
