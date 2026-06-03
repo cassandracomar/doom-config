@@ -1206,7 +1206,7 @@ the start of the line."
                     (value . (lambda () (auth-source-rbw-get "grafana-svc-token"))))
                    ((name . "GRAFANA_ORG_ID") (value . "7")))))
           ((name . "influxdb")
-           (command . (lambda () (format "%s/.npm-global/bin/influxdb-mcp-server" (getenv "HOME")) ))
+           (command . (lambda () (format "%s/.npm-global/bin/influxdb-mcp-server" (getenv "HOME"))))
            (args . ())
            (env . (((name . "INFLUXDB_TOKEN")
                     (value . (lambda () (auth-source-rbw-get "influxdb-token"))))
@@ -1215,7 +1215,14 @@ the start of the line."
           ((name . "up-slack")
            (type . "http")
            (headers . (((name . "x-portkey-api-key") (value . (lambda () (auth-source-rbw-get "anthropic-api-key"))))))
-           (url . "https://mcp.ai.drwcloud.com/slack/mcp"))))
+           (url . "https://mcp.ai.drwcloud.com/slack/mcp"))
+          ((name . "mcp-atlassian")
+           (command . "uvx")
+           (args . ("mcp-atlassian"))
+           (env . (((name . "JIRA_URL") (value . "https://jira.drwholdings.com"))
+                   ((name . "JIRA_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "jira-token"))))
+                   ((name . "CONFLUENCE_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "confluence-token"))))
+                   ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))))
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
                               "Agent shell commands."
