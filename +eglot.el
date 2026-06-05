@@ -126,7 +126,9 @@
                                         :validate t
                                         :format (:enable t)
                                         :maxItemsComputed 5000)
-                                 :tofu-ls (:validation (:enableEnhancedValidation t))))
+                                 :tofu-ls (:validation (:enableEnhancedValidation t))
+                                 :ruff (:lint (:preview t)
+                                        :format (:preview t))))
 
 (defvar +eglot-post-load-hook '()
   "Hook run after a managed server settles (e.g. finishes indexing).
