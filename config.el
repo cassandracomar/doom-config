@@ -688,7 +688,12 @@ Based on `so-long-detected-long-line-p'."
   :hook '((markdown-mode . auto-fill-mode))
   :config
   (add-to-list 'markdown-code-lang-modes '("nix" . nix-ts-mode))
-  (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-ts-mode)))
+  (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-ts-mode))
+  ;; inline mermaid diagram previews; loaded lazily with markdown-mode
+  (load! "+mermaid-markdown")
+  (map! :map markdown-mode-map
+        :localleader
+        :n "d" #'+markdown-mermaid-render-buffer))
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 
@@ -704,7 +709,7 @@ Based on `so-long-detected-long-line-p'."
             :type "⦂"
             :composition "∘"
             :dot ".")
-(setq +ligatures-prog-mode-list '("<=<" ">=>" ">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "<*" "<*>" "*>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" "<<<<" ">>>>" ">>>" "<<<" ">>" "<<" ".." "..." "<|" "|>" "<>"))
+(setq +ligatures-prog-mode-list '("<=<" ">=>" ">>=" ">>-" "=<<" "-<<" "<." "<.>" ".>" "<*" "<*>" "*>" "\\/" "/\\" "==>" "<==" "/=" "==" "->" "<-" "=>" "<=" "||" "&&" "<|>" "<<<<" ">>>>" ">>>" "<<<" ">>" "<<" ".." "..." "<|" "|>" "<>" "--" "---"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
 
 (use-package! haskell-mode
