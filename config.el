@@ -18,9 +18,9 @@
 ;;
 ;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
 ;; font string. You generally only need these two:
-(setq doom-font "Iosevka Nerd Font Mono:size=20:weight=light")
-(setq doom-symbol-font "Iosevka Nerd Font Mono")
-(setq nerd-icons-font-family "Iosevka Nerd Font Mono")
+(setq doom-font "Iosevka Nerd Font:size=20:weight=light")
+(setq doom-symbol-font "Iosevka Nerd Font")
+(setq nerd-icons-font-family "Iosevka Nerd Font")
 (setq doom-emoji-fallback-font-families
       '("Noto Color Emoji"
         "Apple Color Emoji"
