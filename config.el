@@ -1247,7 +1247,7 @@ the start of the line."
                               :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
                               :desc "Forward block"                                :n       "C-n"       #'agent-shell-ui-forward-block
                               :desc "Backward block"                               :n       "C-p"       #'agent-shell-ui-backward-block
-                              :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment-at-point
+                              :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment
                               :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
 
                               :block "Compose"
