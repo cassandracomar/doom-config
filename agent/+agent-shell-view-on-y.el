@@ -11,12 +11,18 @@
 
 (define-advice agent-shell--make-tool-call-permission-text
     (:override (&rest args) view-on-y-for-edits)
-  "When diff is available, bind y to view and remove the Allow button."
-  (cl-destructuring-bind (&key acp-request client state) args
-    (let* ((tool-call-id (map-nested-elt acp-request '(params toolCall toolCallId)))
-           (diff (map-nested-elt state `(:tool-calls ,tool-call-id :diff)))
-           (all-actions (agent-shell--make-permission-actions
-                         (map-nested-elt acp-request '(params options))))
+  "When diff is available, bind y to view and remove the Allow button.
+
+As of agent-shell commit 877c98a the upstream function takes the
+stored tool-call alist (:tool-call/:tool-call-id) rather than the
+raw :acp-request, so we read diff, request-id and actions from
+there.  Keeping the old signature made this :override throw
+\"Keyword argument :tool-call not one of ...\", which aborted the
+permission render so no dialog ever appeared."
+  (cl-destructuring-bind (&key tool-call tool-call-id client state) args
+    (let* ((diff (map-elt tool-call :diff))
+           (request-id (map-elt tool-call :permission-request-id))
+           (all-actions (map-elt tool-call :permission-actions))
            ;; When diff exists, filter allow_once from displayed buttons
            (actions (if diff
                         (seq-remove (lambda (a) (equal (map-elt a :kind) "allow_once"))
@@ -32,7 +38,7 @@
                                        (interactive)
                                        (agent-shell--send-permission-response
                                         :client client
-                                        :request-id (map-elt acp-request 'id)
+                                        :request-id request-id
                                         :option-id (map-elt action :option-id)
                                         :state state
                                         :tool-call-id tool-call-id
@@ -47,7 +53,7 @@
                                     ;; Pass all-actions so accept/reject works in the diff viewer
                                     :actions all-actions
                                     :client client
-                                    :request-id (map-elt acp-request 'id)
+                                    :request-id request-id
                                     :state state
                                     :tool-call-id tool-call-id)))
                      (define-key map (kbd "C-c C-c")
@@ -56,7 +62,7 @@
                                    (with-current-buffer shell-buffer
                                      (agent-shell-interrupt t))))
                      map))
-           (title (agent-shell--permission-title :acp-request acp-request))
+           (title (agent-shell--permission-title :tool-call tool-call))
            (diff-button (when diff
                           (agent-shell--make-permission-button
                            :text (format "View (%s)" view-char)
@@ -65,7 +71,7 @@
                                     :diff diff
                                     :actions all-actions
                                     :client client
-                                    :request-id (map-elt acp-request 'id)
+                                    :request-id request-id
                                     :state state
                                     :tool-call-id tool-call-id)
                            :keymap keymap
@@ -102,7 +108,7 @@
                                       (interactive)
                                       (agent-shell--send-permission-response
                                        :client client
-                                       :request-id (map-elt acp-request 'id)
+                                       :request-id request-id
                                        :option-id (map-elt action :option-id)
                                        :state state
                                        :tool-call-id tool-call-id
