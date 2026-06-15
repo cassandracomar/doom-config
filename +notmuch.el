@@ -5,6 +5,25 @@
   (setq consult-notmuch-export-function #'notmuch-tree)
   (add-to-list 'embark-exporters-alist '(notmuch-result . consult-notmuch-export)))
 
+;;; --- fix recursive notmuch-show-hook expansion (native-compile lexical bug) ---
+(defvar +notmuch-show--expanding nil
+  "Non-nil while `+notmuch-show-expand-only-unread-h' is filtering.
+Guards against unbounded recursion: Doom's stock guard rebinds
+`notmuch-show-hook', which is a no-op when the function is
+native-compiled before notmuch makes that variable special.")
+
+(defun +notmuch-show-expand-only-unread-h ()
+  "Show only unread messages in a thread, collapsing the rest.
+Re-entrancy-guarded replacement for Doom's version."
+  (unless +notmuch-show--expanding
+    (let ((+notmuch-show--expanding t)
+          (unread nil))
+      (notmuch-show-mapc
+       (lambda () (when (member "unread" (notmuch-show-get-tags))
+                    (setq unread t))))
+      (when unread
+        (notmuch-show-filter-thread "tag:unread")))))
+
 (defun +notmuch-find-tag ()
   (interactive)
   (let* ((tag (notmuch-select-tag-with-completion "notmuch tag: "))
