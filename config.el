@@ -722,12 +722,6 @@ Based on `so-long-detected-long-line-p'."
                                   "|]" "<!--" "<!---" "<<=" "(*" "*)" "/*" "*/"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
 
-(use-package! haskell-mode
-  :defer t
-  :config
-  (add-hook 'haskell-mode-hook #'lsp!)
-  (set-eglot-client! '(haskell-mode haskell-ts-mode) '("haskell-language-server-wrapper" "-d" "lsp") "haskell-language-server"))
-
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
     :lambda "\\"
