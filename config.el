@@ -115,7 +115,7 @@
 ;;               (add-hook 'after-focus-change-function
 ;;                         (lambda ()
 ;;                           (igc-collect))))))
-(gcmh-mode)
+(add-hook! 'doom-first-buffer-hook #'gcmh-mode)
 
 ;; ENVIRONMENT
 (defun +gpgconf-set-agent-env ()
