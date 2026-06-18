@@ -677,6 +677,7 @@ Based on `so-long-detected-long-line-p'."
 
 (use-package! rustic
   :defer t
+  :hook '((rustic-mode . lsp!))
   :config
   (setq rustic-format-on-save t))
 
