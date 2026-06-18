@@ -103,18 +103,18 @@
 
 (add-to-list 'load-path doom-user-dir)
 
-(igc-start-idle-timer)
+;; (igc-start-idle-timer)
 
-(add-hook 'emacs-startup-hook
-          (lambda ()
-            (if (boundp 'after-focus-change-function)
-                (add-function :after after-focus-change-function
-                              (lambda ()
-                                (unless (frame-focus-state)
-                                  (igc-collect))))
-              (add-hook 'after-focus-change-function
-                        (lambda ()
-                          (igc-collect))))))
+;; (add-hook 'emacs-startup-hook
+;;           (lambda ()
+;;             (if (boundp 'after-focus-change-function)
+;;                 (add-function :after after-focus-change-function
+;;                               (lambda ()
+;;                                 (unless (frame-focus-state)
+;;                                   (igc-collect))))
+;;               (add-hook 'after-focus-change-function
+;;                         (lambda ()
+;;                           (igc-collect))))))
 
 ;; ENVIRONMENT
 (defun +gpgconf-set-agent-env ()
