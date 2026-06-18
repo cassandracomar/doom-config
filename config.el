@@ -954,7 +954,7 @@ parent dir, so eglot launches with the direnv-provided server."
                 (apply #'eglot--connect (eglot--guess-contact))
               (error (eglot--warn (error-message-string oops)))))))
        ((> tries 0)
-        (run-at-time 0.1 nil
+        (run-at-time 1 nil
                      (lambda ()
                        (when (buffer-live-p buf)
                          (with-current-buffer buf
