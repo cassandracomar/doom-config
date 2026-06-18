@@ -942,8 +942,9 @@ is mid-`envrc--apply' -- before `exec-path'/`process-environment' are
 installed and before the direnv process leaves `envrc--processes'.  Defer
 via a timer and poll until no envrc process remains for this dir or any
 parent dir, so eglot launches with the direnv-provided server."
-    (let ((tries (or tries 100))
-          (buf (current-buffer)))
+    (when-let* ((tries (or tries 100))
+                (buf (current-buffer))
+                (mode-is-prog-mode (derived-mode-p 'prog-mode)))
       (cond
        ((+eglot--envrc-settled-p)
         (when (eglot--lookup-mode major-mode)
