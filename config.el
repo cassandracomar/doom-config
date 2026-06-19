@@ -1020,6 +1020,7 @@ parent dir, so eglot launches with the direnv-provided server."
   :commands +eat/here eat
   :init
   (setq process-adaptive-read-buffering t)
+  (setq read-process-output-max (* 4 1024 1024))
   ;; add the eat terminfo dir in the nix store (/nix/store/*-emacs-eat-*/share/terminfo) to TERMINFO_DIRS
   (let* ((eat-path (file-truename (locate-library "eat.el")))
          (split-path (file-name-split eat-path))
