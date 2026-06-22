@@ -14,8 +14,13 @@
 ;;      Alternatively, press 'gd' (or 'C-c g d') on a module to browse its
 ;;      directory (for easy access to its source code).
 
-(eval-when-compile (require 'cl-lib))
-(require 'cl-lib)
+(defun +unstraightened-require-cl-lib (_profile)
+  "Emit an early profile fragment that loads cl-lib before doom's
+autoloaded `cl-defstruct' forms are eagerly macro-expanded."
+  (doom-file-write "01-cl-lib.init.el" '((require 'cl-lib))))
+
+(with-eval-after-load 'doom-profiles
+  (add-to-list 'doom-profile-generate-functions #'+unstraightened-require-cl-lib))
 (setopt package-native-compile t)
 (setopt native-comp-jit-compilation nil)
 (doom! :input
