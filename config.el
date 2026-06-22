@@ -320,11 +320,23 @@ mid-scroll."
     '(haskell-definition-face :inherit haskell-keyword-face)))
 
 (after! eglot
+  (defface my-font-lock-variable-use-face
+    '((t (:foreground "#fda135")))
+    "basic type parameter face"
+    :group 'basic-faces)
+  (defface my-font-lock-type-face
+    '((t (:foreground "#5c9cff")))
+    "basic type parameter face"
+    :group 'basic-faces)
+  (defface my-font-lock-type-parameter-face
+    '((t (:foreground "#66d9ef")))
+    "basic type parameter face"
+    :group 'basic-faces)
+  (defface my-font-lock-constant-face
+    '((t (:inherit font-lock-property-use-face)))
+    "basic type parameter face"
+    :group 'basic-faces)
   (custom-set-faces!
-    '(my-font-lock-variable-use-face :foreground "#fda135")
-    '(my-font-lock-type-face :foreground "#5c9cff")
-    '(my-font-lock-type-parameter-face :foreground "#66d9ef")
-    '(my-font-lock-constant-face :inherit font-lock-property-use-face)
     '(eglot-semantic-namespace :foreground "#fb3d81")
     '(eglot-semantic-type :inherit my-font-lock-type-face)
     '(eglot-semantic-class :inherit elisp-symbol-role)
