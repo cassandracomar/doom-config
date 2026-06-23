@@ -1220,6 +1220,7 @@ the start of the line."
          "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
         agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
         agent-shell-anthropic-default-model-id "claude-opus-4-8[1m]"
+        agent-shell-session-restore-verbosity 'last
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
           (mode . agent-shell-mode)
