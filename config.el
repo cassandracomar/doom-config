@@ -1284,6 +1284,24 @@ the start of the line."
   (load! "agent/+agent-shell-title-fix")
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
 
+(after! agent-shell-markdown
+  (load! "agent/+markdown-table")
+
+  (+agent-shell-markdown-table-apply-faces)
+  (add-hook! 'doom-load-theme-hook #'+agent-shell-markdown-table-apply-faces)
+  (advice-remove 'agent-shell-markdown--parse-table-row
+                 #'+agent-shell-markdown--parse-table-row)
+  (advice-add 'agent-shell-markdown--parse-table-row
+              :filter-return #'+agent-shell-markdown--parse-table-row)
+  (advice-remove 'agent-shell-markdown--text-has-face-p
+                 #'+agent-shell-markdown--text-has-face-p)
+  (advice-add 'agent-shell-markdown--text-has-face-p
+              :around #'+agent-shell-markdown--text-has-face-p)
+  (advice-remove 'agent-shell-markdown--render-table-data-row
+                 #'+agent-shell-markdown--render-table-data-row)
+  (advice-add 'agent-shell-markdown--render-table-data-row
+              :around #'+agent-shell-markdown--render-table-data-row))
+
 ;; agent-shell's heartbeat rebuilds the header-line ~10x/sec; each rebuild ran
 ;; `where-is-internal' 3x (a ~5ms keymap search) to recompute keybindings that
 ;; never change -- ~17ms/beat, a steady CPU drain that makes scrolling janky
