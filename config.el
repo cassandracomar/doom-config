@@ -1218,7 +1218,7 @@ the start of the line."
          "ANTHROPIC_CUSTOM_HEADERS" (format "x-portkey-api-key: %s\nx-portkey-config: pc-bedroc-55aa53\nx-portkey-metadata: {\"service\": \"claude-code\", \"os\": \"linux\"}" (auth-source-rbw-get "anthropic-api-key"))
          "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-8[1m]"
          "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
-        agent-shell-anthropic-claude-acp-command (list (format "%s/.npm-global/bin/claude-agent-acp" (getenv "HOME")))
+        agent-shell-anthropic-claude-acp-command '("claude-agent-acp")
         agent-shell-anthropic-default-model-id "claude-opus-4-8[1m]"
         agent-shell-session-restore-verbosity 'last
         agent-shell-display-action
