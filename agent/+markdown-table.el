@@ -10,7 +10,7 @@
 
 (defface +agent-shell-markdown-table-inline-code
   '((t :inherit default))
-  "Inline code face used inside agent-shell markdown tables."
+  "Inline code face used inside `agent-shell' markdown tables."
   :group 'agent-shell-markdown)
 
 (defun +agent-shell-markdown-table-zebra-face ()
@@ -27,7 +27,7 @@
     (list :background (apply #'color-rgb-to-hex (append shifted '(2))))))
 
 (defun +agent-shell-markdown-table-apply-faces ()
-  "Use subtle default-derived faces for agent-shell markdown tables."
+  "Use subtle default-derived faces for `agent-shell' markdown tables."
   (let ((fg (face-foreground 'default nil t))
         (bg (face-background 'default nil t)))
     (set-face-attribute 'agent-shell-markdown-table-header nil
@@ -67,7 +67,7 @@ from being flattened by zebra striping."
   string)
 
 (defun +agent-shell-markdown-table-style-inline-code (string)
-  "Apply agent-shell inline-code rendering to table cell STRING."
+  "Apply `agent-shell' inline-code rendering to table cell STRING."
   (if (string-search "`" string)
       (let ((start 0)
             (parts nil))
@@ -107,7 +107,7 @@ from being flattened by zebra striping."
     (and saw-face only-table-inline-code)))
 
 (defun +agent-shell-markdown--text-has-face-p (orig text)
-  "Ignore table-safe inline-code faces for table metric decisions."
+  "Call ORIG on TEXT, ignoring table-safe inline-code faces."
   (and (funcall orig text)
        (not (+agent-shell-markdown-table-inline-code-only-p text))))
 
@@ -122,7 +122,7 @@ from being flattened by zebra striping."
           cells))
 
 (defun +agent-shell-markdown--render-table-data-row (orig &rest args)
-  "Render table rows without letting ROW-FACE override inline Markdown."
+  "Call ORIG with ARGS without letting ROW-FACE override inline Markdown."
   (let* ((row-face (plist-get args :row-face))
          (args-without-row-face (plist-put (copy-sequence args) :row-face nil))
          (rendered (apply orig args-without-row-face)))
