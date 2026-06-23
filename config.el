@@ -1317,6 +1317,21 @@ parent dir, so eglot launches with the direnv-provided server."
   (advice-add 'emcp-confirm-prompt :override #'+emcp-confirm-prompt)
   (remove-hook 'transient-setup-buffer-hook #'+emcp-confirm-transient-insert-body)
   (add-hook 'transient-setup-buffer-hook #'+emcp-confirm-transient-insert-body)
+
+  (defun +emcp-screenshot-frame-png (orig frame)
+    "Capture FRAME via ORIG, returning nil instead of failing the tool."
+    (when (memq (framep frame) '(x pgtk ns w32 haiku android))
+      (condition-case err
+          (funcall orig frame)
+        (error
+         (message "EMCP screenshot skipped frame %S: %s"
+                  (frame-parameter frame 'name)
+                  (error-message-string err))
+         nil))))
+
+  (with-eval-after-load 'emcp-screenshot
+    (advice-remove 'emcp-screenshot-frame-png #'+emcp-screenshot-frame-png)
+    (advice-add 'emcp-screenshot-frame-png :around #'+emcp-screenshot-frame-png))
   :custom
   (emcp-default-profile 'full-control))
 
