@@ -565,7 +565,7 @@ Based on `so-long-detected-long-line-p'."
           (projectile-find-dir . projectile-file)
           (projectile-switch-project . projectile-file)
           (execute-extended-command . command))))
-(after! projectile  
+(after! projectile
   (add-to-list 'projectile-globally-ignored-directories "dist-newstyle"))
 
 (use-package! consult-projectile
@@ -640,45 +640,45 @@ Based on `so-long-detected-long-line-p'."
     (apply #'ghub-query query variables args))
 
   (define-keys-and-transient! code-review-mode-map +code-review-menu
-                              "Code Review commands."
-                              :block "Review"
-                              :desc "Approve"                     :n "a"     #'code-review-submit-approve
-                              :desc "Request changes"             :n "r"     #'code-review-submit-request-changes
-                              :desc "Comment review"              :n "c"     #'code-review-submit-comments
-                              :desc "LGTM"                        :n "l"     #'code-review-submit-lgtm
-                              :desc "ediff"                       :n "e"     #'multi-file-ediff-code-review
+    "Code Review commands."
+    :block "Review"
+    :desc "Approve"                     :n "a"     #'code-review-submit-approve
+    :desc "Request changes"             :n "r"     #'code-review-submit-request-changes
+    :desc "Comment review"              :n "c"     #'code-review-submit-comments
+    :desc "LGTM"                        :n "l"     #'code-review-submit-lgtm
+    :desc "ediff"                       :n "e"     #'multi-file-ediff-code-review
 
-                              :block "Comments"
-                              :desc "Add/edit at point"           :n "C"     #'code-review-comment-add-or-edit
-                              :desc "Code suggestion"             :n "S"     #'code-review-comment-code-suggestion
-                              :desc "Submit replies only"         :n "P"     #'code-review-submit-only-replies
-                              :desc "Single diff comment"         :n "d"     #'code-review-submit-single-diff-comment-at-point
-                              :desc "Next comment"                :n "C-n"   #'code-review-comment-jump-next
-                              :desc "Prev comment"                :n "C-p"   #'code-review-comment-jump-previous
+    :block "Comments"
+    :desc "Add/edit at point"           :n "C"     #'code-review-comment-add-or-edit
+    :desc "Code suggestion"             :n "S"     #'code-review-comment-code-suggestion
+    :desc "Submit replies only"         :n "P"     #'code-review-submit-only-replies
+    :desc "Single diff comment"         :n "d"     #'code-review-submit-single-diff-comment-at-point
+    :desc "Next comment"                :n "C-n"   #'code-review-comment-jump-next
+    :desc "Prev comment"                :n "C-p"   #'code-review-comment-jump-previous
 
-                              :block "Merge"
-                              :desc "Merge"                       :n "m m"   #'code-review-merge-merge
-                              :desc "Merge rebase"                :n "m r"   #'code-review-merge-rebase
-                              :desc "Merge squash"                :n "m s"   #'code-review-merge-squash
+    :block "Merge"
+    :desc "Merge"                       :n "m m"   #'code-review-merge-merge
+    :desc "Merge rebase"                :n "m r"   #'code-review-merge-rebase
+    :desc "Merge squash"                :n "m s"   #'code-review-merge-squash
 
-                              :row
-                              :block "Set"
-                              :desc "Feedback"                    :n "s f"   #'code-review-set-feedback
-                              :desc "Reviewers"                   :n "s r"   #'code-review-request-reviews
-                              :desc "Assignee"                    :n "s a"   #'code-review-set-assignee
-                              :desc "Self-assign"                 :n "s y"   #'code-review-set-yourself-assignee
-                              :desc "Milestone"                   :n "s m"   #'code-review-set-milestone
-                              :desc "Labels"                      :n "s l"   #'code-review-set-label
-                              :desc "Title"                       :n "s t"   #'code-review-set-title
-                              :desc "Description"                 :n "s d"   #'code-review-set-description
+    :row
+    :block "Set"
+    :desc "Feedback"                    :n "s f"   #'code-review-set-feedback
+    :desc "Reviewers"                   :n "s r"   #'code-review-request-reviews
+    :desc "Assignee"                    :n "s a"   #'code-review-set-assignee
+    :desc "Self-assign"                 :n "s y"   #'code-review-set-yourself-assignee
+    :desc "Milestone"                   :n "s m"   #'code-review-set-milestone
+    :desc "Labels"                      :n "s l"   #'code-review-set-label
+    :desc "Title"                       :n "s t"   #'code-review-set-title
+    :desc "Description"                 :n "s d"   #'code-review-set-description
 
-                              :block "Toggle"
-                              :desc "All comments"                :n "t a"   #'code-review-toggle-display-all-comments
-                              :desc "Diff comments"               :n "t d"   #'code-review-toggle-display-diff-comments
-                              :desc "Top-level comments"          :n "t t"   #'code-review-toggle-display-top-level-comments
+    :block "Toggle"
+    :desc "All comments"                :n "t a"   #'code-review-toggle-display-all-comments
+    :desc "Diff comments"               :n "t d"   #'code-review-toggle-display-diff-comments
+    :desc "Top-level comments"          :n "t t"   #'code-review-toggle-display-top-level-comments
 
-                              :block "Buffer"
-                              :desc "Reload"                      :n "G"     #'code-review-reload)
+    :block "Buffer"
+    :desc "Reload"                      :n "G"     #'code-review-reload)
   (map! :map code-review-mode-map
         :n "?" #'+code-review-menu))
 
@@ -1155,34 +1155,39 @@ parent dir, so eglot launches with the direnv-provided server."
 (use-package! elisp-benchmarks
   :defer t)
 
-(defun +setup-claude-code-ide ()
-  ;; setup the mcp server
-  (require 'claude-code-ide)
-  (require 'claude-code-ide-mcp-server)
-  (setq claude-code-ide-enable-mcp-server t)
-  (claude-code-ide-emacs-tools-setup)
+;; (defun +setup-claude-code-ide ()
+;;   ;; setup the mcp server
+;;   (require 'claude-code-ide)
+;;   (require 'claude-code-ide-mcp-server)
+;;   (setq claude-code-ide-enable-mcp-server t)
+;;   (claude-code-ide-emacs-tools-setup)
 
-  ;; setup the mcp server extensions
-  (require 'claude-code-ide-extras-emacs)
-  (require 'claude-code-ide-extras-meta)
-  (require 'claude-code-ide-extras-projectile)
-  (claude-code-ide-extras-meta-setup)
-  (claude-code-ide-extras-emacs-setup)
-  (claude-code-ide-extras-projectile-setup))
+;;   ;; setup the mcp server extensions
+;;   (require 'claude-code-ide-extras-emacs)
+;;   (require 'claude-code-ide-extras-meta)
+;;   (require 'claude-code-ide-extras-projectile)
+;;   (claude-code-ide-extras-meta-setup)
+;;   (claude-code-ide-extras-emacs-setup)
+;;   (claude-code-ide-extras-projectile-setup))
 
-(defun +setup-emacs-mcp ()
-  (let* ((project-dir (agent-shell-cwd))
-         (session-id (format "agent-shell-%s-%s"
-                             (file-name-nondirectory
-                              (directory-file-name project-dir))
-                             (format-time-string "%Y%m%d-%H%M%S")))
-         (buffer (current-buffer)))
-    (claude-code-ide-mcp-server-register-session
-     session-id project-dir buffer)
-    (puthash project-dir session-id claude-code-ide--session-ids)
-    (format "http://localhost:%d/mcp/%s"
-            (claude-code-ide-mcp-server-ensure-server)
-            session-id)))
+;; (defun +setup-emacs-mcp ()
+;;   (let* ((project-dir (agent-shell-cwd))
+;;          (session-id (format "agent-shell-%s-%s"
+;;                              (file-name-nondirectory
+;;                               (directory-file-name project-dir))
+;;                              (format-time-string "%Y%m%d-%H%M%S")))
+;;          (buffer (current-buffer)))
+;;     (claude-code-ide-mcp-server-register-session
+;;      session-id project-dir buffer)
+;;     (puthash project-dir session-id claude-code-ide--session-ids)
+;;     (format "http://localhost:%d/mcp/%s"
+;;             (claude-code-ide-mcp-server-ensure-server)
+;;             session-id)))
+(use-package! emcp
+  :defer t
+  :after agent-shell
+  :custom
+  (emcp-default-profile . 'full-control))
 
 (use-package! shell-maker
   :defer t)
@@ -1192,7 +1197,7 @@ parent dir, so eglot launches with the direnv-provided server."
 
 (use-package! agent-shell
   :defer t
-  :commands agent-shell-anthropic-start-claude-code agent-shell
+  :commands agent-shell-anthropic-start-claude-code agent-shell-openai-start-codex agent-shell
   :config
   (defun +agent-shell-file-completion-at-point ()
     "Like `agent-shell--file-completion-at-point' but only after @."
@@ -1212,14 +1217,22 @@ the start of the line."
   (setq agent-shell-anthropic-authentication
         (agent-shell-anthropic-make-authentication
          :api-key (lambda () (identity "unused")))
+        agent-shell-openai-authentication
+        (agent-shell-openai-make-authentication
+         :api-key (lambda () (auth-source-rbw-get "anthropic-api-key")))
         agent-shell-anthropic-claude-environment
         (agent-shell-make-environment-variables
          "ANTHROPIC_AUTH_KEY" (auth-source-rbw-get "anthropic-api-key")
          "ANTHROPIC_CUSTOM_HEADERS" (format "x-portkey-api-key: %s\nx-portkey-config: pc-bedroc-55aa53\nx-portkey-metadata: {\"service\": \"claude-code\", \"os\": \"linux\"}" (auth-source-rbw-get "anthropic-api-key"))
          "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-8[1m]"
          "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
+        agent-shell-openai-codex-environment
+        (agent-shell-make-environment-variables
+         "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
         agent-shell-anthropic-claude-acp-command '("claude-agent-acp")
+        agent-shell-openai-codex-acp-command '("codex-acp")
         agent-shell-anthropic-default-model-id "claude-opus-4-8[1m]"
+        agent-shell-openai-default-model-id "gpt-5.5"
         agent-shell-session-restore-verbosity 'last
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
@@ -1231,8 +1244,15 @@ the start of the line."
            (type . "http")
            (headers . ())
            (url . (lambda ()
-                    (+setup-claude-code-ide)
-                    (+setup-emacs-mcp))))
+                    (require 'emcp)
+                    (let ((server (emcp-start emcp-default-profile)))
+                      (emcp-server-url server)))))
+          ;; ((name . "emacs")
+          ;;  (type . "http")
+          ;;  (headers . ())
+          ;;  (url . (lambda ()
+          ;;           (+setup-claude-code-ide)
+          ;;           (+setup-emacs-mcp))))
           ((name . "grafana")
            (command . "uvx")
            (args . ("mcp-grafana"))
@@ -1260,38 +1280,38 @@ the start of the line."
                    ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))))
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
-                              "Agent shell commands."
-                              ;;       desc                      prefix           state      key              cmd
-                              :block "Navigate"
-                              :desc "Next item"                                             "C-j"       #'agent-shell-next-item
-                              :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
-                              :desc "Forward block"                                :n       "C-n"       #'agent-shell-ui-forward-block
-                              :desc "Backward block"                               :n       "C-p"       #'agent-shell-ui-backward-block
-                              :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment
-                              :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
+    "Agent shell commands."
+    ;;       desc                      prefix           state      key              cmd
+    :block "Navigate"
+    :desc "Next item"                                             "C-j"       #'agent-shell-next-item
+    :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
+    :desc "Forward block"                                :n       "C-n"       #'agent-shell-ui-forward-block
+    :desc "Backward block"                               :n       "C-p"       #'agent-shell-ui-backward-block
+    :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment
+    :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
 
-                              :block "Compose"
-                              :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
-                              :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
-                              :desc "Send region"              :localleader        :n       "r"         #'agent-shell-send-region
-                              :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
-                              :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
+    :block "Compose"
+    :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
+    :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
+    :desc "Send region"              :localleader        :n       "r"         #'agent-shell-send-region
+    :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
+    :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
 
-                              :block "Session"
-                              :desc "Cycle mode"                                            "<C-tab>"   #'agent-shell-cycle-session-mode
-                              :desc "Set mode"                 :localleader        :n       "M"         #'agent-shell-set-session-mode
-                              :desc "Fork session"             :localleader        :n       "y"         #'agent-shell-fork
-                              :desc "Restart"                  :localleader        :n       "q"         #'agent-shell-restart
-                              :desc "Toggle shell"             :localleader        :n       "o"         #'agent-shell-toggle
+    :block "Session"
+    :desc "Cycle mode"                                            "<C-tab>"   #'agent-shell-cycle-session-mode
+    :desc "Set mode"                 :localleader        :n       "M"         #'agent-shell-set-session-mode
+    :desc "Fork session"             :localleader        :n       "y"         #'agent-shell-fork
+    :desc "Restart"                  :localleader        :n       "q"         #'agent-shell-restart
+    :desc "Toggle shell"             :localleader        :n       "o"         #'agent-shell-toggle
 
-                              :row
-                              :block "Launch"
-                              :desc "Start Claude"             :localleader        :n       "l"         #'agent-shell-anthropic-start-claude-code
+    :row
+    :block "Launch"
+    :desc "Start Codex"             :localleader        :n       "l"         #'agent-shell-openai-start-codex
 
-                              :block "Debug"
-                              :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
-                              :desc "Transcript"               :localleader        :n       "T"         #'agent-shell-open-transcript
-                              :desc "Usage"                    :localleader        :n       "u"         #'agent-shell-show-usage)
+    :block "Debug"
+    :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
+    :desc "Transcript"               :localleader        :n       "T"         #'agent-shell-open-transcript
+    :desc "Usage"                    :localleader        :n       "u"         #'agent-shell-show-usage)
   (map! :map agent-shell-mode-map
         :n "?" #'+agent-shell-menu
         :n "RET" #'comint-send-input
@@ -1304,36 +1324,37 @@ the start of the line."
   (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
   (load! "agent/+agent-shell-title-fix")
-  (load! "agent/agent-shell-vtable.el")
+  ;; (load! "agent/agent-shell-vtable.el")
   (agent-shell-vtable-global-mode)
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1))
 
   ;; fix Opus 4.7 adaptive thinking making it very stupid
-  (defun my/claude-acp-session-meta ()
-    "Return the _meta alist to inject into Claude Agent session requests."
-    '((claudeCode
-       . ((options . ((effort . "max")
-                      (thinking . ((type . "adaptive")
-                                   (display . "summarized")))))))))
+  ;;         (defun my/claude-acp-session-meta ()
+  ;;           "Return the _meta alist to inject into Claude Agent session requests."
+  ;;           '((claudeCode
+  ;;              . ((options . ((effort . "max")
+  ;;                             (thinking . ((type . "adaptive")
+  ;;                                          (display . "summarized")))))))))
 
-  (defun my/claude-acp-inject-session-meta (request)
-    "Mutate ACP session REQUEST alist to include Claude _meta.
-REQUEST looks like ((:method . STR) (:params . ALIST))."
-    (when-let* ((params-cell (assq :params request)))
-      (let ((meta-cell (assq '_meta (cdr params-cell)))
-            (claude-meta (my/claude-acp-session-meta)))
-        (if meta-cell
-            (setcdr meta-cell (append (cdr meta-cell) claude-meta))
-          (setcdr params-cell
-                  (cons (cons '_meta claude-meta) (cdr params-cell))))))
-    request)
+  ;;         (defun my/claude-acp-inject-session-meta (request)
+  ;;           "Mutate ACP session REQUEST alist to include Claude _meta.
+  ;; REQUEST looks like ((:method . STR) (:params . ALIST))."
+  ;;           (when-let* ((params-cell (assq :params request)))
+  ;;             (let ((meta-cell (assq '_meta (cdr params-cell)))
+  ;;                   (claude-meta (my/claude-acp-session-meta)))
+  ;;               (if meta-cell
+  ;;                   (setcdr meta-cell (append (cdr meta-cell) claude-meta))
+  ;;                 (setcdr params-cell
+  ;;                         (cons (cons '_meta claude-meta) (cdr params-cell))))))
+  ;;           request)
 
-  (with-eval-after-load 'acp
-    (dolist (sym '(acp-make-session-new-request
-                   acp-make-session-load-request
-                   acp-make-session-resume-request
-                   acp-make-session-fork-request))
-      (advice-add sym :filter-return #'my/claude-acp-inject-session-meta))))
+  ;;         (with-eval-after-load 'acp
+  ;;           (dolist (sym '(acp-make-session-new-request
+  ;;                          acp-make-session-load-request
+  ;;                          acp-make-session-resume-request
+  ;;                          acp-make-session-fork-request))
+  ;;             (advice-add sym :filter-return #'my/claude-acp-inject-session-meta)))
+  )
 
 ;; agent-shell's heartbeat rebuilds the header-line ~10x/sec; each rebuild ran
 ;; `where-is-internal' 3x (a ~5ms keymap search) to recompute keybindings that
@@ -1371,7 +1392,7 @@ REQUEST looks like ((:method . STR) (:params . ALIST))."
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
-(map! :leader :desc "Start Claude Code" "l l" #'agent-shell-anthropic-start-claude-code)
+(map! :leader :desc "Start Codex" "l l" #'agent-shell-openai-start-codex)
 
 (use-package! let-completion
   :defer t
