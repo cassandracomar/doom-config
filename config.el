@@ -1188,7 +1188,7 @@ parent dir, so eglot launches with the direnv-provided server."
   :defer t
   :after agent-shell
   :custom
-  (emcp-default-profile . 'full-control))
+  (emcp-default-profile 'full-control))
 
 (use-package! shell-maker
   :defer t)
