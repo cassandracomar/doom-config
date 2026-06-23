@@ -1156,34 +1156,6 @@ parent dir, so eglot launches with the direnv-provided server."
 (use-package! elisp-benchmarks
   :defer t)
 
-;; (defun +setup-claude-code-ide ()
-;;   ;; setup the mcp server
-;;   (require 'claude-code-ide)
-;;   (require 'claude-code-ide-mcp-server)
-;;   (setq claude-code-ide-enable-mcp-server t)
-;;   (claude-code-ide-emacs-tools-setup)
-
-;;   ;; setup the mcp server extensions
-;;   (require 'claude-code-ide-extras-emacs)
-;;   (require 'claude-code-ide-extras-meta)
-;;   (require 'claude-code-ide-extras-projectile)
-;;   (claude-code-ide-extras-meta-setup)
-;;   (claude-code-ide-extras-emacs-setup)
-;;   (claude-code-ide-extras-projectile-setup))
-
-;; (defun +setup-emacs-mcp ()
-;;   (let* ((project-dir (agent-shell-cwd))
-;;          (session-id (format "agent-shell-%s-%s"
-;;                              (file-name-nondirectory
-;;                               (directory-file-name project-dir))
-;;                              (format-time-string "%Y%m%d-%H%M%S")))
-;;          (buffer (current-buffer)))
-;;     (claude-code-ide-mcp-server-register-session
-;;      session-id project-dir buffer)
-;;     (puthash project-dir session-id claude-code-ide--session-ids)
-;;     (format "http://localhost:%d/mcp/%s"
-;;             (claude-code-ide-mcp-server-ensure-server)
-;;             session-id)))
 (use-package! emcp
   :defer t
   :after agent-shell
@@ -1217,24 +1189,13 @@ the start of the line."
       (agent-shell--command-completion-at-point)))
   (setq-hook! 'agent-shell-mode-hook
     completion-at-point-functions '(+agent-shell-command-completion-at-point +agent-shell-file-completion-at-point))
-  (setq agent-shell-anthropic-authentication
-        (agent-shell-anthropic-make-authentication
-         :api-key (lambda () (identity "unused")))
-        agent-shell-openai-authentication
+  (setq agent-shell-openai-authentication
         (agent-shell-openai-make-authentication
          :api-key (lambda () (auth-source-rbw-get "anthropic-api-key")))
-        agent-shell-anthropic-claude-environment
-        (agent-shell-make-environment-variables
-         "ANTHROPIC_AUTH_KEY" (auth-source-rbw-get "anthropic-api-key")
-         "ANTHROPIC_CUSTOM_HEADERS" (format "x-portkey-api-key: %s\nx-portkey-config: pc-bedroc-55aa53\nx-portkey-metadata: {\"service\": \"claude-code\", \"os\": \"linux\"}" (auth-source-rbw-get "anthropic-api-key"))
-         "ANTHROPIC_DEFAULT_OPUS_MODEL" "claude-opus-4-8[1m]"
-         "ANTHROPIC_DEFAULT_OPUS_MODE_SUPPORTED_CAPABILITIES" "adaptive_thinking")
         agent-shell-openai-codex-environment
         (agent-shell-make-environment-variables
          "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
-        agent-shell-anthropic-claude-acp-command '("claude-agent-acp")
         agent-shell-openai-codex-acp-command '("codex-acp")
-        agent-shell-anthropic-default-model-id "claude-opus-4-8[1m]"
         agent-shell-openai-default-model-id "gpt-5.5"
         agent-shell-session-restore-verbosity 'last
         agent-shell-display-action
@@ -1250,12 +1211,6 @@ the start of the line."
                     (require 'emcp)
                     (let ((server (emcp-start emcp-default-profile)))
                       (emcp-server-url server)))))
-          ;; ((name . "emacs")
-          ;;  (type . "http")
-          ;;  (headers . ())
-          ;;  (url . (lambda ()
-          ;;           (+setup-claude-code-ide)
-          ;;           (+setup-emacs-mcp))))
           ((name . "grafana")
            (command . "uvx")
            (args . ("mcp-grafana"))
@@ -1327,37 +1282,7 @@ the start of the line."
   (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
   (load! "agent/+agent-shell-title-fix")
-  ;; (load! "agent/agent-shell-vtable.el")
-  ;; (agent-shell-vtable-global-mode)
-  (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1))
-
-  ;; fix Opus 4.7 adaptive thinking making it very stupid
-  ;;         (defun my/claude-acp-session-meta ()
-  ;;           "Return the _meta alist to inject into Claude Agent session requests."
-  ;;           '((claudeCode
-  ;;              . ((options . ((effort . "max")
-  ;;                             (thinking . ((type . "adaptive")
-  ;;                                          (display . "summarized")))))))))
-
-  ;;         (defun my/claude-acp-inject-session-meta (request)
-  ;;           "Mutate ACP session REQUEST alist to include Claude _meta.
-  ;; REQUEST looks like ((:method . STR) (:params . ALIST))."
-  ;;           (when-let* ((params-cell (assq :params request)))
-  ;;             (let ((meta-cell (assq '_meta (cdr params-cell)))
-  ;;                   (claude-meta (my/claude-acp-session-meta)))
-  ;;               (if meta-cell
-  ;;                   (setcdr meta-cell (append (cdr meta-cell) claude-meta))
-  ;;                 (setcdr params-cell
-  ;;                         (cons (cons '_meta claude-meta) (cdr params-cell))))))
-  ;;           request)
-
-  ;;         (with-eval-after-load 'acp
-  ;;           (dolist (sym '(acp-make-session-new-request
-  ;;                          acp-make-session-load-request
-  ;;                          acp-make-session-resume-request
-  ;;                          acp-make-session-fork-request))
-  ;;             (advice-add sym :filter-return #'my/claude-acp-inject-session-meta)))
-  )
+  (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
 
 ;; agent-shell's heartbeat rebuilds the header-line ~10x/sec; each rebuild ran
 ;; `where-is-internal' 3x (a ~5ms keymap search) to recompute keybindings that
