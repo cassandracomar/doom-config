@@ -135,6 +135,7 @@
 
 (eval-when-compile
   (require '+transient-macros))
+(require '+transient-macros)
 
 (advice-add 'risky-local-variable-p :override #'ignore)
 (setq enable-local-variables :all)
@@ -1325,7 +1326,7 @@ the start of the line."
   (load! "agent/+agent-shell-interrupt-fix")
   (load! "agent/+agent-shell-title-fix")
   ;; (load! "agent/agent-shell-vtable.el")
-  (agent-shell-vtable-global-mode)
+  ;; (agent-shell-vtable-global-mode)
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1))
 
   ;; fix Opus 4.7 adaptive thinking making it very stupid
