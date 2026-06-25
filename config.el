@@ -737,6 +737,12 @@ Based on `so-long-detected-long-line-p'."
                                   "|]" "<!--" "<!---" "<<=" "(*" "*)" "/*" "*/"))
 (ligature-set-ligatures 't +ligatures-prog-mode-list)
 
+(after! projectile
+  (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-simpl")
+  (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-splices")
+  (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-asm")
+  (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-cmm")
+  (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-stg-final"))
 (after! haskell-mode
   (set-ligatures! 'haskell-mode
     :lambda "\\"
