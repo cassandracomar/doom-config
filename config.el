@@ -1264,7 +1264,7 @@ the start of the line."
 
     :block "Compose"
     :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
-    :desc "Search history"                               :i       "C-r"       #'consult-history
+    :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
     :desc "Send region"              :localleader        :n       "r"         #'agent-shell-send-region
     :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
     :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
