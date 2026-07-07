@@ -1295,9 +1295,7 @@ the start of the line."
   (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
   (load! "agent/+agent-shell-title-fix")
-  (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1)))
-
-(after! agent-shell-markdown
+  (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1))
   (load! "agent/+markdown-table")
 
   (+agent-shell-markdown-table-apply-faces)
