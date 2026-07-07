@@ -1357,3 +1357,9 @@ the start of the line."
 (use-package! let-completion
   :defer t
   :hook '((emacs-lisp-mode . let-completion-mode)))
+
+(use-package! agent-shell-math-renderer
+  :defer t
+  :after agent-shell
+  :config
+  (setq agent-shell-math-renderer-enabled t))

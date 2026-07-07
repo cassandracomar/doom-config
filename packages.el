@@ -90,3 +90,4 @@
 (package! gotmpl-ts-mode :recipe (:host github :repo "zellio/tree-sitter-gotmpl" :files ("extras/gotmpl-ts-mode/*.el")) :pin "5c91dafb003f4a63ff37853c958fc622fbf436e6")
 (package! khalel)
 (package! emcp)
+(package! agent-shell-math-renderer :recipe (:host github :repo "alberti42/agent-shell-math-renderer") :pin "e7820e960f0e877430a13b8c70fed2c569e7cd69")
