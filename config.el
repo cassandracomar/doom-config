@@ -634,8 +634,7 @@ Based on `so-long-detected-long-line-p'."
 (use-package! code-review
   :after forge
   :config
-  (require 'forge-core)
-  (require 'forge-repo)
+  (eval-when-compile (require 'forge-github))
   (define-advice code-review-forge-pr-at-point
       (:before (&rest _) host-from-forge)
     "Configure code-review GitHub host vars from the forge repo at point."
