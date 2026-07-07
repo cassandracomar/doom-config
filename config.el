@@ -310,15 +310,38 @@ mid-scroll."
 (custom-set-faces!
   '(font-lock-punctuation-face :inherit font-lock-keyword-face))
 
-(after! rust-mode
+(after! rustic-mode
   (custom-set-faces!
     '(rust-ampersand-face :inherit font-lock-keyword-face)
     '(rust-builtin-formatting-macro :inherit font-lock-preprocessor-face)))
 
-(after! haskell-mode
+(use-package! haskell-mode
+  :defer t
+  :mode '"\\.\\(hs|lhs\\)\\'"
+  :config
   (custom-set-faces!
-    '(haskell-operator-face :inherit haskell-keyword-face)
-    '(haskell-definition-face :inherit haskell-keyword-face)))
+    '(haskell-operator-face :inherit font-lock-keyword-face)
+    '(haskell-definition-face :inherit font-lock-keyword-face))
+
+  (set-ligatures! 'haskell-mode
+    :lambda "\\"
+    :composition " . "
+    :for "forall"
+    :int "Int"
+    :bool "Bool"
+    :float "Float"
+    :null "Nothing"
+    :str "String"
+    :true "True"
+    :false "False"
+    :not "not"
+    :or "`or`"
+    :and "`and`"
+    :in "<-"
+    :union "any"
+    :intersect "all"
+    :type "::")
+  (+format-with-lsp-mode))
 
 (after! eglot
   (defface my-font-lock-variable-use-face
@@ -611,6 +634,8 @@ Based on `so-long-detected-long-line-p'."
 (use-package! code-review
   :after forge
   :config
+  (require 'forge-core)
+  (require 'forge-repo)
   (define-advice code-review-forge-pr-at-point
       (:before (&rest _) host-from-forge)
     "Configure code-review GitHub host vars from the forge repo at point."
@@ -743,26 +768,6 @@ Based on `so-long-detected-long-line-p'."
   (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-asm")
   (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-cmm")
   (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-stg-final"))
-(after! haskell-mode
-  (set-ligatures! 'haskell-mode
-    :lambda "\\"
-    :composition " . "
-    :for "forall"
-    :int "Int"
-    :bool "Bool"
-    :float "Float"
-    :null "Nothing"
-    :str "String"
-    :true "True"
-    :false "False"
-    :not "not"
-    :or "`or`"
-    :and "`and`"
-    :in "<-"
-    :union "any"
-    :intersect "all"
-    :type "::")
-  (+format-with-lsp-mode))
 
 ;; yaml-mode
 (use-package! yaml-ts-mode
@@ -804,7 +809,10 @@ text regions between template blocks."
 ;; projectile
 (add-hook! projectile-after-switch-project-hook '(projectile-invalidate-cache nil))
 
-(after! evil-org
+(use-package! evil-org
+  :defer t
+  :after org
+  :config
   (setq org-want-todo-bindings t)
   (setq org-log-done t)
   (setq org-todo-keywords '((sequence "TODO(t)" "WORKING(w!)" "BLOCKED(b@/!)" "STALLED(s!)" "|" "DONE(d!)" "DEFERRED(f!)" "CANCELED(c)")))
