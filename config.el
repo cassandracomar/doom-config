@@ -317,7 +317,7 @@ mid-scroll."
 
 (use-package! haskell-mode
   :defer t
-  :mode '"\\.\\(hs|lhs\\)\\'"
+  :mode "\\.\\(hs\\|lhs\\)\\'"
   :config
   (custom-set-faces!
     '(haskell-operator-face :inherit font-lock-keyword-face)
