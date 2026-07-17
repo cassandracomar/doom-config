@@ -1208,8 +1208,8 @@ the start of the line."
         agent-shell-openai-codex-environment
         (agent-shell-make-environment-variables
          "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
-        agent-shell-openai-codex-acp-command '("codex-acp")
-        agent-shell-openai-default-model-id "gpt-5.5"
+        agent-shell-openai-codex-acp-command (list (format "%s/.npm-global/bin/codex-acp" (getenv "HOME")))
+        agent-shell-openai-default-model-id "gpt-5.6-sol"
         agent-shell-session-restore-verbosity 'last
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
