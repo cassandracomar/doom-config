@@ -1248,7 +1248,10 @@ the start of the line."
            (env . (((name . "JIRA_URL") (value . "https://jira.drwholdings.com"))
                    ((name . "JIRA_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "jira-token"))))
                    ((name . "CONFLUENCE_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "confluence-token"))))
-                   ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))))
+                   ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))
+          ((name . "coderag-dev")
+           (type . "http")
+           (url . "https://coderag.up-dev.drw/mcp"))))
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
     "Agent shell commands."
