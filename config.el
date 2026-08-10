@@ -1240,8 +1240,12 @@ the start of the line."
                    ((name . "INFLUXDB_ORG") (value . "TI")))))
           ((name . "up-slack")
            (type . "http")
-           (headers . (((name . "x-portkey-api-key") (value . (lambda () (auth-source-rbw-get "anthropic-api-key"))))))
-           (url . "https://mcp.ai.drwcloud.com/slack/mcp"))
+           (url . "https://mcp.ai.drwcloud.com/slack-drw-up-ro/mcp"))
+          ((name . "splunk")
+           (type . "http")
+           (headers . (((name . "x-portkey-api-key") (value . (lambda () (auth-source-rbw-get "portkey-obs-key"))))
+                       ((name . "Authorization") (value . (lambda () (format "Bearer %s" (auth-source-rbw-get "splunk-token")))))))
+           (url . "https://mcp.ai.drwcloud.com/splunk/mcp"))
           ((name . "mcp-atlassian")
            (command . "uvx")
            (args . ("mcp-atlassian"))
@@ -1252,6 +1256,8 @@ the start of the line."
           ((name . "coderag-dev")
            (type . "http")
            (url . "https://coderag.up-dev.drw/mcp"))))
+
+  (load! "agent/+agent-shell-mcp-oauth")
 
   (define-keys-and-transient! agent-shell-mode-map +agent-shell-menu
     "Agent shell commands."
@@ -1277,6 +1283,7 @@ the start of the line."
     :desc "Fork session"             :localleader        :n       "y"         #'agent-shell-fork
     :desc "Restart"                  :localleader        :n       "q"         #'agent-shell-restart
     :desc "Toggle shell"             :localleader        :n       "o"         #'agent-shell-toggle
+    :desc "MCP OAuth"                :localleader        :n       "a"         #'+agent-shell-mcp-oauth-login
 
     :row
     :block "Launch"
