@@ -1255,6 +1255,7 @@ the start of the line."
                    ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))
           ((name . "coderag-dev")
            (type . "http")
+           (headers . (((name . "Authorization") (value . (lambda () (format "Bearer %s" (auth-source-rbw-get "ti-token")))))))
            (url . "https://coderag.up-dev.drw/mcp"))))
 
   (load! "agent/+agent-shell-mcp-oauth")
