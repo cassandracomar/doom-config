@@ -1264,11 +1264,11 @@ the start of the line."
     "Agent shell commands."
     ;;       desc                      prefix           state      key              cmd
     :block "Navigate"
-    :desc "Next item"                                             "C-j"       #'agent-shell-next-item
-    :desc "Previous item"                                         "C-k"       #'agent-shell-previous-item
+    :desc "Next item"                                    :n       "C-j"       #'agent-shell-next-item
+    :desc "Previous item"                                :n       "C-k"       #'agent-shell-previous-item
     :desc "Forward block"                                :n       "C-n"       #'agent-shell-ui-forward-block
     :desc "Backward block"                               :n       "C-p"       #'agent-shell-ui-backward-block
-    :desc "Toggle fragment"                                       "<tab>"     #'agent-shell-ui-toggle-fragment
+    :desc "Toggle fragment"                              :n       "<tab>"     #'agent-shell-ui-toggle-fragment
     :desc "Jump to permission"                           :n       "s"         #'agent-shell-jump-to-latest-permission-button-row
 
     :block "Compose"
@@ -1288,7 +1288,7 @@ the start of the line."
 
     :row
     :block "Launch"
-    :desc "Start Codex"             :localleader        :n       "l"         #'agent-shell-openai-start-codex
+    :desc "Start Codex"              :localleader        :n       "l"         #'agent-shell-openai-start-codex
 
     :block "Debug"
     :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
