@@ -1366,8 +1366,13 @@ the start of the line."
   :defer t
   :hook '((emacs-lisp-mode . let-completion-mode)))
 
+(use-package! latex-to-svg-backend
+  :defer t
+  :after agent-shell)
+
 (use-package! agent-shell-math-renderer
   :defer t
-  :after agent-shell
+  :after (agent-shell latex-to-svg-backend)
+  :hook '((agent-shell-mode . agent-shell-math-renderer-mode))
   :config
-  (setq agent-shell-math-renderer-enabled t))
+  (setq agent-shell-math-renderer-render-submitted-prompts t))

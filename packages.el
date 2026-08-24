@@ -90,4 +90,5 @@
 (package! gotmpl-ts-mode :recipe (:host github :repo "zellio/tree-sitter-gotmpl" :files ("extras/gotmpl-ts-mode/*.el")) :pin "5c91dafb003f4a63ff37853c958fc622fbf436e6")
 (package! khalel)
 (package! emcp)
-(package! agent-shell-math-renderer :recipe (:host github :repo "alberti42/agent-shell-math-renderer") :pin "e7820e960f0e877430a13b8c70fed2c569e7cd69")
+(package! latex-to-svg-backend :recipe (:host github :repo "alberti42/latex-to-svg-backend") :pin "37c5159e347f03061240a3acab071e3478bf22c8")
+(package! agent-shell-math-renderer :recipe (:host github :repo "alberti42/agent-shell-math-renderer") :pin "355de61ce1919289ca7a53045017c45fbff38504")
