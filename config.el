@@ -730,8 +730,8 @@ Based on `so-long-detected-long-line-p'."
           (markdown-ts-mode . markdown-ts-toc-update-before-save-mode))
   :init
   (require 'markdown-ts-mode-x)
+  (require 'markdown-mode)
   :config
-
   (custom-set-faces!
     '(markdown-ts-heading-1 :inherit markdown-header-face-1)
     '(markdown-ts-heading-2 :inherit markdown-header-face-2)
