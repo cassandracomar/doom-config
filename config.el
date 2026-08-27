@@ -728,10 +728,9 @@ Based on `so-long-detected-long-line-p'."
   :mode "\\.mdx?\\'"
   :hook '((markdown-ts-mode . auto-fill-mode)
           (markdown-ts-mode . markdown-ts-toc-update-before-save-mode))
-  :init
+  :config
   (require 'markdown-ts-mode-x)
   (require 'markdown-mode)
-  :config
   (add-to-list 'markdown-ts-code-block-modes '("nix" . nix-ts-mode))
   ;; inline mermaid diagram previews; loaded lazily with markdown-mode
   (load! "+mermaid-markdown")
@@ -743,8 +742,7 @@ Based on `so-long-detected-long-line-p'."
   (map! :map markdown-ts-mode-map
         :nv
         "TAB" #'outline-cycle
-        "<tab>" #'outline-cycle))
-(after! markdown-ts-mode
+        "<tab>" #'outline-cycle)
   (custom-set-faces!
     '(markdown-ts-heading-1 :inherit markdown-header-face-1)
     '(markdown-ts-heading-2 :inherit markdown-header-face-2)
