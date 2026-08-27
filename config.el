@@ -416,7 +416,7 @@ mid-scroll."
       [return] #'corfu-complete
       [backspace] #'evil-delete-backward-char-and-join
       "DEL" #'evil-delete-backward-char-and-join)
-(map! :map prog-mode-map :nvi
+(map! :map prog-mode-map :nv
       "<tab>" #'indent-for-tab-command
       "TAB" #'indent-for-tab-command)
 
@@ -548,7 +548,9 @@ Based on `so-long-detected-long-line-p'."
   (setq
    +corfu-want-minibuffer-completion 'aggressive
    +corfu-want-tab-prefer-expand-snippets nil
-   +corfu-want-tab-prefer-navigating-snippets nil
+   +corfu-want-tab-prefer-navigating-snippets t
+   +corfu-want-tab-prefer-navigating-org-tables t
+   tab-always-indent 'complete
    shell-file-name-chars "[]~/A-Za-z0-9+@:_.$#%,={}- "
    shell-file-name-quote-list '(?$ ?\* ?\! ?\" ?\'))
 
@@ -721,18 +723,56 @@ Based on `so-long-detected-long-line-p'."
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
 
-(use-package! markdown-mode
+(use-package! markdown-ts-mode
   :defer t
-  :mode "\\.md\\'"
-  :hook '((markdown-mode . auto-fill-mode))
+  :mode "\\.mdx?\\'"
+  :hook '((markdown-ts-mode . auto-fill-mode)
+          (markdown-ts-mode . markdown-ts-toc-update-before-save-mode))
+  :init
+  (require 'markdown-ts-mode-x)
   :config
-  (add-to-list 'markdown-code-lang-modes '("nix" . nix-ts-mode))
-  (add-to-list 'markdown-code-lang-modes '("yaml" . yaml-ts-mode))
+
+  (custom-set-faces!
+    '(markdown-ts-heading-1 :inherit markdown-header-face-1)
+    '(markdown-ts-heading-2 :inherit markdown-header-face-2)
+    '(markdown-ts-heading-3 :inherit markdown-header-face-3)
+    '(markdown-ts-heading-4 :inherit markdown-header-face-4)
+    '(markdown-ts-heading-5 :inherit markdown-header-face-5)
+    '(markdown-ts-heading-6 :inherit markdown-header-face-6)
+    '(markdown-ts-setext-heading :inherit markdown-header-face-1)
+
+    '(markdown-ts-delimiter :inherit markdown-markup-face)
+    '(markdown-ts-emphasis :inherit markdown-italic-face)
+    '(markdown-ts-bold :inherit markdown-bold-face)
+    '(markdown-ts-strikethrough :inherit markdown-strike-through-face)
+    '(markdown-ts-block-quote :inherit markdown-blockquote-face)
+    '(markdown-ts-list-marker :inherit markdown-list-face)
+
+    '(markdown-ts-link :inherit markdown-link-face)
+    '(markdown-ts-link-destination :inherit markdown-url-face)
+
+    '(markdown-ts-code-span :inherit markdown-inline-code-face)
+    '(markdown-ts-code-block :inherit markdown-code-face)
+    '(markdown-ts-indented-code-block :inherit markdown-code-face)
+    '(markdown-ts-language-keyword :inherit markdown-language-keyword-face)
+
+    '(markdown-ts-table :inherit markdown-table-face)
+    '(markdown-ts-thematic-break :inherit markdown-hr-face)
+    '(markdown-ts-latex :inherit markdown-math-face)
+    '(markdown-ts-task-checked :inherit markdown-gfm-checkbox-face)
+    '(markdown-ts-task-unchecked :inherit markdown-gfm-checkbox-face))
+  (add-to-list 'markdown-ts-code-block-modes '("nix" . nix-ts-mode))
   ;; inline mermaid diagram previews; loaded lazily with markdown-mode
   (load! "+mermaid-markdown")
-  (map! :map markdown-mode-map
+  (map! :map markdown-ts-mode-map
         :localleader
-        :n "d" #'+markdown-mermaid-render-buffer))
+        :n "d" #'+markdown-mermaid-render-buffer
+        :desc "Toggle Markup" :n "t m" #'markdown-ts-toggle-hide-markup
+        :desc "Inline images" :n "t i" #'markdown-ts-toggle-inline-images)
+  (map! :map markdown-ts-mode-map
+        :nv
+        "TAB" #'outline-cycle
+        "<tab>" #'outline-cycle))
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 

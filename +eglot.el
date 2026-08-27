@@ -19,11 +19,14 @@
 (set-eglot-client! '(nu-ts-mode) '("nu" "--lsp") "nu")
 (set-eglot-client! '(javascript-mode typescript-ts-mode tsx-ts-mode js-jsx-mode) '("deno" "lsp") "deno-ls")
 (set-eglot-client! '(yaml-mode yaml-ts-mode) '("yaml-schema-router") "yaml-language-server")
+(set-eglot-client! '(clojure-mode clojurescript-mode clojurec-mode clojure-ts-mode) '("clojure-lsp" "--log-path" "/dev/stderr"))
 
 (setq-default
  jsonrpc-default-request-timeout 30
+ eglot-connect-timeout 120
  terraform-format-on-save t
  eglot-confirm-server-initiated-edits nil
+ eglot-documentation-renderer #'markdown-ts-mode
  eglot-workspace-configuration '(:rust-analyzer (:procMacro (:enable t :attributes (:enable t))
                                                  :check (:command "clippy")
                                                  :lens (:references (:adt (:enable t)
