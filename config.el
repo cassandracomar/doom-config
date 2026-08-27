@@ -103,19 +103,19 @@
 
 (add-to-list 'load-path doom-user-dir)
 
-;; (igc-start-idle-timer)
+(igc-start-idle-timer)
 
-;; (add-hook 'emacs-startup-hook
-;;           (lambda ()
-;;             (if (boundp 'after-focus-change-function)
-;;                 (add-function :after after-focus-change-function
-;;                               (lambda ()
-;;                                 (unless (frame-focus-state)
-;;                                   (igc-collect))))
-;;               (add-hook 'after-focus-change-function
-;;                         (lambda ()
-;;                           (igc-collect))))))
-(add-hook! 'doom-first-buffer-hook #'gcmh-mode)
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (if (boundp 'after-focus-change-function)
+                (add-function :after after-focus-change-function
+                              (lambda ()
+                                (unless (frame-focus-state)
+                                  (igc-collect))))
+              (add-hook 'after-focus-change-function
+                        (lambda ()
+                          (igc-collect))))))
+;; (add-hook! 'doom-first-buffer-hook #'gcmh-mode)
 
 ;; ENVIRONMENT
 (defun +gpgconf-set-agent-env ()
@@ -1255,7 +1255,8 @@ the start of the line."
                    ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))
           ((name . "coderag-dev")
            (type . "http")
-           (headers . (((name . "Authorization") (value . (lambda () (format "Bearer %s" (auth-source-rbw-get "ti-token")))))))
+           (headers . (((name . "Identity") (value . "production.ccomar"))
+                       ((name . "Ti-Token") (value . (lambda () (auth-source-rbw-get "ti-token"))))))
            (url . "https://coderag.up-dev.drw/mcp"))))
 
   (load! "agent/+agent-shell-mcp-oauth")
