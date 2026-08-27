@@ -732,6 +732,19 @@ Based on `so-long-detected-long-line-p'."
   (require 'markdown-ts-mode-x)
   (require 'markdown-mode)
   :config
+  (add-to-list 'markdown-ts-code-block-modes '("nix" . nix-ts-mode))
+  ;; inline mermaid diagram previews; loaded lazily with markdown-mode
+  (load! "+mermaid-markdown")
+  (map! :map markdown-ts-mode-map
+        :localleader
+        :n "d" #'+markdown-mermaid-render-buffer
+        :desc "Toggle Markup" :n "t m" #'markdown-ts-toggle-hide-markup
+        :desc "Inline images" :n "t i" #'markdown-ts-toggle-inline-images)
+  (map! :map markdown-ts-mode-map
+        :nv
+        "TAB" #'outline-cycle
+        "<tab>" #'outline-cycle))
+(after! markdown-ts-mode
   (custom-set-faces!
     '(markdown-ts-heading-1 :inherit markdown-header-face-1)
     '(markdown-ts-heading-2 :inherit markdown-header-face-2)
@@ -760,19 +773,7 @@ Based on `so-long-detected-long-line-p'."
     '(markdown-ts-thematic-break :inherit markdown-hr-face)
     '(markdown-ts-latex :inherit markdown-math-face)
     '(markdown-ts-task-checked :inherit markdown-gfm-checkbox-face)
-    '(markdown-ts-task-unchecked :inherit markdown-gfm-checkbox-face))
-  (add-to-list 'markdown-ts-code-block-modes '("nix" . nix-ts-mode))
-  ;; inline mermaid diagram previews; loaded lazily with markdown-mode
-  (load! "+mermaid-markdown")
-  (map! :map markdown-ts-mode-map
-        :localleader
-        :n "d" #'+markdown-mermaid-render-buffer
-        :desc "Toggle Markup" :n "t m" #'markdown-ts-toggle-hide-markup
-        :desc "Inline images" :n "t i" #'markdown-ts-toggle-inline-images)
-  (map! :map markdown-ts-mode-map
-        :nv
-        "TAB" #'outline-cycle
-        "<tab>" #'outline-cycle))
+    '(markdown-ts-task-unchecked :inherit markdown-gfm-checkbox-face)))
 
 (set-formatter! 'nixpkgs-fmt '("nix" "fmt" "--" "-") :modes '(nix-mode))
 
