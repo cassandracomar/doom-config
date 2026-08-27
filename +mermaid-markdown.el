@@ -21,6 +21,16 @@
   (expand-file-name "puppeteer.json" +markdown-mermaid-cache-dir)
   "Puppeteer config passed to mmdc; adds --no-sandbox for Nix's Chromium.")
 
+(defvar +markdown-mermaid-config
+  (expand-file-name "mermaid.json" +markdown-mermaid-cache-dir)
+  "Mermaid config passed to mmdc.")
+
+(defconst +markdown-mermaid-config-json
+  "{ \"htmlLabels\": false, \"flowchart\": { \"htmlLabels\": false } }\n"
+  "Mermaid configuration used for SVGs displayed by Emacs.
+HTML labels use SVG `foreignObject', which Emacs's SVG renderer does not
+render reliably, so use native SVG text elements instead.")
+
 (defvar +markdown-mermaid-theme nil
   "Mermaid theme for mmdc -t.  When nil, pick dark/default from the frame.")
 
@@ -32,7 +42,13 @@
   (make-directory +markdown-mermaid-cache-dir t)
   (unless (file-exists-p +markdown-mermaid-puppeteer-config)
     (with-temp-file +markdown-mermaid-puppeteer-config
-      (insert "{ \"args\": [\"--no-sandbox\"] }"))))
+      (insert "{ \"args\": [\"--no-sandbox\"] }")))
+  (unless (and (file-exists-p +markdown-mermaid-config)
+               (with-temp-buffer
+                 (insert-file-contents +markdown-mermaid-config)
+                 (string= (buffer-string) +markdown-mermaid-config-json)))
+    (with-temp-file +markdown-mermaid-config
+      (insert +markdown-mermaid-config-json))))
 
 (defun +markdown-mermaid--theme ()
   "Mermaid theme to use, honoring the frame's `background-mode' when unset."
@@ -103,6 +119,7 @@ updated in place."
          :command (list +markdown-mermaid-mmdc "-i" mmd "-o" svg
                         "-t" (+markdown-mermaid--theme)
                         "-b" +markdown-mermaid-background
+                        "-c" +markdown-mermaid-config
                         "-p" +markdown-mermaid-puppeteer-config)
          :sentinel
          (lambda (proc _event)
@@ -135,7 +152,13 @@ finishes -- so existing previews never flicker."
     (dolist (b blocks)
       (let* ((end (cadr b))
              (code (caddr b))
-             (hash (secure-hash 'sha1 code))
+             (hash (secure-hash
+                    'sha1
+                    (prin1-to-string
+                     (list code
+                           (+markdown-mermaid--theme)
+                           +markdown-mermaid-background
+                           +markdown-mermaid-config-json))))
              (ov (+markdown-mermaid--overlay-at end)))
         (unless (and ov (equal (overlay-get ov '+markdown-mermaid-hash) hash))
           (+markdown-mermaid--render-block buf end code hash))))))
