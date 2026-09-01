@@ -743,6 +743,10 @@ Based on `so-long-detected-long-line-p'."
         :nv
         "TAB" #'outline-cycle
         "<tab>" #'outline-cycle)
+  (map! :map evil-markdown-mode-map
+        :nv
+        "TAB" #'outline-cycle
+        "<tab>" #'outline-cycle)
   (custom-set-faces!
     '(markdown-ts-heading-1 :inherit markdown-header-face-1)
     '(markdown-ts-heading-2 :inherit markdown-header-face-2)

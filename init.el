@@ -23,6 +23,7 @@ autoloaded `cl-defstruct' forms are eagerly macro-expanded."
   (add-to-list 'doom-profile-generate-functions #'+unstraightened-require-cl-lib))
 (setopt package-native-compile t)
 (setopt native-comp-jit-compilation nil)
+
 (doom! :input
        ;;chinese
        ;;japanese

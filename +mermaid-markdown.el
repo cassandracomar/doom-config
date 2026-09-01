@@ -173,7 +173,7 @@ finishes -- so existing previews never flicker."
     (remove-hook 'after-save-hook #'+markdown-mermaid-render-buffer t)
     (+markdown-mermaid-clear)))
 
-(add-hook 'markdown-mode-hook #'+markdown-mermaid-mode)
+(add-hook 'markdown-ts-mode-hook #'+markdown-mermaid-mode)
 
 (provide '+mermaid-markdown)
 ;;; +mermaid-markdown.el ends here
