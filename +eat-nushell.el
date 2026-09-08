@@ -304,19 +304,18 @@ argv used for Nix terminator classification."
          (chars (decode-coding-string (substring bytes 0 offset) 'utf-8)))
     (+ (comint-line-beginning-position) (length chars))))
 
-(defun +eat-nushell--finish-completion (candidate status table)
-  "Inject CANDIDATE's terminator as an input event when STATUS is finished."
-  (when (eq status 'finished)
-    (when-let* ((entry (gethash candidate table))
-                (terminator (plist-get entry :terminator)))
-      (cond
-       ;; Requeue an existing slash so Corfu sees an insertion event and
-       ;; opens the next directory level.
-       ((string-suffix-p "/" candidate)
-        (delete-char -1)
-        (push ?/ unread-command-events))
-       ((not (string-empty-p terminator))
-        (push (aref terminator 0) unread-command-events)))))
+(defun +eat-nushell--finish-completion (candidate _status table)
+  "Inject CANDIDATE's terminator as an input event after completion."
+  (when-let* ((entry (gethash candidate table))
+              (terminator (plist-get entry :terminator)))
+    (cond
+     ;; Requeue an existing slash so Corfu sees an insertion event and
+     ;; opens the next directory level.
+     ((string-suffix-p "/" candidate)
+      (delete-char -1)
+      (push ?/ unread-command-events))
+     ((not (string-empty-p terminator))
+      (push (aref terminator 0) unread-command-events))))
   (setq-local +eat-nushell--active-completions nil
               +eat-nushell--completion-span nil))
 
