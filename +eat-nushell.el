@@ -149,7 +149,6 @@ has no AST node of its own."
       (cl-incf index))
     (when call-index
       (let ((seen (make-hash-table :test #'equal))
-            (call-row-p t)
             args)
         (dolist (row (nthcdr call-index rows))
           (when-let* ((span (plist-get row :span))
@@ -160,13 +159,7 @@ has no AST node of its own."
             (let ((key (cons start end)))
               (unless (gethash key seen)
                 (puthash key t seen)
-                (setq args
-                      (nconc args
-                             (if (and call-row-p
-                                      (string-match-p "[ \t]" content))
-                                 (split-string content "[ \t]+" t)
-                               (list content))))
-                (setq call-row-p nil)))))
+                (setq args (nconc args (list content)))))))
         (when (string-match-p "[ \t]\\'" prompt)
           (setq args (append args (list ""))))
         args))))
@@ -188,8 +181,7 @@ has no AST node of its own."
       (with-temp-buffer
         (when (zerop (apply #'call-process nix nil t nil query-args))
           (goto-char (point-min))
-          (string-trim
-           (buffer-substring-no-properties (point) (line-end-position))))))))
+          (buffer-substring-no-properties (point) (line-end-position)))))))
 
 (defun +eat-nushell--completion-terminator (args nix-header value normalized kind)
   "Choose the synthetic terminator for a completed VALUE after ARGS."
