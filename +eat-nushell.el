@@ -279,6 +279,12 @@ confuses corfu."
 (defvar-local +eat-nushell--completion-span nil
   "Replacement span returned by the latest `commandline complete' call.")
 
+(defun +eat-nushell--prompt-byte-substring (prompt start end)
+  "Return the UTF-8 byte range START..END from PROMPT as an Emacs string."
+  (decode-coding-string
+   (substring (encode-coding-string prompt 'utf-8) start end)
+   'utf-8))
+
 (defun +eat-nushell--commandline-completions (raw-prompt)
   "Return Nu's own detailed completions for RAW-PROMPT as a hash table.
 The configured Nushell performs parsing, alias expansion, internal
@@ -289,9 +295,25 @@ completion, and delegation to its external completer."
                 (list (concat "EAT_NUSHELL_PROMPT=" raw-prompt))))
               ((plist-get result :ok)))
     (let* ((completions (plist-get result :value))
+           (spans (delq nil (mapcar (lambda (completion)
+                                      (and (listp completion)
+                                           (plist-get completion :span)))
+                                    completions)))
+           ;; A CAPF has one replacement region, but Nu may mix regions in
+           ;; one result set.  For `nh home ', external candidates replace
+           ;; 8:8 while the internal `nh home upgrade' replaces 0:8.
+           ;; Normalize all candidates to the widest returned region.
+           (span-start (and spans
+                            (apply #'min (mapcar (lambda (span)
+                                                  (plist-get span :start))
+                                                spans))))
+           (span-end (and spans
+                          (apply #'max (mapcar (lambda (span)
+                                                (plist-get span :end))
+                                              spans))))
            (table (make-hash-table :test #'equal
                                    :size (length completions)))
-           span)
+           (span (and spans (list :start span-start :end span-end))))
       (dolist (completion completions)
         (let* ((recordp (and (listp completion)
                              (keywordp (car completion))))
@@ -301,16 +323,27 @@ completion, and delegation to its external completer."
                (kind (and recordp (plist-get completion :kind)))
                (type (and recordp (plist-get completion :type))))
           (when (stringp value)
-            (unless span
-              (setq span candidate-span))
-            (puthash value
-                     `(:display ,value :value ,value
-                       :terminator ,(if (string-suffix-p "/" value) "" " ")
+            (let* ((candidate-start (and candidate-span
+                                         (plist-get candidate-span :start)))
+                   (candidate-end (and candidate-span
+                                       (plist-get candidate-span :end)))
+                   (normalized
+                    (if (and span candidate-span)
+                        (concat
+                         (+eat-nushell--prompt-byte-substring
+                          raw-prompt span-start candidate-start)
+                         value
+                         (+eat-nushell--prompt-byte-substring
+                          raw-prompt candidate-end span-end))
+                      value)))
+              (puthash normalized
+                     `(:display ,value :value ,normalized
+                       :terminator ,(if (string-suffix-p "/" normalized) "" " ")
                        ,@(when (stringp description)
                            (list :description description))
                        ,@(when (stringp kind) (list :kind kind))
                        ,@(when (stringp type) (list :type type)))
-                     table))))
+                     table)))))
       (setq-local +eat-nushell--completion-span span)
       table)))
 
