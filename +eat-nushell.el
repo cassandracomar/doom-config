@@ -320,6 +320,24 @@ argv used for Nix terminator classification."
   (setq-local +eat-nushell--active-completions nil
               +eat-nushell--completion-span nil))
 
+(defun +eat-nushell--company-kind (candidate table)
+  "Return a Corfu-compatible kind for CANDIDATE in TABLE.
+Nushell calls directories `directory' while Corfu expects `folder'.
+External completers may report every path as a generic string value, so
+infer those candidates from the filesystem when possible."
+  (when-let* ((entry (gethash candidate table)))
+    (let ((kind (plist-get entry :kind))
+          (value (plist-get entry :display)))
+      (cond
+       ((equal kind "directory") 'folder)
+       ((equal kind "file") 'file)
+       ((and (stringp value)
+             (or (string-suffix-p "/" value)
+                 (file-directory-p value)))
+        'folder)
+       ((and (stringp value) (file-exists-p value)) 'file)
+       ((stringp kind) (intern kind))))))
+
 (defun +eat-nushell-capf ()
   "Complete the Eat input with configured Nu's `commandline complete'."
   (let* ((prompt (+eat-nushell--raw-prompt))
@@ -337,8 +355,7 @@ argv used for Nix terminator classification."
                 (plist-get (gethash candidate table) :description))
               :company-kind
               (lambda (candidate)
-                (when-let* ((kind (plist-get (gethash candidate table) :kind)))
-                  (intern kind)))
+                (+eat-nushell--company-kind candidate table))
               :company-doc-buffer #'+eat-nushell-doc-buffer
               :exit-function
               (lambda (candidate status)
