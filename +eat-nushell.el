@@ -105,6 +105,8 @@ Uses :keyword keys so callers can `(plist-get cmd :name)' etc."
 (defcustom +eat-nushell-commands-source-files
   '("~/.config/nushell/emacs-config.nu")
   "Nushell files to `source' before sampling `scope commands'.
+The first entry is also passed to `nu --config' for `commandline
+complete', so it must be the interactive config entry point.
 These should expose any user-defined commands (e.g. `git status',
 `alias ls = eza', `nh os upgrade') that the eat-launched nushell would
 see, so completion offers them too.  Defaults to `emacs-config.nu',
@@ -160,14 +162,69 @@ the rest of the config -- losing the `default-config.nu' defs/aliases
         (when (buffer-live-p proc-buf) (kill-buffer proc-buf)))
       (when callback (funcall callback)))))
 
-;; Kick the cache off as soon as this file loads -- it takes ~50ms so we
-;; lose nothing by starting at startup, and the result is ready by the
-;; time the user has an eat buffer to complete in.  Safe to call again
-;; via `M-x +eat-nushell-load-commands' with a prefix arg to refresh.
-(when (executable-find "nu")
-  (+eat-nushell-load-commands))
-
 (setq carapace-completion-command (executable-find "carapace"))
+
+(defconst +eat-nushell--json-begin "__EAT_NUSHELL_JSON_BEGIN__")
+(defconst +eat-nushell--json-end "__EAT_NUSHELL_JSON_END__")
+
+(defun +eat-nushell--config-json (expression &optional environment)
+  "Evaluate EXPRESSION under the configured Nushell and decode its JSON.
+Return `(:ok t :value VALUE)' on success and nil when nu fails or emits
+an invalid payload.  ENVIRONMENT is a list of additional process
+environment entries.
+
+The result is computed before printing framing markers, so incidental
+config/completer output stays outside the JSON payload.  A PTY supports
+configs containing `tty' or other terminal-sensitive setup."
+  (when-let* ((nu (executable-find "nu"))
+              (config-file (car +eat-nushell-commands-source-files)))
+    (let* ((config (expand-file-name config-file))
+           (command
+            (format
+             (concat "let eat_result = (%s); "
+                     "print -n '%s'; "
+                     "$eat_result | to json -r | print -n; "
+                     "print -n '%s'")
+             expression +eat-nushell--json-begin +eat-nushell--json-end))
+           (process-environment (append environment process-environment))
+           (proc-buf (generate-new-buffer " *eat-nushell-json*" t))
+           (proc (make-process
+                  :name "eat-nushell-json"
+                  :buffer proc-buf
+                  :command (list nu "--config" config "--no-history" "-c" command)
+                  :connection-type 'pty
+                  :coding 'utf-8-unix
+                  :noquery t)))
+      (unwind-protect
+          (progn
+            (while (process-live-p proc)
+              (accept-process-output proc 0.1))
+            (when (eq (process-exit-status proc) 0)
+              (with-current-buffer proc-buf
+                (let* ((output (buffer-string))
+                       (begin (string-match
+                               (regexp-quote +eat-nushell--json-begin)
+                               output))
+                       (payload-start
+                        (and begin (+ begin (length +eat-nushell--json-begin))))
+                       (end (and payload-start
+                                 (string-match
+                                  (regexp-quote +eat-nushell--json-end)
+                                  output payload-start))))
+                  (when end
+                    (condition-case nil
+                        (list :ok t
+                              :value
+                              (json-parse-string
+                               (substring output payload-start end)
+                               :object-type 'plist
+                               :array-type 'list
+                               :null-object nil
+                               :false-object nil))
+                      (error nil)))))))
+        (when (buffer-live-p proc-buf)
+          (kill-buffer proc-buf))))))
+
 (defun carapace-completion--fish-fallback (raw-prompt)
   "Return a hash-table of fish completions for RAW-PROMPT.
 Extracts per-candidate descriptions so they flow into the `annotation'
@@ -219,8 +276,46 @@ confuses corfu."
              nil '(t nil) nil
              args))))
 
+(defvar-local +eat-nushell--completion-span nil
+  "Replacement span returned by the latest `commandline complete' call.")
+
+(defun +eat-nushell--commandline-completions (raw-prompt)
+  "Return Nu's own detailed completions for RAW-PROMPT as a hash table.
+The configured Nushell performs parsing, alias expansion, internal
+completion, and delegation to its external completer."
+  (when-let* ((result
+               (+eat-nushell--config-json
+                "$env.EAT_NUSHELL_PROMPT | commandline complete --detailed"
+                (list (concat "EAT_NUSHELL_PROMPT=" raw-prompt))))
+              ((plist-get result :ok)))
+    (let* ((completions (plist-get result :value))
+           (table (make-hash-table :test #'equal
+                                   :size (length completions)))
+           span)
+      (dolist (completion completions)
+        (let* ((recordp (and (listp completion)
+                             (keywordp (car completion))))
+               (value (if recordp (plist-get completion :value) completion))
+               (description (and recordp (plist-get completion :description)))
+               (candidate-span (and recordp (plist-get completion :span)))
+               (kind (and recordp (plist-get completion :kind)))
+               (type (and recordp (plist-get completion :type))))
+          (when (stringp value)
+            (unless span
+              (setq span candidate-span))
+            (puthash value
+                     `(:display ,value :value ,value
+                       :terminator ,(if (string-suffix-p "/" value) "" " ")
+                       ,@(when (stringp description)
+                           (list :description description))
+                       ,@(when (stringp kind) (list :kind kind))
+                       ,@(when (stringp type) (list :type type)))
+                     table))))
+      (setq-local +eat-nushell--completion-span span)
+      table)))
+
 (defun carapace-completion--list-completions-with-desc (_shell raw-prompt)
-  (carapace-completion--fish-fallback raw-prompt))
+  (+eat-nushell--commandline-completions raw-prompt))
 
 (defun carapace-nushell--line-offset (offset-bounds)
   (cl-flet ((offset-f (bound) (+ (comint-line-beginning-position) bound)))
@@ -635,39 +730,19 @@ Used to layer nu builtins on top of fish-completion fallback results."
   (if no-refresh
       (or carapace-nushell--active-completions
           (carapace-nushell--completions prompt nil))
-    (let* ((args (+eat-nushell--parse-args prompt))
-           (cmd (car args))
-           (current-arg (or (car (last args)) ""))
-           (candidates
-            (cond
-             ((and (equal cmd "nix")
-                   (>= (length args) 2)
-                   (not (string-prefix-p "-" current-arg)))
-              (+eat-nushell--nix-completions prompt))
-             (t
-              (carapace-completion--list-completions-with-desc 'nushell prompt)))))
-      ;; Layer nu-builtin candidates on top: fish wins where it has an entry
-      ;; (it knows external commands, paths, etc.); we add nu's commands,
-      ;; subcommands, and flags where fish has nothing.
-      (+eat-nushell--merge-tables candidates
-                                  (+eat-nushell--builtin-completions prompt))
-      (setq-local carapace-nushell--active-completions candidates))))
+    (setq-local carapace-nushell--active-completions
+                (+eat-nushell--commandline-completions prompt))))
 
 (defvar +eat-nushell-doc--last-buffer nil
   "Most recent buffer returned by `+eat-nushell-doc-buffer', killed on next call.")
 
 (defun +eat-nushell-doc-buffer (cand-key)
   "Return a doc buffer for CAND-KEY in the active carapace-nushell hash.
-Reads `:description' from the candidate's plist first; for `flake#attr'
-candidates with no inline description, lazily fetches `.meta.description'
-via `+nix--fetch-meta-description'.  The previous buffer is killed on
-each call to avoid leaking buffers across corfu-popupinfo invocations."
+The previous buffer is killed on each call to avoid leaking buffers
+across corfu-popupinfo invocations."
   (when-let* ((table carapace-nushell--active-completions)
               (cand (gethash cand-key table))
-              (doc (or (plist-get cand :description)
-                       (when-let* ((full-ref (plist-get cand :nix-full-ref)))
-                         (and (string-match-p "#" full-ref)
-                              (+nix--fetch-meta-description full-ref))))))
+              (doc (plist-get cand :description)))
     (when (buffer-live-p +eat-nushell-doc--last-buffer)
       (kill-buffer +eat-nushell-doc--last-buffer))
     (let ((buf (generate-new-buffer " *eat-nushell-doc*" t)))
@@ -930,23 +1005,54 @@ matches sort first because we own the local region."
                   :annotation-function (lambda (_) " env")
                   :company-kind (lambda (_) 'variable))))))))
 
+(defun +eat-nushell--span-position (prompt byte-offset)
+  "Translate BYTE-OFFSET in UTF-8 PROMPT to an Eat buffer position."
+  (let* ((bytes (encode-coding-string prompt 'utf-8))
+         (offset (min byte-offset (length bytes)))
+         (chars (decode-coding-string (substring bytes 0 offset) 'utf-8)))
+    (+ (comint-line-beginning-position) (length chars))))
+
+(defun +eat-nushell--finish-completion (candidate status table)
+  "Apply Nushell-style termination after inserting CANDIDATE from TABLE."
+  (when (eq status 'finished)
+    (when-let* ((entry (gethash candidate table))
+                (terminator (plist-get entry :terminator)))
+      (cond
+       ;; Re-insert the slash through the command loop so Corfu opens the
+       ;; next directory level automatically.
+       ((string-suffix-p "/" candidate)
+        (delete-char -1)
+        (push ?/ unread-command-events))
+       ((not (string-empty-p terminator))
+        (push (aref terminator 0) unread-command-events)))))
+  (setq-local carapace-nushell--active-completions nil
+              +eat-nushell--completion-span nil))
+
+(defun +eat-nushell-capf ()
+  "Complete the Eat input with configured Nu's `commandline complete'."
+  (let* ((prompt (carapace-nushell--raw-prompt (point)))
+         (table (+eat-nushell--commandline-completions prompt))
+         (span +eat-nushell--completion-span)
+         (keys (and table (hash-table-keys table))))
+    (when (and keys span)
+      (let ((beg (+eat-nushell--span-position prompt (plist-get span :start)))
+            (end (+eat-nushell--span-position prompt (plist-get span :end))))
+        (setq-local carapace-nushell--active-completions table)
+        (list beg end keys
+              :exclusive 'no
+              :annotation-function
+              (lambda (candidate)
+                (plist-get (gethash candidate table) :description))
+              :company-kind
+              (lambda (candidate)
+                (when-let* ((kind (plist-get (gethash candidate table) :kind)))
+                  (intern kind)))
+              :company-doc-buffer #'+eat-nushell-doc-buffer
+              :exit-function
+              (lambda (candidate status)
+                (+eat-nushell--finish-completion candidate status table)))))))
+
 (defun replace-eat-completions ()
   (fish-completion-mode -1)
   (corfu-mode +1)
-  (setq-local completion-at-point-functions
-              ;; Four capfs in order:
-              ;; 1. `+eat-nushell-env-capf' completes `$env.X' from the live
-              ;;    process's `/proc/<pid>/environ'.
-              ;; 2. `+eat-nushell-local-var-capf' completes `$var' from the
-              ;;    input region's let/mut/const/def/closure-param names,
-              ;;    plus `env' so `$env.<X>' is always reachable in one go.
-              ;; 3. `+eat-nushell-empty-arg-capf' fires only when the partial
-              ;;    arg is empty (e.g. `nix build ') -- cape's dynamic table
-              ;;    won't help us there because it guards on `(< beg end)'.
-              ;; 4. The cape-wrapped company backend handles everything else,
-              ;;    layering fish externals + nu builtins/subcommands/flags.
-              (list #'+eat-nushell-env-capf
-                    #'+eat-nushell-local-var-capf
-                    #'+eat-nushell-empty-arg-capf
-                    (cape-company-to-capf #'carapace-nushell-backend
-                                          #'+eat-nushell--cache-valid-p))))
+  (setq-local completion-at-point-functions (list #'+eat-nushell-capf)))
