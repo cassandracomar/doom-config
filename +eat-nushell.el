@@ -285,6 +285,44 @@ confuses corfu."
    (substring (encode-coding-string prompt 'utf-8) start end)
    'utf-8))
 
+(defun +eat-nushell--nix-completion-header (args)
+  "Return Nix's completion-type header for the current position in ARGS."
+  (when (and (equal (car args) "nix")
+             (> (length args) 1))
+    (let* ((n (1- (length args)))
+           (current-arg (or (nth n args) ""))
+           (stub-start (let ((p (string-match
+                                 "[#.:?][^#.:?]*\\'" current-arg)))
+                         (if p (1+ p) 0)))
+           (stub-prefix (substring current-arg 0 stub-start))
+           (query-args (append (cl-subseq args 1 n) (list stub-prefix)))
+           (process-environment
+            (cons (format "NIX_GET_COMPLETIONS=%d" n) process-environment)))
+      (with-temp-buffer
+        (when (zerop (apply #'call-process "nix" nil t nil query-args))
+          (goto-char (point-min))
+          (buffer-substring-no-properties (point) (line-end-position)))))))
+
+(defun +eat-nushell--completion-terminator (args nix-header value normalized kind)
+  "Choose the synthetic terminator for a completed VALUE after ARGS.
+NORMALIZED is the actual CAPF candidate and KIND comes from Nushell's
+detailed completion record.  An empty string means insert nothing."
+  (cond
+   ((string-suffix-p "/" normalized) "")
+   ((or (equal kind "cell-path")
+        (equal kind "variable")
+        (string-prefix-p "$" value))
+    "")
+   ((equal (car args) "nix")
+    (pcase nix-header
+      ("attrs" "")
+      ("filenames"
+       (if (string-match-p "\\`\\(?:/\\|\\./\\|\\.\\./\\|~/\\)" value)
+           ""
+         "#"))
+      (_ " ")))
+   (t " ")))
+
 (defun +eat-nushell--commandline-completions (raw-prompt)
   "Return Nu's own detailed completions for RAW-PROMPT as a hash table.
 The configured Nushell performs parsing, alias expansion, internal
@@ -295,6 +333,8 @@ completion, and delegation to its external completer."
                 (list (concat "EAT_NUSHELL_PROMPT=" raw-prompt))))
               ((plist-get result :ok)))
     (let* ((completions (plist-get result :value))
+           (args (+eat-nushell--parse-args raw-prompt))
+           (nix-header (+eat-nushell--nix-completion-header args))
            (spans (delq nil (mapcar (lambda (completion)
                                       (and (listp completion)
                                            (plist-get completion :span)))
@@ -338,6 +378,8 @@ completion, and delegation to its external completer."
                       value)))
               (puthash normalized
                      `(:display ,value :value ,normalized
+                       :terminator ,(+eat-nushell--completion-terminator
+                                     args nix-header value normalized kind)
                        ,@(when (stringp description)
                            (list :description description))
                        ,@(when (stringp kind) (list :kind kind))
@@ -1044,6 +1086,23 @@ matches sort first because we own the local region."
          (chars (decode-coding-string (substring bytes 0 offset) 'utf-8)))
     (+ (comint-line-beginning-position) (length chars))))
 
+(defun +eat-nushell--finish-completion (candidate status table)
+  "Inject CANDIDATE's terminator as an input event when STATUS is finished."
+  (when (eq status 'finished)
+    (when-let* ((entry (gethash candidate table))
+                (terminator (plist-get entry :terminator)))
+      (cond
+       ;; The slash is already part of the candidate.  Requeue it through
+       ;; the command loop so Corfu sees an insertion event and opens the
+       ;; next directory level.
+       ((string-suffix-p "/" candidate)
+        (delete-char -1)
+        (push ?/ unread-command-events))
+       ((not (string-empty-p terminator))
+        (push (aref terminator 0) unread-command-events)))))
+  (setq-local carapace-nushell--active-completions nil
+              +eat-nushell--completion-span nil))
+
 (defun +eat-nushell-capf ()
   "Complete the Eat input with configured Nu's `commandline complete'."
   (let* ((prompt (carapace-nushell--raw-prompt (point)))
@@ -1063,7 +1122,10 @@ matches sort first because we own the local region."
               (lambda (candidate)
                 (when-let* ((kind (plist-get (gethash candidate table) :kind)))
                   (intern kind)))
-              :company-doc-buffer #'+eat-nushell-doc-buffer)))))
+              :company-doc-buffer #'+eat-nushell-doc-buffer
+              :exit-function
+              (lambda (candidate status)
+                (+eat-nushell--finish-completion candidate status table)))))))
 
 (defun replace-eat-completions ()
   (fish-completion-mode -1)
