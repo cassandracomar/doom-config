@@ -1105,7 +1105,11 @@ parent dir, so eglot launches with the direnv-provided server."
 
   (setq nu-executable-path (executable-find "nu"))
   (setq eat-enable-directory-tracking t
-        eat-shell (format "%s --config '%s/.config/nushell/emacs-config.nu'" nu-executable-path (getenv "HOME"))
+        eat-shell (format "%s --config %s"
+                          nu-executable-path
+                          (shell-quote-argument
+                           (expand-file-name
+                            (car +eat-nushell-commands-source-files))))
         eat-enable-mouse t
         eat-enable-auto-line-mode t
         eat-enable-kill-from-terminal t
