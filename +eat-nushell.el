@@ -44,36 +44,6 @@ The first entry is passed to `nu --config' for completion queries."
 (defconst +eat-nushell--json-begin "__EAT_NUSHELL_JSON_BEGIN__")
 (defconst +eat-nushell--json-end "__EAT_NUSHELL_JSON_END__")
 
-(defun +eat-nushell--escape-control-chars-in-strings ()
-  "Escape raw JSON control bytes inside strings in the current buffer."
-  (goto-char (point-min))
-  (let ((in-string nil))
-    (while (not (eobp))
-      (let ((char (char-after)))
-        (cond
-         ((and in-string (eq char ?\\))
-          (forward-char 2))
-         ((eq char ?\")
-          (setq in-string (not in-string))
-          (forward-char 1))
-         ((and in-string (<= char #x1f))
-          (delete-char 1)
-          (insert (format "\\u%04x" char)))
-         (t
-          (forward-char 1)))))))
-
-(defun +eat-nushell--parse-json (json)
-  "Parse JSON after repairing raw control characters in strings."
-  (with-temp-buffer
-    (insert json)
-    (+eat-nushell--escape-control-chars-in-strings)
-    (goto-char (point-min))
-    (json-parse-buffer
-     :object-type 'plist
-     :array-type 'list
-     :null-object nil
-     :false-object nil)))
-
 (defun +eat-nushell--config-json (expression &optional environment)
   "Evaluate EXPRESSION under the configured Nushell and decode its JSON.
 Return `(:ok t :value VALUE)' on success and nil when Nu fails or emits
@@ -117,8 +87,13 @@ environment entries."
                   (when end
                     (condition-case nil
                         (list :ok t
-                              :value (+eat-nushell--parse-json
-                                      (substring output payload-start end)))
+                              :value
+                              (json-parse-string
+                               (substring output payload-start end)
+                               :object-type 'plist
+                               :array-type 'list
+                               :null-object nil
+                               :false-object nil))
                       (error nil)))))))
         (when (buffer-live-p proc-buf)
           (kill-buffer proc-buf))))))
