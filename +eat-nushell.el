@@ -338,7 +338,6 @@ completion, and delegation to its external completer."
                       value)))
               (puthash normalized
                      `(:display ,value :value ,normalized
-                       :terminator ,(if (string-suffix-p "/" normalized) "" " ")
                        ,@(when (stringp description)
                            (list :description description))
                        ,@(when (stringp kind) (list :kind kind))
@@ -1045,22 +1044,6 @@ matches sort first because we own the local region."
          (chars (decode-coding-string (substring bytes 0 offset) 'utf-8)))
     (+ (comint-line-beginning-position) (length chars))))
 
-(defun +eat-nushell--finish-completion (candidate status table)
-  "Apply Nushell-style termination after inserting CANDIDATE from TABLE."
-  (when (eq status 'finished)
-    (when-let* ((entry (gethash candidate table))
-                (terminator (plist-get entry :terminator)))
-      (cond
-       ;; Re-insert the slash through the command loop so Corfu opens the
-       ;; next directory level automatically.
-       ((string-suffix-p "/" candidate)
-        (delete-char -1)
-        (push ?/ unread-command-events))
-       ((not (string-empty-p terminator))
-        (push (aref terminator 0) unread-command-events)))))
-  (setq-local carapace-nushell--active-completions nil
-              +eat-nushell--completion-span nil))
-
 (defun +eat-nushell-capf ()
   "Complete the Eat input with configured Nu's `commandline complete'."
   (let* ((prompt (carapace-nushell--raw-prompt (point)))
@@ -1080,10 +1063,7 @@ matches sort first because we own the local region."
               (lambda (candidate)
                 (when-let* ((kind (plist-get (gethash candidate table) :kind)))
                   (intern kind)))
-              :company-doc-buffer #'+eat-nushell-doc-buffer
-              :exit-function
-              (lambda (candidate status)
-                (+eat-nushell--finish-completion candidate status table)))))))
+              :company-doc-buffer #'+eat-nushell-doc-buffer)))))
 
 (defun replace-eat-completions ()
   (fish-completion-mode -1)
