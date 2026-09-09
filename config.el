@@ -1254,7 +1254,10 @@ the start of the line."
          "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
         agent-shell-openai-codex-acp-command '("codex-acp")
         agent-shell-openai-default-model-id "gpt-5.6-sol"
-        agent-shell-openai-default-session-mode-id "read-only"
+        ;; read-only means prompt for all edits, not all edits are blocked.
+        ;; this requires a patched codex-acp for now, until 
+        ;; https://github.com/agentclientprotocol/codex-acp/pull/487 is merged.
+        agent-shell-openai-default-session-mode-id "read-only" 
         agent-shell-session-restore-verbosity 'last
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
