@@ -190,8 +190,11 @@ for UI that eglot pulls lazily and won't re-render on its own.")
 
 (cl-defmethod eglot-handle-request
   (server (_method (eql workspace/inlayHint/refresh)))
-  "Run post-load refreshers when SERVER requests an inlay-hint refresh."
-  (+eglot--run-post-load server)
+  "Refresh inlay hints in SERVER's managed buffers."
+  (dolist (buffer (eglot--managed-buffers server))
+    (eglot--when-live-buffer buffer
+      (eglot--widening
+       (+eglot-refresh-inlay-hints-h server))))
   nil)
 
 (cl-defmethod eglot-handle-request :after
