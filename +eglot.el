@@ -165,6 +165,13 @@ for UI that eglot pulls lazily and won't re-render on its own.")
     (dolist (win (get-buffer-window-list nil nil t))
       (eglot--update-hints-1 (window-start win) (window-end win t)))))
 
+(defun +eglot-refresh-semantic-tokens (&rest _)
+  "Discard cached semantic tokens and request fresh ones."
+  (when (bound-and-true-p eglot-semantic-tokens-mode)
+    (setq eglot--semtok-state nil)
+    (font-lock-flush)
+    (font-lock-ensure)))
+
 (defun +eglot-refresh-flymake-h (_server)
   "Re-run flymake backends in the current buffer."
   (when (bound-and-true-p flymake-mode)
@@ -186,6 +193,14 @@ for UI that eglot pulls lazily and won't re-render on its own.")
   "Run post-load refreshers when SERVER requests an inlay-hint refresh."
   (+eglot--run-post-load server)
   nil)
+
+(cl-defmethod eglot-handle-request :after
+  (server (_method (eql workspace/semanticTokens/refresh)))
+  "Refresh semantic tokens in SERVER's managed buffers."
+  (dolist (buffer (eglot--managed-buffers server))
+    (eglot--when-live-buffer buffer
+      (eglot--widening
+       (+eglot-refresh-semantic-tokens)))))
 
 (cl-defmethod eglot-handle-notification :after
   (server (_method (eql $/progress)) &key _token value)

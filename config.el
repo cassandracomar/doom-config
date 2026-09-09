@@ -1244,7 +1244,7 @@ the start of the line."
         agent-shell-openai-codex-environment
         (agent-shell-make-environment-variables
          "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
-        agent-shell-openai-codex-acp-command '("codex-acp")
+        agent-shell-openai-codex-acp-command (list (executable-find "codex-acp"))
         agent-shell-openai-default-model-id "gpt-5.6-sol"
         ;; read-only means prompt for all edits, not all edits are blocked.
         ;; this requires a patched codex-acp for now, until 
