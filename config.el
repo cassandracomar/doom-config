@@ -1337,6 +1337,7 @@ the start of the line."
     :desc "Start Codex"              :localleader        :n       "l"         #'agent-shell-openai-start-codex
 
     :block "Debug"
+    :desc "Toggle Logging"           :localleader        :n       "L"         #'agent-shell-toggle-logging
     :desc "Traffic"                  :localleader        :n       "t"         #'agent-shell-view-traffic
     :desc "Transcript"               :localleader        :n       "T"         #'agent-shell-open-transcript
     :desc "Usage"                    :localleader        :n       "u"         #'agent-shell-show-usage)
