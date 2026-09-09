@@ -973,63 +973,68 @@ text regions between template blocks."
   :defer t
   :mode "\\.proto\\'")
 
-;; (defvar +eglot-after-envrc-hook '())
-;; (defvar-local +eglot-after-envrc-run? nil)
+(defvar +eglot-after-envrc-hook '())
+(defvar-local +eglot-after-envrc-run? nil)
 (use-package! envrc
   :defer t
   :hook '((doom-first-input . envrc-global-mode))
   :init
   (setq envrc-async t)
+  (setq envrc-global-modes
+        '(prog-mode text-mode conf-mode
+          dired-mode eshell-mode shell-mode
+          eat-mode))
   :config
-  ;;   (defun +eglot--envrc-settled-p ()
-  ;;     "Non-nil when envrc has finished running for the current buffer."
-  ;;     (not envrc--running))
 
-  ;;   (defun +eglot-ensure-connected (&optional tries)
-  ;;     "Start eglot, or reconnect it, once direnv has fully settled.
-  ;; The `envrc--status' watcher fires the moment status becomes \\='on, which
-  ;; is mid-`envrc--apply' -- before `exec-path'/`process-environment' are
-  ;; installed.  Defer via a timer until `envrc--apply' returns, and poll while
-  ;; `envrc--running' is non-nil, so eglot launches with the direnv-provided
-  ;; server."
-  ;;     (when-let* ((tries (or tries 100))
-  ;;                 (buf (current-buffer))
-  ;;                 (mode-is-prog-mode (derived-mode-p 'prog-mode)))
-  ;;       (cond
-  ;;        ((+eglot--envrc-settled-p)
-  ;;         (run-at-time 0 nil
-  ;;                      (lambda ()
-  ;;                        (when (buffer-live-p buf)
-  ;;                          (with-current-buffer buf
-  ;;                            (when (eglot--lookup-mode major-mode)
-  ;;                              (if (eglot-current-server)
-  ;;                                  (eglot-reconnect (eglot-current-server))
-  ;;                                (condition-case-unless-debug oops
-  ;;                                    (apply #'eglot--connect (eglot--guess-contact))
-  ;;                                  (error (eglot--warn (error-message-string oops)))))))))))
-  ;;        ((> tries 0)
-  ;;         (run-at-time 0.1 nil
-  ;;                      (lambda ()
-  ;;                        (when (buffer-live-p buf)
-  ;;                          (with-current-buffer buf
-  ;;                            (+eglot-ensure-connected (1- tries)))))))
-  ;;        (t (message "envrc: gave up waiting for direnv in %s" (buffer-name buf))))))
+  (defun +eglot--envrc-settled-p ()
+    "Non-nil when envrc has finished running for the current buffer."
+    (not envrc--running))
 
-  ;;   (defun +envrc-status-watcher (symbol newval operation where)
-  ;;     (when (and (equal symbol 'envrc--status)
-  ;;                (eq operation 'set)
-  ;;                (bufferp where)
-  ;;                (buffer-file-name where) ;; only try to start eglot this way in file-visiting buffers
-  ;;                (equal newval 'on))
-  ;;       (with-current-buffer where
-  ;;         (require 'eglot)
-  ;;         (when (and (eglot--lookup-mode major-mode)
-  ;;                    (not +eglot-after-envrc-run?))
-  ;;           ;; make sure hooks are only triggered once
-  ;;           (setq +eglot-after-envrc-run? t)
-  ;;           (run-hooks '+eglot-after-envrc-hook)))))
-  ;;   (add-variable-watcher 'envrc--status #'+envrc-status-watcher)
-  ;;   (add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-connected)
+  (defun +eglot-ensure-connected (&optional tries)
+    "Start eglot, or reconnect it, once direnv has fully settled.
+  The `envrc--status' watcher fires the moment status becomes \\='on, which
+  is mid-`envrc--apply' -- before `exec-path'/`process-environment' are
+  installed.  Defer via a timer until `envrc--apply' returns, and poll while
+  `envrc--running' is non-nil, so eglot launches with the direnv-provided
+  server."
+    (when-let* ((tries (or tries 100))
+                (buf (current-buffer))
+                (mode-is-prog-mode (derived-mode-p 'prog-mode)))
+      (cond
+       ((+eglot--envrc-settled-p)
+        (run-at-time 0 nil
+                     (lambda ()
+                       (when (buffer-live-p buf)
+                         (with-current-buffer buf
+                           (when (eglot--lookup-mode major-mode)
+                             (if (eglot-current-server)
+                                 (eglot-reconnect (eglot-current-server))
+                               (condition-case-unless-debug oops
+                                   (apply #'eglot--connect (eglot--guess-contact))
+                                 (error (eglot--warn (error-message-string oops)))))))))))
+       ((> tries 0)
+        (run-at-time 0.1 nil
+                     (lambda ()
+                       (when (buffer-live-p buf)
+                         (with-current-buffer buf
+                           (+eglot-ensure-connected (1- tries)))))))
+       (t (message "envrc: gave up waiting for direnv in %s" (buffer-name buf))))))
+
+  (defun +envrc-status-watcher (symbol newval operation where)
+    (when (and (equal symbol 'envrc--status)
+               (eq operation 'set)
+               (bufferp where)
+               (buffer-file-name where) ;; only try to start eglot this way in file-visiting buffers
+               (equal newval 'on))
+      (with-current-buffer where
+        (require 'eglot)
+        (when (and (eglot--lookup-mode major-mode)
+                   (not +eglot-after-envrc-run?))
+          ;; make sure hooks are only triggered once
+          (setq +eglot-after-envrc-run? t)
+          (run-hooks '+eglot-after-envrc-hook)))))
+  (add-variable-watcher 'envrc--status #'+envrc-status-watcher)
+  (add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-connected)
   (add-to-list 'mode-line-misc-info '(envrc-mode envrc-lighter) t))
 
 (use-package! sideline
