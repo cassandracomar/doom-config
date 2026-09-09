@@ -86,7 +86,7 @@
 ;; (package! claude-code-ide-extras-emacs :recipe (:host github :repo "acmorrow/claude-code-ide-extras" :files ("claude-code-ide-extras-common.el" "claude-code-ide-extras-emacs.el" "claude-code-ide-extras-meta.el" "claude-code-ide-extras-projectile.el")) :pin "56ad113f7206378ce23238dd7932737513a01748")
 (package! let-completion)
 (package! agent-shell-dispatch :recipe (:host github :repo "cassandracomar/agent-shell-dispatch") :pin "8d017e1100bfab42676830908a7ddba2f5fcc96a")
-(package! agent-shell-ediff :recipe (:host github :repo "cassandracomar/agent-shell-ediff") :pin "be0408270dea969dce50f1f183e4e5dcc34e65eb")
+(package! agent-shell-ediff :recipe (:host github :repo "cassandracomar/agent-shell-ediff") :pin "bd2f50d4990620d092cb8571c3a572bf6e38be87")
 (package! gotmpl-ts-mode :recipe (:host github :repo "zellio/tree-sitter-gotmpl" :files ("extras/gotmpl-ts-mode/*.el")) :pin "5c91dafb003f4a63ff37853c958fc622fbf436e6")
 (package! khalel)
 (package! emcp)
