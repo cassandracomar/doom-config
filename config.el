@@ -281,24 +281,10 @@ mid-scroll."
   :config
   (load! "+eglot")
 
-  ;; (add-hook! 'eglot-managed-mode-hook
-  ;;   (add-to-list
-  ;;    'mode-line-misc-info
-  ;;    `(eglot--managed-mode
-  ;;      (" ["
-  ;;       (:eval
-  ;;        (cl-loop for e in eglot-mode-line-format
-  ;;                 for render = (format-mode-line e)
-  ;;                 unless (eq render "")
-  ;;                 collect (cons render
-  ;;                               (eq e 'eglot-mode-line-menu))
-  ;;                 into rendered
-  ;;                 finally
-  ;;                 (return (cl-loop for (rspec . rest) on rendered
-  ;;                                  for (r . titlep) = rspec
-  ;;                                  concat r
-  ;;                                  when rest concat (if titlep ":" "/")))))
-  ;;       "]"))))
+  (when-let* ((spec (cadr (assq 'eglot--managed-mode
+                                mode-line-misc-info))))
+    (setcar spec "[")
+    (setcar (last spec) "]"))
   (map! :map eglot-mode-map :nv "g D" #'+lookup/references)
   (add-to-list 'eglot-semantic-token-types "const")
   (add-to-list 'eglot-semantic-token-types "lifetime")
