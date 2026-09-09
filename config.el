@@ -298,7 +298,7 @@ mid-scroll."
                                    for (r . titlep) = rspec
                                    concat r
                                    when rest concat (if titlep ":" "/")))))
-        "] "))))
+        "]"))))
   (map! :map eglot-mode-map :nv "g D" #'+lookup/references)
   (add-to-list 'eglot-semantic-token-types "const")
   (add-to-list 'eglot-semantic-token-types "lifetime")
