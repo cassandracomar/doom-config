@@ -993,37 +993,34 @@ text regions between template blocks."
   :defer t
   :hook '((doom-first-input . envrc-global-mode))
   :init
-  (setq envrc-async-processing t)
+  (setq envrc-async t)
   :config
   (defun +eglot--envrc-settled-p ()
-    "Non-nil when no envrc process is running for the current buffer's
-env-dir or any ancestor directory of it."
-    (let ((dir (ignore-errors (envrc--find-env-dir))))
-      (not (and dir
-                (seq-some (lambda (proc-dir)
-                            (file-in-directory-p dir proc-dir))
-                          (hash-table-keys envrc--processes))))))
+    "Non-nil when envrc has finished running for the current buffer."
+    (not envrc--running))
 
   (defun +eglot-ensure-connected (&optional tries)
     "Start eglot, or reconnect it, once direnv has fully settled.
 The `envrc--status' watcher fires the moment status becomes \\='on, which
 is mid-`envrc--apply' -- before `exec-path'/`process-environment' are
-installed and before the direnv process leaves `envrc--processes'.  Defer
-via a timer and poll until no envrc process remains for this dir or any
-parent dir, so eglot launches with the direnv-provided server."
+installed.  Defer via a timer until `envrc--apply' returns, and poll while
+`envrc--running' is non-nil, so eglot launches with the direnv-provided
+server."
     (when-let* ((tries (or tries 100))
                 (buf (current-buffer))
                 (mode-is-prog-mode (derived-mode-p 'prog-mode)))
       (cond
        ((+eglot--envrc-settled-p)
-        (run-at-time 1 nil
+        (run-at-time 0 nil
                      (lambda ()
-                       (when (eglot--lookup-mode major-mode)
-                         (if (eglot-current-server)
-                             (eglot-reconnect (eglot-current-server))
-                           (condition-case-unless-debug oops
-                               (apply #'eglot--connect (eglot--guess-contact))
-                             (error (eglot--warn (error-message-string oops)))))) ) ))
+                       (when (buffer-live-p buf)
+                         (with-current-buffer buf
+                           (when (eglot--lookup-mode major-mode)
+                             (if (eglot-current-server)
+                                 (eglot-reconnect (eglot-current-server))
+                               (condition-case-unless-debug oops
+                                   (apply #'eglot--connect (eglot--guess-contact))
+                                 (error (eglot--warn (error-message-string oops)))))))))))
        ((> tries 0)
         (run-at-time 0.1 nil
                      (lambda ()

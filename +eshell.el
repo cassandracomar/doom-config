@@ -61,7 +61,6 @@ buffer B without a disk round-trip."
   (setq eshell-error-if-no-glob nil)
   (add-hook 'eshell-mode-hook #'+eshell-init-shared-history 90)
   (add-hook 'eshell-pre-command-hook #'eshell-append-history)
-  (add-hook 'eshell-post-command-hook #'envrc--update)
   (remove-hook 'eshell-mode-hook #'hide-mode-line-mode)
   (setq vterm-kill-buffer-on-exit t)
   ;; remove confirmation for process buffers
@@ -352,4 +351,3 @@ buffer B without a disk round-trip."
 
 (defun eshell/vim (&rest args)
   (mapcar #'eshell-find-single-file args))
-
