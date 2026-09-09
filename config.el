@@ -1350,7 +1350,7 @@ the start of the line."
   ;; Upgrade SPC l from bootstrap binding to full transient
   (map! :leader "l" #'+agent-shell-menu)
 
-  ;; (load! "agent/+agent-shell-view-on-y")
+  (load! "agent/+agent-shell-view-on-y")
   (load! "agent/+agent-shell-interrupt-fix")
   (load! "agent/+agent-shell-title-fix")
   (add-hook! 'agent-shell-mode-hook (evil-snipe-local-mode -1))
