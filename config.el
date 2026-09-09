@@ -1043,7 +1043,8 @@ server."
           (setq +eglot-after-envrc-run? t)
           (run-hooks '+eglot-after-envrc-hook)))))
   (add-variable-watcher 'envrc--status #'+envrc-status-watcher)
-  (add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-connected))
+  (add-hook! '+eglot-after-envrc-hook #'+eglot-ensure-connected)
+  (add-to-list 'mode-line-misc-info '(envrc-mode envrc-lighter) t))
 
 (use-package! sideline
   :after eglot flymake
