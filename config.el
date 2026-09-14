@@ -226,17 +226,19 @@
   (evil-kill-on-visual-paste nil)
   (evil-collection-setup-minibuffer t)
   (evil-collection-repl-submit-state 'normal))
-(setq evil-surround-pairs-alist
-      (let ((pairs
-             (copy-tree
-              (default-value 'evil-surround-pairs-alist))))
-        (setf (alist-get ?\( pairs) '("(" . ")")
-              (alist-get ?\) pairs) '("( " . " )")
-              (alist-get ?\[ pairs) '("[" . "]")
-              (alist-get ?\] pairs) '("[ " . " ]")
-              (alist-get ?\{ pairs) '("{" . "}")
-              (alist-get ?\} pairs) '("{ " . " }"))
-        pairs))
+(use-package! evil-surround
+  :hook '((doom-first-input . global-evil-surround-mode))
+  :custom
+  (evil-surround-pairs-alist (let ((pairs
+                                    (copy-tree
+                                     (default-value 'evil-surround-pairs-alist))))
+                               (setf (alist-get ?\( pairs) '("(" . ")")
+                                     (alist-get ?\) pairs) '("( " . " )")
+                                     (alist-get ?\[ pairs) '("[" . "]")
+                                     (alist-get ?\] pairs) '("[ " . " ]")
+                                     (alist-get ?\{ pairs) '("{" . "}")
+                                     (alist-get ?\} pairs) '("{ " . " }"))
+                               pairs)))
 
 ;; UI
 
