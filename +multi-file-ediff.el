@@ -392,6 +392,12 @@ Default is a no-op.  Sources whose ediff has a writable side
 
 ;;;; Magit adapter
 
+(defun multi-file-ediff--commit-sha (rev)
+  "Return REV resolved to an existing commit, or nil.
+Unlike `magit-rev-verify', this checks that a literal object ID names an
+object that is actually present in the repository."
+  (and rev (magit-rev-parse "--verify" (concat rev "^{commit}"))))
+
 (cl-defstruct (multi-file-ediff-magit-source
                (:constructor multi-file-ediff-magit-source-make))
   base-ref
@@ -412,7 +418,8 @@ SOURCE"
           (multi-file-ediff-magit-source-default-directory source))
          (base (multi-file-ediff-magit-source-base-ref source))
          (head (multi-file-ediff-magit-source-head-ref source)))
-    (unless (and base head (magit-rev-verify base) (magit-rev-verify head))
+    (unless (and (multi-file-ediff--commit-sha base)
+                 (multi-file-ediff--commit-sha head))
       (ignore-errors (magit-call-git "fetch" "origin")))))
 
 (cl-defmethod multi-file-ediff--list-files
@@ -851,9 +858,8 @@ SOURCE"
          (head (multi-file-ediff-code-review-source-head-ref source))
          (pr (multi-file-ediff-code-review-source-pullreq source))
          (number (and pr (oref pr number))))
-    (unless (and base head
-                 (magit-rev-verify base)
-                 (magit-rev-verify head))
+    (unless (and (multi-file-ediff--commit-sha base)
+                 (multi-file-ediff--commit-sha head))
       (when number
         (let ((spec (format "+refs/pull/%s/head:refs/pullreqs/%s"
                             number number)))
@@ -1340,27 +1346,33 @@ CR-BUF"
     ;; Fetch first: needed for fresh clones where neither the PR head nor
     ;; the base remote-tracking branch is yet in the local repo.
     (let ((default-directory dir))
-      (unless (and head-ref-oid (magit-rev-verify head-ref-oid))
+      (unless (multi-file-ediff--commit-sha head-ref-oid)
         (let ((spec (format "+refs/pull/%s/head:refs/pullreqs/%s"
                             number number)))
-          (ignore-errors (magit-call-git "fetch" "origin" spec))))
+          (unless (zerop (magit-call-git "fetch" "origin" spec))
+            (user-error "Could not fetch head of PR #%s; see %s"
+                        number (buffer-name (magit-process-buffer))))))
       (let ((remote (magit-get-current-remote)))
         (unless (and remote
-                     (magit-rev-verify (concat remote "/" base-ref-name)))
-          (ignore-errors (magit-call-git "fetch" "origin")))))
+                     (multi-file-ediff--commit-sha
+                      (concat remote "/" base-ref-name)))
+          (unless (zerop (magit-call-git "fetch" "origin"))
+            (user-error "Could not fetch base of PR #%s; see %s"
+                        number (buffer-name (magit-process-buffer)))))))
     ;; Now resolve refs.
     (let* ((default-directory dir)
            (forge-ref (let ((ref (format "refs/pullreqs/%s" number)))
-                        (and (magit-rev-verify ref) ref)))
-           (head-ref (cond ((and head-ref-oid (magit-rev-verify head-ref-oid))
+                        (and (multi-file-ediff--commit-sha ref) ref)))
+           (head-ref (cond ((multi-file-ediff--commit-sha head-ref-oid)
                             head-ref-oid)
                            (forge-ref forge-ref)
                            (t nil)))
            (remote (magit-get-current-remote))
            (base-ref (or (and remote
                               (let ((rev (concat remote "/" base-ref-name)))
-                                (and (magit-rev-verify rev) rev)))
-                         (and (magit-rev-verify base-ref-name) base-ref-name)))
+                                (and (multi-file-ediff--commit-sha rev) rev)))
+                         (and (multi-file-ediff--commit-sha base-ref-name)
+                              base-ref-name)))
            (base-sha (and base-ref head-ref
                           (magit-git-string "merge-base" base-ref head-ref))))
       (unless head-ref
@@ -1443,7 +1455,7 @@ CR-BUF"
                      (multi-file-ediff-code-review-source-head-ref source))
                     ((multi-file-ediff-magit-source-p source)
                      (multi-file-ediff-magit-source-head-ref source)))))
-    (and head (magit-rev-parse head))))
+    (multi-file-ediff--commit-sha head)))
 
 (defvar multi-file-ediff-after-worktree-hook nil
   "Hook run after a multi-file-ediff worktree is created or its HEAD changes.
@@ -1465,18 +1477,33 @@ in the worktree whenever it was created or its HEAD changed."
     (cond
      ((file-exists-p wt)
       (let* ((default-directory wt)
-             (current (magit-rev-parse "HEAD")))
+             (current (multi-file-ediff--commit-sha "HEAD")))
+        (unless current
+          (user-error "Cached worktree is not a Git worktree: %s" wt))
         (unless (equal current target)
           (let ((default-directory wt))
-            (magit-call-git "checkout" "--detach" target))
+            (unless (zerop (magit-call-git "checkout" "--detach" target))
+              (user-error "Could not update cached worktree %s; see %s"
+                          wt (buffer-name (magit-process-buffer)))))
           (setq changed t))))
      (t
       (let ((default-directory repo-dir))
-        (magit-call-git "worktree" "add" "--detach" wt target))
+        ;; A cache directory can disappear while its worktree remains
+        ;; registered in Git.  --force is Git's targeted recovery for that
+        ;; case; without it, `magit-call-git' returns nonzero and leaves WT
+        ;; absent without signaling an error.
+        (unless (zerop (magit-call-git "worktree" "add" "--force"
+                                      "--detach" wt target))
+          (user-error "Could not create cached worktree %s; see %s"
+                      wt (buffer-name (magit-process-buffer)))))
+      (unless (file-directory-p wt)
+        (user-error "Git did not create cached worktree: %s" wt))
       (setq changed t)))
     (when changed
       (let ((default-directory (file-name-as-directory wt)))
         (run-hooks 'multi-file-ediff-after-worktree-hook)))
+    (unless (file-directory-p wt)
+      (user-error "Cached worktree disappeared during setup: %s" wt))
     ;; Touch mtime for LRU.
     (set-file-times wt)
     (multi-file-ediff--prune-worktrees-internal)
