@@ -736,7 +736,15 @@ Based on `so-long-detected-long-line-p'."
           "git.drwholdings.com/api/v3"        ; APIHOST
           "git.drwholdings.com"               ; WEBHOST and INSTANCE-ID
           forge-github-repository)            ; CLASS
-        forge-alist))
+        forge-alist)
+
+  ;; make sure repos are tracked/topics are fetched.
+  (defun +forge-pull-on-project-switch ()
+    (ignore-errors
+      (when (forge-get-repository :stub?)
+        (call-interactively #'forge-pull))))
+  (add-hook 'projectile-after-switch-project-hook
+            #'+forge-pull-on-project-switch))
 (use-package! code-review
   :after forge
   :config
@@ -812,14 +820,7 @@ Based on `so-long-detected-long-line-p'."
     :desc "Reload"                      :n "G"     #'code-review-reload)
   (map! :map code-review-mode-map
         :n "?" #'+code-review-menu)
-
-  ;; make sure repos are tracked/topics are fetched.
-  (defun +forge-pull-on-project-switch ()
-    (ignore-errors
-      (when (forge-get-repository :stub?)
-        (call-interactively #'forge-pull))))
-  (add-hook 'projectile-after-switch-project-hook
-            #'+forge-pull-on-project-switch))
+  )
 
 (use-package! terraform-mode
   :defer t
