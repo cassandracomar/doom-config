@@ -702,8 +702,23 @@ Based on `so-long-detected-long-line-p'."
           (projectile-find-dir . projectile-file)
           (projectile-switch-project . projectile-file)
           (execute-extended-command . command))))
+
+(defcustom +projectile-ignored-project-directories
+  '()
+  "Directories containing projects that Projectile should ignore."
+  :type '(repeat string)
+  :group '+projectile)
+(setopt +projectile-ignored-project-directories '("~/.cache" "~/.npm-global/" "~/.cargo/" "/nix/store" "~/worktrees"))
 (after! projectile
-  (add-to-list 'projectile-globally-ignored-directories "dist-newstyle"))
+  (add-to-list 'projectile-globally-ignored-directories "dist-newstyle")
+  (setq projectile-ignored-project-function
+        (lambda (project-root)
+          (or (doom-project-ignored-p project-root)
+              (seq-some (lambda (directory)
+                          (file-in-directory-p
+                           project-root
+                           (expand-file-name directory)))
+                        +projectile-ignored-project-directories)))))
 
 (use-package! consult-projectile
   :after vertico
