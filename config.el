@@ -731,20 +731,13 @@ Based on `so-long-detected-long-line-p'."
 
 (use-package! forge
   :after magit
+  :commands forge-pull
   :config
   (push '("git.drwholdings.com"               ; GITHOST
           "git.drwholdings.com/api/v3"        ; APIHOST
           "git.drwholdings.com"               ; WEBHOST and INSTANCE-ID
           forge-github-repository)            ; CLASS
-        forge-alist)
-
-  ;; make sure repos are tracked/topics are fetched.
-  (defun +forge-pull-on-project-switch ()
-    (ignore-errors
-      (when (forge-get-repository :stub?)
-        (call-interactively #'forge-pull))))
-  (add-hook 'projectile-after-switch-project-hook
-            #'+forge-pull-on-project-switch))
+        forge-alist))
 (use-package! code-review
   :after forge
   :config
@@ -819,8 +812,7 @@ Based on `so-long-detected-long-line-p'."
     :block "Buffer"
     :desc "Reload"                      :n "G"     #'code-review-reload)
   (map! :map code-review-mode-map
-        :n "?" #'+code-review-menu)
-  )
+        :n "?" #'+code-review-menu))
 
 (use-package! terraform-mode
   :defer t
@@ -922,7 +914,15 @@ Based on `so-long-detected-long-line-p'."
   (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-splices")
   (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-asm")
   (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-cmm")
-  (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-stg-final"))
+  (add-to-list 'projectile-globally-ignored-file-suffixes ".dump-stg-final")
+  
+  ;; make sure repos are tracked/topics are fetched.
+  (defun +forge-pull-on-project-switch ()
+    (ignore-errors
+      (when (forge-get-repository :stub?)
+        (call-interactively #'forge-pull))))
+  (add-hook 'projectile-after-switch-project-hook
+            #'+forge-pull-on-project-switch))
 
 ;; yaml-mode
 (use-package! yaml-ts-mode
