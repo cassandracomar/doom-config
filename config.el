@@ -218,14 +218,14 @@
 (add-hook! global-hl-line-modes (hl-line-mode +1))
 
 ;; evil
-(setopt evil-want-minibuffer t
-        evil-kill-on-visual-paste nil)
 (add-hook! 'minibuffer-setup-hook :append (evil-insert-state))
 (use-package! evil-collection
   :after evil
-  :init
-  (setq evil-collection-setup-minibuffer t
-        evil-collection-repl-submit-state 'normal))
+  :custom
+  (evil-want-minibuffer t)
+  (evil-kill-on-visual-paste nil)
+  (evil-collection-setup-minibuffer t)
+  (evil-collection-repl-submit-state 'normal))
 
 (after! evil-surround
   (setq evil-surround-pairs-alist
