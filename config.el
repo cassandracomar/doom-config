@@ -53,17 +53,25 @@
                  :background ,(doom-blend red bg 0.05) :extend t)
                `(ediff-odd-diff-B :foreground unspecified :inherit nil
                  :background ,(doom-blend green bg 0.05) :extend t)
+               `(ediff-odd-diff-C :foreground unspecified :inherit nil
+                 :background ,(doom-blend green bg 0.05) :extend t)
                `(ediff-even-diff-A :foreground unspecified :inherit nil
                  :background ,(doom-blend red bg 0.05) :extend t)
                `(ediff-even-diff-B :foreground unspecified :inherit nil
+                 :background ,(doom-blend green bg 0.05) :extend t)
+               `(ediff-even-diff-C :foreground unspecified :inherit nil
                  :background ,(doom-blend green bg 0.05) :extend t)
                `(ediff-current-diff-A :foreground unspecified :inherit nil
                  :background ,(doom-blend red bg 0.2) :extend t)
                `(ediff-current-diff-B :foreground unspecified :inherit nil
                  :background ,(doom-blend green bg 0.2) :extend t)
+               `(ediff-current-diff-C :foreground unspecified :inherit nil
+                 :background ,(doom-blend green bg 0.2) :extend t)
                `(ediff-fine-diff-A    :foreground unspecified :inherit nil
                  :background ,(doom-blend red bg 0.35) :extend t)
                `(ediff-fine-diff-B    :foreground unspecified :inherit nil
+                 :background ,(doom-blend green bg 0.35) :extend t)
+               `(ediff-fine-diff-C    :foreground unspecified :inherit nil
                  :background ,(doom-blend green bg 0.35) :extend t))))
 
 ;; If you use `org' and don't want your org files in the default location below,
