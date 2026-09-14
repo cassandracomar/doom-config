@@ -1415,6 +1415,7 @@ the start of the line."
         ;; https://github.com/agentclientprotocol/codex-acp/pull/487 is merged.
         agent-shell-openai-default-session-mode-id "read-only" 
         agent-shell-session-restore-verbosity 'last
+        agent-shell-context-sources '(files error)
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
           (mode . agent-shell-mode)
