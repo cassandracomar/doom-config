@@ -506,13 +506,16 @@ Flattening ORIG stops redisplay re-running every segment on each
 (setq mouse-wheel-tilt-scroll t)
 (map! :g "<mouse-6>" (lambda () (interactive) (scroll-right 1))
       :g "<mouse-7>" (lambda () (interactive) (scroll-left 1)))
+
 (defun consult-flymake-project (&rest _)
   (interactive)
   (consult-flymake t))
+
 (defun +restart-emacs ()
   (if (daemonp)
       (start-process "restart-emacs-service" nil "systemctl" "--user" "--no-block" "restart" "emacs.service")
     (doom/restart)))
+
 (setq doom-localleader-key ",")
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "S-SPC" #'execute-extended-command-for-buffer)
