@@ -509,6 +509,10 @@ Flattening ORIG stops redisplay re-running every segment on each
 (defun consult-flymake-project (&rest _)
   (interactive)
   (consult-flymake t))
+(defun +restart-emacs ()
+  (if (daemonp)
+      (start-process "restart-emacs-service" nil "systemctl" "--user" "--no-block" "restart" "emacs.service")
+    (doom/restart)))
 (setq doom-localleader-key ",")
 (map! :leader "SPC" #'execute-extended-command)
 (map! :leader "S-SPC" #'execute-extended-command-for-buffer)
@@ -516,6 +520,7 @@ Flattening ORIG stops redisplay re-running every segment on each
 (map! :leader "o o" #'envrc-reload)
 (map! :leader "p p" #'consult-projectile-switch-project)
 (map! :leader "p f" #'consult-projectile)
+(map! :leader :desc "Restart Emacs" "q r" #'+restart-emacs)
 (map! :map corfu-map
       :i "C-s" #'+corfu/move-to-minibuffer
       :i
