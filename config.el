@@ -229,16 +229,16 @@
 (use-package! evil-surround
   :hook '((doom-first-input . global-evil-surround-mode))
   :config
-  (setq evil-surround-pairs-alist (let ((pairs
-                                         (copy-tree
-                                          (default-value 'evil-surround-pairs-alist))))
-                                    (setf (alist-get ?\( pairs) '("(" . ")")
-                                          (alist-get ?\) pairs) '("( " . " )")
-                                          (alist-get ?\[ pairs) '("[" . "]")
-                                          (alist-get ?\] pairs) '("[ " . " ]")
-                                          (alist-get ?\{ pairs) '("{" . "}")
-                                          (alist-get ?\} pairs) '("{ " . " }"))
-                                    pairs)))
+  (setq-default evil-surround-pairs-alist (let ((pairs
+                                                 (copy-tree
+                                                  (default-value 'evil-surround-pairs-alist))))
+                                            (setf (alist-get ?\( pairs) '("(" . ")")
+                                                  (alist-get ?\) pairs) '("( " . " )")
+                                                  (alist-get ?\[ pairs) '("[" . "]")
+                                                  (alist-get ?\] pairs) '("[ " . " ]")
+                                                  (alist-get ?\{ pairs) '("{" . "}")
+                                                  (alist-get ?\} pairs) '("{ " . " }"))
+                                            pairs)))
 
 ;; UI
 
