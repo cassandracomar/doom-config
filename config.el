@@ -674,7 +674,9 @@ Based on `so-long-detected-long-line-p'."
   (global-corfu-modes t)
   (corfu-auto t)
   (corfu-count 16)
-  (corfu-max-width 120))
+  (corfu-max-width 120)
+  (text-mode-ispell-word-completion nil)
+  (read-extended-command-predicate #'command-completion-default-include-p))
 (use-package! corfu-auto
   :custom
   (corfu-auto-prefix 0)
