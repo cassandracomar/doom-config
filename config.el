@@ -226,9 +226,7 @@
   (evil-kill-on-visual-paste nil)
   (evil-collection-setup-minibuffer t)
   (evil-collection-repl-submit-state 'normal))
-(use-package! evil-surround
-  :hook '((doom-first-input . global-evil-surround-mode))
-  :config
+(after! evil-surround
   (setq-default evil-surround-pairs-alist (let ((pairs
                                                  (copy-tree
                                                   (default-value 'evil-surround-pairs-alist))))
