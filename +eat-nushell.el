@@ -41,6 +41,14 @@ The first entry is passed to `nu --config' for completion queries."
   :type '(repeat string)
   :group '+eat-nushell)
 
+(defcustom +eat-nushell-completion-cache-distance 2
+  "Number of ordinary characters allowed between completion queries.
+The cached table is refreshed when the input has grown by this many
+characters.  Capped tables, destructive edits, and punctuation refresh
+the table sooner."
+  :type 'natnum
+  :group '+eat-nushell)
+
 (defconst +eat-nushell--json-begin "__EAT_NUSHELL_JSON_BEGIN__")
 (defconst +eat-nushell--json-end "__EAT_NUSHELL_JSON_END__")
 
@@ -182,6 +190,9 @@ has no AST node of its own."
 (defvar-local +eat-nushell--active-completions nil
   "Candidate metadata from the latest completion query.")
 
+(defvar-local +eat-nushell--external-completions-capped-p nil
+  "Whether Nu returned its configured maximum of external completions.")
+
 (defun +eat-nushell--commandline-completions (prompt)
   "Return configured Nu's detailed completions for PROMPT as a hash table.
 The same Nu call also returns `ast --flatten', which supplies the active
@@ -191,12 +202,24 @@ argv used for Nix terminator classification."
                 (concat
                  "do { let prompt = $env.EAT_NUSHELL_PROMPT; "
                  "{ completions: ($prompt | commandline complete --detailed), "
-                 "ast: (ast $prompt --flatten) } }")
+                 "ast: (ast $prompt --flatten), "
+                 "external_max_results: (try { "
+                 "$env.config.completions.external.max_results "
+                 "} catch { null }) } }")
                 (list (concat "EAT_NUSHELL_PROMPT=" prompt))))
               ((plist-get result :ok))
               (payload (plist-get result :value)))
     (let* ((completions (plist-get payload :completions))
            (ast (plist-get payload :ast))
+           (external-max-results
+            (plist-get payload :external_max_results))
+           (external-count
+            (cl-count-if
+             (lambda (completion)
+               (and (listp completion)
+                    (keywordp (car completion))
+                    (equal (plist-get completion :type) "external")))
+             completions))
            (args (+eat-nushell--args-from-flat-ast prompt ast))
            (nix-header (+eat-nushell--nix-completion-header args))
            (spans (delq nil
@@ -254,7 +277,11 @@ argv used for Nix terminator classification."
                  ,@(when (stringp kind) (list :kind kind))
                  ,@(when (stringp type) (list :type type)))
                table)))))
-      (setq-local +eat-nushell--completion-span span)
+      (setq-local +eat-nushell--completion-span span
+                  +eat-nushell--external-completions-capped-p
+                  (and (integerp external-max-results)
+                       (> external-max-results 0)
+                       (>= external-count external-max-results)))
       table)))
 
 (defvar +eat-nushell-doc--last-buffer nil
@@ -335,8 +362,26 @@ infer those candidates from the filesystem when possible."
               (lambda (candidate status)
                 (+eat-nushell--finish-completion candidate status table)))))))
 
+(defun +eat-nushell--completion-cache-valid-p (old-input new-input)
+  "Return non-nil when NEW-INPUT can reuse OLD-INPUT's completion table.
+Refresh capped external results on the next edit.  Narrower tables can
+be reused for ordinary prefix growth up to
+`+eat-nushell-completion-cache-distance' characters.  Destructive edits
+and punctuation can change Nu's completion context, so refresh those
+immediately."
+  (or (equal old-input new-input)
+      (and (string-prefix-p old-input new-input)
+           (not +eat-nushell--external-completions-capped-p)
+           (let ((added (substring new-input (length old-input))))
+             (and (< (length added)
+                     (max 1 +eat-nushell-completion-cache-distance))
+                  (not (string-match-p "[^[:alnum:]]" added)))))))
+
 (defun replace-eat-completions ()
   "Install Nushell-native completion in the current Eat buffer."
   (fish-completion-mode -1)
   (corfu-mode +1)
-  (setq-local completion-at-point-functions (list (cape-capf-buster #'+eat-nushell-capf))))
+  (setq-local completion-at-point-functions
+              (list (cape-capf-buster
+                     #'+eat-nushell-capf
+                     #'+eat-nushell--completion-cache-valid-p))))
