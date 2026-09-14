@@ -699,7 +699,9 @@ Based on `so-long-detected-long-line-p'."
   (add-to-list 'projectile-globally-ignored-directories "dist-newstyle"))
 
 (use-package! consult-projectile
-  :after vertico)
+  :after vertico
+  :custom
+  (consult-projectile-use-projectile-switch-project t))
 
 ;; configure evil
 ;; make evil-search-word look for symbol rather than word boundaries
@@ -919,8 +921,11 @@ Based on `so-long-detected-long-line-p'."
   ;; make sure repos are tracked/topics are fetched.
   (defun +forge-pull-on-project-switch ()
     (ignore-errors
-      (when (forge-get-repository :stub?)
-        (call-interactively #'forge-pull))))
+      (when (require 'forge nil t)
+        (when-let* ((repo (forge-get-repository :stub?)))
+          (if (forge-get-repository :tracked?)
+              (call-interactively #'forge-pull)
+            (forge-add-repository repo))))))
   (add-hook 'projectile-after-switch-project-hook
             #'+forge-pull-on-project-switch))
 
