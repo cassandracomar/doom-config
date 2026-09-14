@@ -300,6 +300,8 @@ mid-scroll."
   (custom-set-faces!
     '(rust-ampersand-face :inherit font-lock-keyword-face)
     '(rust-builtin-formatting-macro :inherit font-lock-preprocessor-face)))
+(after! flymake-mode
+  (setq flymake-mode-line-format '(flymake-mode-line-title flymake-mode-line-exception flymake-mode-line-counters)))
 
 (use-package! haskell-mode
   :defer t
