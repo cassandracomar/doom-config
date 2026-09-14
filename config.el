@@ -676,7 +676,12 @@ Based on `so-long-detected-long-line-p'."
   (corfu-count 16)
   (corfu-max-width 120)
   (text-mode-ispell-word-completion nil)
-  (read-extended-command-predicate #'command-completion-default-include-p))
+  (read-extended-command-predicate #'command-completion-default-include-p)
+  :config
+  (setq-hook! 'text-mode-hook
+    completion-at-point-functions '())
+  (after! git-commit
+    (remove-hook 'git-commit-mode-hook #'git-commit-setup-capf)))
 (use-package! corfu-auto
   :custom
   (corfu-auto-prefix 0)
