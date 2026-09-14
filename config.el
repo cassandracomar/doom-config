@@ -227,16 +227,17 @@
   (evil-collection-setup-minibuffer t)
   (evil-collection-repl-submit-state 'normal))
 (after! evil-surround
-  (setq-default evil-surround-pairs-alist (let ((pairs
-                                                 (copy-tree
-                                                  (default-value 'evil-surround-pairs-alist))))
-                                            (setf (alist-get ?\( pairs) '("(" . ")")
-                                                  (alist-get ?\) pairs) '("( " . " )")
-                                                  (alist-get ?\[ pairs) '("[" . "]")
-                                                  (alist-get ?\] pairs) '("[ " . " ]")
-                                                  (alist-get ?\{ pairs) '("{" . "}")
-                                                  (alist-get ?\} pairs) '("{ " . " }"))
-                                            pairs)))
+  (setq-default evil-surround-pairs-alist
+                (let ((pairs
+                       (copy-tree
+                        (default-value 'evil-surround-pairs-alist))))
+                  (setf (alist-get ?\( pairs) '("(" . ")")
+                        (alist-get ?\) pairs) '("( " . " )")
+                        (alist-get ?\[ pairs) '("[" . "]")
+                        (alist-get ?\] pairs) '("[ " . " ]")
+                        (alist-get ?\{ pairs) '("{" . "}")
+                        (alist-get ?\} pairs) '("{ " . " }"))
+                  pairs)))
 
 ;; UI
 
