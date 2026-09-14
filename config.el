@@ -512,6 +512,7 @@ Flattening ORIG stops redisplay re-running every segment on each
   (consult-flymake t))
 
 (defun +restart-emacs ()
+  (interactive)
   (if (daemonp)
       (start-process "restart-emacs-service" nil "systemctl" "--user" "--no-block" "restart" "emacs.service")
     (doom/restart)))
