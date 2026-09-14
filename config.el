@@ -227,6 +227,19 @@
   (setq evil-collection-setup-minibuffer t
         evil-collection-repl-submit-state 'normal))
 
+(after! evil-surround
+  (setq evil-surround-pairs-alist
+        (let ((pairs
+               (copy-tree
+                (default-value 'evil-surround-pairs-alist))))
+          (setf (alist-get ?\( pairs) '("(" . ")")
+                (alist-get ?\) pairs) '("( " . " )")
+                (alist-get ?\[ pairs) '("[" . "]")
+                (alist-get ?\] pairs) '("[ " . " ]")
+                (alist-get ?\{ pairs) '("{" . "}")
+                (alist-get ?\} pairs) '("{ " . " }"))
+          pairs)))
+
 ;; UI
 
 ;; doom-modeline: compress all the extraneous spaces that have made it into the modeline:
