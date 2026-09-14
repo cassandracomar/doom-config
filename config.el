@@ -242,9 +242,10 @@ mid-scroll."
     (setq +doom-modeline--scroll-cache nil)
     (apply orig args)))
 (use-package! doom-modeline
+  :custom
+  (doom-modeline-lsp nil)
+  (doom-modeline-hud t)
   :config
-  (setq doom-modeline-lsp nil
-        doom-modeline-hud t)
   (advice-add 'doom-modeline--in-git-worktree-p :around
               (lambda (orig)
                 (if (eq +doom-modeline--git-worktree-cache 'unset)
@@ -263,15 +264,14 @@ mid-scroll."
 
 (use-package! spacious-padding
   :hook '((after-init . spacious-padding-mode))
-  :init
-  (setq spacious-padding-widths
-        '(:internal-border-width 5
-          :header-line-width 4
-          :left-fringe-width 0
-          :mode-line-width 0
-          :tab-width 0
-          :right-divider-width 5
-          :scroll-bar-width 2)))
+  :custom
+  (spacious-padding-widths '(:internal-border-width 5
+                             :header-line-width 4
+                             :left-fringe-width 0
+                             :mode-line-width 0
+                             :tab-width 0
+                             :right-divider-width 5
+                             :scroll-bar-width 2)))
 
 (use-package! eglot
   :defer t
@@ -530,29 +530,25 @@ Based on `so-long-detected-long-line-p'."
 (advice-add 'evil-paste-before :before #'+hercules--paste-setup)
 
 (use-package! corfu
-  :init
-  (setq
-   +corfu-want-minibuffer-completion 'aggressive
-   +corfu-want-tab-prefer-expand-snippets nil
-   +corfu-want-tab-prefer-navigating-snippets t
-   +corfu-want-tab-prefer-navigating-org-tables t
-   tab-always-indent 'complete
-   shell-file-name-chars "[]~/A-Za-z0-9+@:_.$#%,={}- "
-   shell-file-name-quote-list '(?$ ?\* ?\! ?\" ?\'))
-
-  :config
-  (setopt corfu-auto-prefix 0
-          corfu-auto-delay 0.0
-          corfu-preselect 'directory
-          global-corfu-modes t
-          corfu-auto t
-          corfu-count 16
-          corfu-max-width 120)
   :custom
-  corfu-auto t)
+  (+corfu-want-minibuffer-completion 'aggressive)
+  (+corfu-want-tab-prefer-expand-snippets nil)
+  (+corfu-want-tab-prefer-navigating-snippets t)
+  (+corfu-want-tab-prefer-navigating-org-tables t)
+  (tab-always-indent 'complete)
+  (shell-file-name-chars "[]~/A-Za-z0-9+@:_.$#%,={}- ")
+  (shell-file-name-quote-list '(?$ ?\* ?\! ?\" ?\'))
+  (corfu-auto-prefix 0)
+  (corfu-auto-delay 0.0)
+  (corfu-preselect 'directory)
+  (global-corfu-modes t)
+  (corfu-auto t)
+  (corfu-count 16)
+  (corfu-max-width 120))
 (use-package! corfu-auto
+  :custom
+  (corfu-auto-prefix 0)
   :config
-  (setopt corfu-auto-prefix 0)
   ;; The default regex `"delete-backward-char\\'"' requires the command name
   ;; to END with that string, so evil's `evil-delete-backward-char-and-join'
   ;; (and other delete-* variants) don't trigger auto re-completion. Use an
@@ -560,10 +556,10 @@ Based on `so-long-detected-long-line-p'."
   (add-to-list 'corfu-auto-commands "delete-backward-char"))
 
 (use-package! orderless
-  :config
-  (setq +vertico-company-completion-styles '(orderless))
-  (setq completion-styles '(orderless basic)
-        orderless-matching-styles '(orderless-literal-prefix orderless-flex orderless-regexp)))
+  :custom
+  (+vertico-company-completion-styles '(orderless))
+  (completion-styles '(orderless basic))
+  (orderless-matching-styles '(orderless-literal-prefix orderless-flex orderless-regexp)))
 
 (after! evil-snipe
   (setopt evil-snipe-scope 'visible)
@@ -703,8 +699,8 @@ Based on `so-long-detected-long-line-p'."
 (use-package! rustic
   :defer t
   :hook '((rustic-mode . lsp!))
-  :config
-  (setq rustic-format-on-save t))
+  :custom
+  (rustic-format-on-save t))
 
 (set-popup-rule! "^\\*helpful" :size 0.5 :quit t :select t :side 'right)
 (set-popup-rule! "^\\*lsp-help\\*" :size 0.5 :quit t :select t :side 'right)
@@ -840,10 +836,11 @@ text regions between template blocks."
 (use-package! evil-org
   :defer t
   :after org
+  :custom
+  (org-want-todo-bindings t)
+  (org-log-done t)
+  (org-todo-keywords '((sequence "TODO(t)" "WORKING(w!)" "BLOCKED(b@/!)" "STALLED(s!)" "|" "DONE(d!)" "DEFERRED(f!)" "CANCELED(c)")))
   :config
-  (setq org-want-todo-bindings t)
-  (setq org-log-done t)
-  (setq org-todo-keywords '((sequence "TODO(t)" "WORKING(w!)" "BLOCKED(b@/!)" "STALLED(s!)" "|" "DONE(d!)" "DEFERRED(f!)" "CANCELED(c)")))
   (evil-org-set-key-theme '(textobjects insert navigation additional shift todo heading)))
 
 (map! :after evil-org
@@ -921,8 +918,9 @@ text regions between template blocks."
   :defer t
   :config
   (set-popup-rule! "^\\*notmuch-hello" :ignore t)
-  (setq +notmuch-sync-backend 'mbsync
-        +notmuch-mail-folder "~/.local/share/maildir"))
+  :custom
+  (+notmuch-sync-backend 'mbsync)
+  (+notmuch-mail-folder "~/.local/share/maildir"))
 
 (use-package! notmuch-multi
   :after notmuch
@@ -978,12 +976,11 @@ text regions between template blocks."
 (use-package! envrc
   :defer t
   :hook '((doom-first-input . envrc-global-mode))
-  :init
-  (setq envrc-async t)
-  (setq envrc-global-modes
-        '(prog-mode text-mode conf-mode
-          dired-mode eshell-mode shell-mode
-          eat-mode))
+  :custom
+  (envrc-async t)
+  (envrc-global-modes '(prog-mode text-mode conf-mode
+                        dired-mode eshell-mode shell-mode
+                        eat-mode))
   :config
 
   (defun +eglot--envrc-settled-p ()
@@ -1041,9 +1038,9 @@ text regions between template blocks."
   :after eglot flymake
   :defer t
   :hook '((flymake-mode . sideline-mode))
+  :custom
+  (sideline-force-display-if-exceeds t)
   :init
-  (setq sideline-force-display-if-exceeds t)
-
   (advice-add 'sideline--post-command :around
               (lambda (orig)
                 (if (memq this-command '(ultra-scroll-up ultra-scroll-down ultra-scroll
@@ -1055,21 +1052,22 @@ text regions between template blocks."
 (use-package! sideline-flymake
   :after sideline flymake
   :defer t
-  :init
-  (setq sideline-flymake-display-mode 'point))
+  :custom
+  (sideline-flymake-display-mode 'point))
 
 (use-package! sideline-eglot
   :after sideline eglot
   :defer t
-  :init
-  (setq sideline-backends-right '(sideline-flymake sideline-eglot)))
+  :custom
+  (sideline-backends-right '(sideline-flymake sideline-eglot)))
 
 (use-package! fish-completion
   :commands global-fish-completion-mode fish-completion-mode
   :defer t
+  :custom
+  (fish-completion-fallback-on-bash-p nil)
   :config
   (require '+completions)
-  (setq fish-completion-fallback-on-bash-p nil)
   (advice-add 'fish-completion--list-completions :override
               #'+fish-completion--list-completions-a))
 
@@ -1168,8 +1166,8 @@ text regions between template blocks."
 
 (use-package! semel
   :defer t
-  :config
-  (setq semel-add-help-echo nil)
+  :custom
+  (semel-add-help-echo nil)
   :hook '((emacs-lisp-mode . semel-mode)
           (emacs-lisp-mode . cursor-sensor-mode)))
 
@@ -1416,5 +1414,5 @@ the start of the line."
   :defer t
   :after (agent-shell latex-to-svg-backend)
   :hook '((agent-shell-mode . agent-shell-math-renderer-mode))
-  :config
-  (setq agent-shell-math-renderer-render-submitted-prompts t))
+  :custom
+  (agent-shell-math-renderer-render-submitted-prompts t))
