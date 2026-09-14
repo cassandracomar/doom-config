@@ -301,7 +301,7 @@ mid-scroll."
     '(rust-ampersand-face :inherit font-lock-keyword-face)
     '(rust-builtin-formatting-macro :inherit font-lock-preprocessor-face)))
 
-(use-package! flymake-mode
+(use-package! flymake
   :defer t
   :custom
   (flymake-mode-line-format '(flymake-mode-line-title flymake-mode-line-exception flymake-mode-line-counters)))
