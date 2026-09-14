@@ -335,8 +335,17 @@ infer those candidates from the filesystem when possible."
               (lambda (candidate status)
                 (+eat-nushell--finish-completion candidate status table)))))))
 
+(defun +eat-nushell--recomplete-after-hyphen ()
+  "Restart Nushell completion after inserting a hyphen.
+Corfu otherwise filters the candidates from the preceding positional
+argument instead of asking Nushell for the command's options."
+  (when (eq last-command-event ?-)
+    (completion-at-point)))
+
 (defun replace-eat-completions ()
   "Install Nushell-native completion in the current Eat buffer."
   (fish-completion-mode -1)
   (corfu-mode +1)
+  (add-hook 'post-self-insert-hook
+            #'+eat-nushell--recomplete-after-hyphen nil t)
   (setq-local completion-at-point-functions (list #'+eat-nushell-capf)))
