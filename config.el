@@ -228,6 +228,94 @@
         evil-collection-repl-submit-state 'normal))
 
 ;; UI
+
+;; doom-modeline: compress all the extraneous spaces that have made it into the modeline:
+(defun +doom-modeline--squeeze-spaces (string)
+  "Collapse runs of ordinary spaces in STRING and remove trailing padding.
+Layout and explicitly protected spaces remain untouched."
+  (let ((index 0)
+        (string-length (length string))
+        previous-plain-space
+        pieces)
+    (while (< index string-length)
+      (let ((plain-space
+             (and (eq (aref string index) ?\s)
+                  (null (get-text-property index 'display string))
+                  (null (get-text-property
+                         index '+doom-modeline-protected-space string)))))
+        (unless (and plain-space previous-plain-space)
+          (push (substring string index (1+ index)) pieces))
+        (setq previous-plain-space plain-space
+              index (1+ index))))
+    (let ((result (apply #'concat (nreverse pieces))))
+      (if (and (> (length result) 0)
+               (eq (aref result (1- (length result))) ?\s)
+               (null (get-text-property (1- (length result)) 'display result))
+               (null (get-text-property
+                      (1- (length result))
+                      '+doom-modeline-protected-space result)))
+          (substring result 0 -1)
+        result))))
+
+(defun +doom-modeline--protect-modal-padding (segment)
+  "Protect the trailing space after the modal indicator in SEGMENT."
+  (if (not (stringp segment))
+      segment
+    (let* ((result (copy-sequence segment))
+           (segment-length (length result)))
+      (when (and (> segment-length 0)
+                 (eq (aref result (1- segment-length)) ?\s))
+        (put-text-property (1- segment-length) segment-length
+                           '+doom-modeline-protected-space t result))
+      result)))
+
+(defun +doom-modeline--realign-right (string)
+  "Realign the right side of normalized modeline STRING."
+  (let ((index 0)
+        align-index)
+    (while (and (< index (length string))
+                (null align-index))
+      (let ((display (get-text-property index 'display string)))
+        (when (and (consp display)
+                   (eq (car display) 'space)
+                   (memq :align-to display))
+          (setq align-index index)))
+      (setq index (1+ index)))
+    (when align-index
+      (let* ((rhs-string (substring string (1+ align-index)))
+             (rhs-width
+              (progn
+                (add-face-text-property
+                 0 (length rhs-string) 'mode-line t rhs-string)
+                (doom-modeline-string-pixel-width rhs-string)))
+             (display
+              (if (and (display-graphic-p)
+                       (not (eq mode-line-right-align-edge 'window)))
+                  `(space :align-to
+                    (- ,mode-line-right-align-edge (,rhs-width)))
+                `(space :align-to
+                  (,(- (window-pixel-width)
+                       (window-scroll-bar-width)
+                       (window-right-divider-width)
+                       (* (or (car (window-margins)) 1)
+                          (frame-char-width))
+                       (pcase mode-line-right-align-edge
+                         ('right-margin
+                          (or (cdr (window-margins)) 0))
+                         ('right-fringe
+                          (or (cadr (window-fringes)) 0))
+                         (_ 0))
+                       rhs-width))))))
+        (put-text-property align-index (1+ align-index)
+                           'display display string)))
+    string))
+
+(defun +doom-modeline--normalize (string)
+  "Normalize spacing and right alignment in modeline STRING."
+  (+doom-modeline--realign-right
+   (+doom-modeline--squeeze-spaces string)))
+
+;; doom-modeline: optimize via caching to improve scrolling performance
 (defvar-local +doom-modeline--git-worktree-cache 'unset)
 (defvar +doom-modeline-scroll-commands
   '(ultra-scroll ultra-scroll-up ultra-scroll-down
@@ -239,16 +327,20 @@
 is skipped.")
 (defvar-local +doom-modeline--scroll-cache nil
   "Cached `doom-modeline-format--main' output, reused for the duration of a scroll.")
+
 (defun +doom-modeline--cache-during-scroll (orig &rest args)
-  "Serve a `format-mode-line'-flattened cached modeline (ORIG) during scroll.
-ORIG returns a construct of live `:eval' segment forms; flattening to a string
-is what stops redisplay re-running every segment on each `posn-at-point' call
-mid-scroll."
+  "Render and normalize modeline ORIG, caching it during scroll.
+Flattening ORIG stops redisplay re-running every segment on each
+`posn-at-point' call mid-scroll."
   (if (memq this-command +doom-modeline-scroll-commands)
       (or +doom-modeline--scroll-cache
-          (setq +doom-modeline--scroll-cache (format-mode-line (apply orig args))))
+          (setq +doom-modeline--scroll-cache
+                (+doom-modeline--normalize
+                 (format-mode-line (apply orig args)))))
     (setq +doom-modeline--scroll-cache nil)
-    (apply orig args)))
+    (+doom-modeline--normalize
+     (format-mode-line (apply orig args)))))
+
 (use-package! doom-modeline
   :custom
   (doom-modeline-lsp nil)
@@ -259,7 +351,11 @@ mid-scroll."
                 (if (eq +doom-modeline--git-worktree-cache 'unset)
                     (setq +doom-modeline--git-worktree-cache (funcall orig))
                   +doom-modeline--git-worktree-cache)))
-  ;; ultra-scroll reformats the modeline via posn-at-point every step; cache a flattened string during scroll so segments don't re-run.
+  (unless (advice-member-p #'+doom-modeline--protect-modal-padding
+                           'doom-modeline-segment--modals)
+    (advice-add 'doom-modeline-segment--modals :filter-return
+                #'+doom-modeline--protect-modal-padding))
+  ;; Normalize padding on every render and cache the flattened result while scrolling.
   (advice-add 'doom-modeline-format--main :around #'+doom-modeline--cache-during-scroll))
 
 ;; evil advises `select-window' to refresh the cursor; ultra-scroll calls it heavily per scroll, so skip the refresh during scroll (cursor can't change mid-scroll).
