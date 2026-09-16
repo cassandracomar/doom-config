@@ -1458,11 +1458,16 @@ the start of the line."
                    ((name . "JIRA_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "jira-token"))))
                    ((name . "CONFLUENCE_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "confluence-token"))))
                    ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))
-          ((name . "coderag-dev")
+          ((name . "coderag")
            (type . "http")
            (headers . (((name . "Identity") (value . "production.ccomar"))
                        ((name . "Ti-Token") (value . (lambda () (auth-source-rbw-get "ti-token"))))))
-           (url . "https://coderag.up-dev.drw/mcp"))))
+           (url . "https://coderag.up.drw/mcp"))
+          ((name . "triagehub")
+           (type . "http")
+           (headers . (((name . "Identity") (value . "mirror.ccomar"))
+                       ((name . "Ti-Token") (value . (lambda () (auth-source-rbw-get "ti-token"))))))
+           (url . "https://triagehub.up-dev.drw/mcp"))))
 
   (load! "agent/+agent-shell-mcp-oauth")
 
