@@ -696,7 +696,8 @@ Based on `so-long-detected-long-line-p'."
   :custom
   (+vertico-company-completion-styles '(orderless))
   (completion-styles '(orderless basic))
-  (orderless-matching-styles '(orderless-literal-prefix orderless-flex orderless-regexp)))
+  (orderless-matching-styles '(orderless-prefixes orderless-literal orderless-flex orderless-regexp))
+  (completion-category-overrides nil))
 
 (after! evil-snipe
   (setopt evil-snipe-scope 'visible)
