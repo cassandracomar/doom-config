@@ -82,7 +82,7 @@
 ;; (package! claude-code-ide :recipe (:host github :repo "manzaltu/claude-code-ide.el") :pin "e95fded6210121cb621257a38e74e19c7ec4e440")
 (package! shell-maker)
 (package! acp)
-(package! agent-shell)
+(package! agent-shell :recipe (:host github :repo "xenodium/agent-shell") :pin "164332bcd459a23a6aaf7b4587905cef56aaff05")
 ;; (package! claude-code-ide-extras-emacs :recipe (:host github :repo "acmorrow/claude-code-ide-extras" :files ("claude-code-ide-extras-common.el" "claude-code-ide-extras-emacs.el" "claude-code-ide-extras-meta.el" "claude-code-ide-extras-projectile.el")) :pin "56ad113f7206378ce23238dd7932737513a01748")
 (package! let-completion)
 (package! agent-shell-dispatch :recipe (:host github :repo "cassandracomar/agent-shell-dispatch") :pin "8d017e1100bfab42676830908a7ddba2f5fcc96a")
