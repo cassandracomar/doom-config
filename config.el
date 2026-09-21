@@ -696,7 +696,7 @@ Based on `so-long-detected-long-line-p'."
   :custom
   (+vertico-company-completion-styles '(orderless))
   (completion-styles '(orderless basic))
-  (orderless-matching-styles '(orderless-prefixes orderless-literal orderless-flex orderless-regexp))
+  (orderless-matching-styles '(orderless-literal orderless-prefixes))
   (completion-category-overrides nil))
 
 (after! evil-snipe
@@ -1384,6 +1384,23 @@ text regions between template blocks."
 (use-package! acp
   :defer t)
 
+(defun mcp-auth-helper--run (args)
+  "run mcp-auth-helper to get back a json string of the header map."
+  (condition-case nil
+      (with-temp-buffer
+        (when (zerop (apply #'call-process "mcp-auth-helper" nil t nil args))
+          (string-trim (buffer-string))))
+    (file-error nil)))
+
+(defun mcp-auth-helper--from (&rest args)
+  "read headers from mcp-auth-helper on the `exec-path'"
+  (let ((json (mcp-auth-helper--run args)))
+    (mapcar
+     (pcase-lambda (`(,name . ,value))
+       `((name . ,(if (symbolp name) (symbol-name name) name))
+         (value . ,value)))
+     (json-parse-string json :object-type 'alist))))
+
 (use-package! agent-shell
   :defer t
   :commands agent-shell-anthropic-start-claude-code agent-shell-openai-start-codex agent-shell
@@ -1410,7 +1427,7 @@ the start of the line."
         (agent-shell-make-environment-variables
          "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
         agent-shell-openai-codex-acp-command (list (executable-find "codex-acp"))
-        agent-shell-openai-default-model-id "gpt-5.6-sol"
+        agent-shell-openai-default-model-id "gpt-6-astra"
         agent-shell-openai-default-session-mode-id "permission-profile:local-network" 
         agent-shell-session-restore-verbosity 'last
         agent-shell-context-sources '(files error)
@@ -1456,6 +1473,14 @@ the start of the line."
                    ((name . "JIRA_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "jira-token"))))
                    ((name . "CONFLUENCE_PERSONAL_TOKEN") (value . (lambda () (auth-source-rbw-get "confluence-token"))))
                    ((name . "CONFLUENCE_URL") (value . "https://wiki.drwholdings.com")))))
+          ;; ((name . "coderag")
+          ;;  (type . "http")
+          ;;  (headers . (lambda () (mcp-auth-helper--from)))
+          ;;  (url . "https://coderag.up.drw/mcp"))
+          ;; ((name . "triagehub")
+          ;;  (type . "http")
+          ;;  (headers . (lambda () (mcp-auth-helper--from)))
+          ;;  (url . "https://triagehub.up-dev.drw/mcp")))
           ((name . "coderag")
            (type . "http")
            (headers . (((name . "Identity") (value . "production.ccomar"))
