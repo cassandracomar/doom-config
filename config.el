@@ -545,13 +545,14 @@ Flattening ORIG stops redisplay re-running every segment on each
 ;; `eat-self-input', which is the default in `eat-semi-char-mode-map'.
 (map! :map eat-line-mode-map
       :ni
-      "<up>" #'eat-line-previous-input
-      "<down>" #'eat-line-next-input
       "<tab>" #'completion-at-point
       "TAB" #'completion-at-point
       "C-k" #'eat-previous-shell-prompt
       "C-j" #'eat-next-shell-prompt
-      "C-r" #'consult-history)
+      "C-r" #'consult-history
+      :i
+      "<up>" #'eat-line-previous-input
+      "<down>" #'eat-line-next-input)
 (map! :map vertico-map
       "<tab>" #'vertico-insert
       [backtab] #'vertico-previous
