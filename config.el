@@ -1428,8 +1428,22 @@ the start of the line."
          "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
         agent-shell-openai-codex-acp-command (list (executable-find "codex-acp"))
         agent-shell-openai-default-model-id "gpt-6-astra"
-        agent-shell-openai-default-session-mode-id "permission-profile:local-network" 
-        agent-shell-session-restore-verbosity 'last
+        agent-shell-openai-default-session-mode-id "permission-profile:local-network"
+        agent-shell-anthropic-authentication
+        (agent-shell-anthropic-make-authentication
+         :api-key (lambda () (auth-source-rbw-get "anthropic-api-key")))
+        agent-shell-anthropic-claude-environment
+        (agent-shell-make-environment-variables
+         "ANTHROPIC_AUTH_TOKEN" (auth-source-rbw-get "anthropic-api-key")
+         "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC" "1"
+         "ANTHROPIC_CUSTOM_HEADERS" (format "x-portkey-api-key: %s\nx-portkey-config: pc-bedroc-55aa53\nx-portkey-metadata: {\"service\": \"claude-code\", \"os\": \"linux\"}" (auth-source-rbw-get "anthropic-api-key"))
+         "ANTHROPIC_BASE_URL" "https://ai.drwcloud.com"
+         "ENABLE_TOOL_SEARCH" "true")
+        agent-shell-anthropic-claude-acp-command (list (executable-find "claude-agent-acp"))
+        agent-shell-anthropic-default-model-id "claude-opus-5-5[1m]"
+        agent-shell-anthropic-default-session-mode-id "default"
+        agent-shell-confirm-interrupt nil
+        agent-shell-session-restore-verbosity 'full
         agent-shell-context-sources '(files error)
         agent-shell-display-action
         '((display-buffer-reuse-mode-window display-buffer-in-direction)
@@ -1522,7 +1536,7 @@ the start of the line."
 
     :row
     :block "Launch"
-    :desc "Start Codex"              :localleader        :n       "l"         #'agent-shell-openai-start-codex
+    :desc "Start Claude"              :localleader        :n       "l"         #'agent-shell-anthropic-start-claude-code
 
     :block "Debug"
     :desc "Toggle Logging"           :localleader        :n       "L"         #'agent-shell-toggle-logging
