@@ -53,7 +53,7 @@
 (package! docker-tramp :disable t)
 (package! flymake-popon :disable t)
 ;; version bumps
-(package! envrc :recipe (:host github :repo "purcell/envrc" :branch "main") :pin "55a69ae6325c06fdde9a94b55c8f3dbc901686ff")
+(package! envrc)
 ;; (package! eglot :pin "78bd85f1b50a7256e9c6171094544fd68f0a0b0c")
 
 ;; new packages
@@ -82,7 +82,7 @@
 ;; (package! claude-code-ide :recipe (:host github :repo "manzaltu/claude-code-ide.el") :pin "e95fded6210121cb621257a38e74e19c7ec4e440")
 (package! shell-maker)
 (package! acp)
-(package! agent-shell :recipe (:host github :repo "xenodium/agent-shell") :pin "164332bcd459a23a6aaf7b4587905cef56aaff05")
+(package! agent-shell)
 ;; (package! claude-code-ide-extras-emacs :recipe (:host github :repo "acmorrow/claude-code-ide-extras" :files ("claude-code-ide-extras-common.el" "claude-code-ide-extras-emacs.el" "claude-code-ide-extras-meta.el" "claude-code-ide-extras-projectile.el")) :pin "56ad113f7206378ce23238dd7932737513a01748")
 (package! let-completion)
 (package! agent-shell-dispatch :recipe (:host github :repo "cassandracomar/agent-shell-dispatch") :pin "8d017e1100bfab42676830908a7ddba2f5fcc96a")
