@@ -21,6 +21,21 @@ autoloaded `cl-defstruct' forms are eagerly macro-expanded."
 
 (with-eval-after-load 'doom-profiles
   (add-to-list 'doom-profile-generate-functions #'+unstraightened-require-cl-lib))
+
+;; Emacs 32 added a required FILE argument to `make-autoload', but the obsolete
+;; autoload API used by Doom still passes two arguments. Remove once fixed upstream.
+(defun +unstraightened-make-autoload-args (args)
+  "Supply the source file for legacy two-argument `make-autoload' calls."
+  (if (= (length args) 2)
+      ;; Doom's autodef scanner uses a temporary buffer without a file name,
+      ;; but passes the source file's absolute path as the load name.
+      (append args (list (or buffer-file-name (cadr args))))
+    args))
+
+(with-eval-after-load 'autoload
+  (when (= (car (func-arity #'make-autoload)) 3)
+    (advice-add 'make-autoload :filter-args #'+unstraightened-make-autoload-args)))
+
 (setopt package-native-compile t)
 (setopt native-comp-jit-compilation nil)
 
