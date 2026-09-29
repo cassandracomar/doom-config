@@ -1610,7 +1610,7 @@ the start of the line."
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
-(map! :leader :desc "Start Codex" "l l" #'agent-shell-openai-start-codex)
+(map! :leader :desc "Start Codex" "l l" #'agent-shell-anthropic-start-claude-code)
 
 (use-package! let-completion
   :defer t
