@@ -18,7 +18,7 @@
 ;;
 ;; They all accept either a font-spec, font string ("Input Mono-12"), or xlfd
 ;; font string. You generally only need these two:
-(setq doom-font "Iosevka Nerd Font:size=20:weight=light")
+(setq doom-font "Iosevka Nerd Font:size=18:weight=light")
 (setq doom-symbol-font "Iosevka Nerd Font")
 (setq nerd-icons-font-family "Iosevka Nerd Font")
 (setq doom-emoji-fallback-font-families
@@ -1429,7 +1429,7 @@ the start of the line."
          "PORTKEY_API_KEY" (auth-source-rbw-get "anthropic-api-key"))
         agent-shell-openai-codex-acp-command (list (executable-find "codex-acp"))
         agent-shell-openai-default-model-id "gpt-6-astra"
-        agent-shell-openai-default-session-mode-id "permission-profile:local-network"
+        agent-shell-openai-default-session-mode-id "local-network"
         agent-shell-anthropic-authentication
         (agent-shell-anthropic-make-authentication
          :api-key (lambda () (auth-source-rbw-get "anthropic-api-key")))
@@ -1522,7 +1522,7 @@ the start of the line."
 
     :block "Compose"
     :desc "Compose prompt"                                        "C-c C-e"   #'agent-shell-prompt-compose
-    :desc "Search history"                               :i       "C-r"       #'agent-shell-search-history
+    :desc "Search history"                               :i       "C-r"       #'consult-history
     :desc "Send region"              :localleader        :n       "r"         #'agent-shell-send-region
     :desc "Send file"                :localleader        :n       "f"         #'agent-shell-send-file
     :desc "Paste image"              :localleader        :n       "p"         #'agent-shell-send-clipboard-image
@@ -1537,7 +1537,8 @@ the start of the line."
 
     :row
     :block "Launch"
-    :desc "Start Claude"              :localleader        :n       "l"         #'agent-shell-anthropic-start-claude-code
+    :desc "Start Claude"             :localleader        :n       "l"         #'agent-shell-anthropic-start-claude-code
+    :desc "Start Codex"              :localleader        :n       "g"         #'agent-shell-openai-start-codex
 
     :block "Debug"
     :desc "Toggle Logging"           :localleader        :n       "L"         #'agent-shell-toggle-logging
@@ -1610,7 +1611,8 @@ the start of the line."
 
 ;; Bootstrap binding — available before agent-shell loads.
 ;; Once the package loads, SPC l is upgraded to the full transient menu.
-(map! :leader :desc "Start Codex" "l l" #'agent-shell-anthropic-start-claude-code)
+(map! :leader :desc "Start Claude" "l l" #'agent-shell-anthropic-start-claude-code)
+(map! :leader :desc "Start Codex" "l g" #'agent-shell-anthropic-start-claude-code)
 
 (use-package! let-completion
   :defer t
