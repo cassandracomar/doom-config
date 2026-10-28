@@ -393,9 +393,15 @@ Flattening ORIG stops redisplay re-running every segment on each
   :defer t
   :commands eglot eglot-ensure lsp!
   :init
-  (remove-hook! '(eglot-managed-mode-hook doom-modeline-mode-hook) #'doom-modeline-override-eglot)
+  ;; with `doom-modeline-lsp' nil, this adds a segment for the long-gone
+  ;; `eglot--mode-line-format', which renders as an empty "[]"
+  (advice-add 'doom-modeline-override-eglot :override #'ignore)
   :config
   (load! "+eglot")
+
+  (setq mode-line-misc-info
+        (cl-remove-if (lambda (e) (equal e '(eglot--managed-mode (" [" eglot--mode-line-format "] "))))
+                      mode-line-misc-info))
 
   (when-let* ((spec (cadr (assq 'eglot--managed-mode
                                 mode-line-misc-info))))
